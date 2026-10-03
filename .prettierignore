@@ -1,0 +1,9 @@
+android/
+ios/
+build/
+coverage/
+.expo/
+package-lock.json
+CLAUDE.md
+AGENTS.md
+.devcontainer/
