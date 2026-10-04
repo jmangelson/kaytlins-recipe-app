@@ -63,6 +63,9 @@ function RootNavigator() {
           options={{ headerShown: true, title: 'Edit recipe' }}
         />
       </Stack.Protected>
+      {/* Test-only deep link target, available in any session state. Listed
+          last: the stack opens on the first screen it's allowed to show. */}
+      <Stack.Screen name="dev-setup" />
     </Stack>
   );
 }

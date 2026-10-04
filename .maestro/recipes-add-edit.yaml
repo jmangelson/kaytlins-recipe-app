@@ -1,15 +1,16 @@
 # Add a recipe by typing ingredient lines, see it parsed on the detail screen,
 # confirm it survives an app restart, edit it, then delete it.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - quick
+  - recipes
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'recipes' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
+      FIXTURE: none
 - assertVisible: 'No recipes yet.'
 
 # Add

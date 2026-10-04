@@ -63,7 +63,10 @@
     "test:rules": "bash scripts/test-rules.sh",
     "emulators": "firebase emulators:start --only auth,firestore",
     "start:emulators": "EXPO_PUBLIC_USE_FIREBASE_EMULATORS=1 expo start",
-    "screenshots": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results .maestro/tour/screenshots.yaml"
+    "screenshots": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results .maestro/tour/screenshots.yaml",
+    "e2e:quick": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --include-tags=quick .maestro",
+    "e2e:tag": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results .maestro --include-tags",
+    "e2e:parallel": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --shard-split=2 .maestro"
   },
   "private": true,
   "jest": {

@@ -1,48 +1,40 @@
 # Filter recipes by tag and search by ingredient, including the no-match state.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - recipes
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'filter' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
-- runFlow:
-    file: subflows/add-recipe.yaml
-    env:
-      NAME: 'Veggie Pasta'
-      TAG: 'Vegetarian'
-      LINE1: '1 lb penne'
-      LINE2: '1 jar marinara'
-- back
-- runFlow:
-    file: subflows/add-recipe.yaml
-    env:
-      NAME: 'Chicken Curry'
-      TAG: 'Chicken/Poultry'
-      LINE1: '2 lbs chicken thighs'
-      LINE2: '1 can coconut milk'
-- back
+      FIXTURE: recipes
 - extendedWaitUntil:
-    visible: '2 recipes'
+    visible: '4 recipes'
     timeout: 15000
 
 # Tag filter
 - tapOn: 'Vegetarian'
-- assertVisible: '1 of 2 recipes'
-- assertVisible: 'Veggie Pasta'
-- assertNotVisible: 'Chicken Curry'
+- assertVisible: '3 of 4 recipes'
+- scrollUntilVisible:
+    element: 'Veggie Pasta'
+- assertNotVisible: 'Chicken Enchiladas'
+- scrollUntilVisible:
+    element: 'Vegetarian'
+    direction: UP
 - tapOn: 'Vegetarian'
-- assertVisible: '2 recipes'
+- assertVisible: '4 recipes'
 
 # Search by ingredient
+- scrollUntilVisible:
+    element:
+      id: 'recipe-search'
+    direction: UP
 - tapOn:
     id: 'recipe-search'
-- inputText: 'coconut'
+- inputText: 'tortilla'
 - hideKeyboard
-- assertVisible: 'Chicken Curry'
+- assertVisible: 'Chicken Enchiladas'
 - assertNotVisible: 'Veggie Pasta'
 
 # No matches, then clear
@@ -53,4 +45,4 @@ appId: com.jmangelson.kaytlinsrecipes
 - hideKeyboard
 - assertVisible: 'No recipes match.'
 - tapOn: 'Clear search and filters'
-- assertVisible: '2 recipes'
+- assertVisible: '4 recipes'

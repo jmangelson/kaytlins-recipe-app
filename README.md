@@ -42,6 +42,9 @@ localhost at `10.0.2.2`.
 ```bash
 npm run validate     # prettier check, eslint, tsc, jest
 npm run test:rules   # Firestore security rules tests (uses a running emulator or starts one)
-npm run e2e          # Maestro flows in .maestro/ (emulator, Firebase emulators, Metro running)
+npm run e2e          # all Maestro flows (emulator, Firebase emulators, Metro running)
+npm run e2e:quick    # core flows only
+npm run e2e:tag -- recipes   # flows tagged recipes (also: auth, ingredients, stores, settings)
+npm run e2e:parallel # all flows split across two emulators (EMULATOR_COUNT=2 start-emulator.sh)
 npm run screenshots  # capture every screen for review (required each milestone)
 ```

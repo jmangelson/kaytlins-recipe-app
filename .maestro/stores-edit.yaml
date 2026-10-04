@@ -1,14 +1,14 @@
 # Edit a store (rename, add/reorder/remove areas, hide it) and add a new store.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - stores
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'storesedit' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
+      FIXTURE: none
 - runFlow:
     file: subflows/open-settings-item.yaml
     env:

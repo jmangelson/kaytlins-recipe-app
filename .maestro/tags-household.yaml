@@ -1,14 +1,14 @@
 # Manage recipe tags and household settings from Settings.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - settings
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'tags' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
+      FIXTURE: none
 
 # Tags: add, rename, delete
 - runFlow:

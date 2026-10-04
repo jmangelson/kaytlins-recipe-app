@@ -1,40 +1,24 @@
 # Canonical ingredients: add another name (alias), choose preferred stores,
 # override the area at one store, and merge a duplicate.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - ingredients
+  - stores
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'setup' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
-- runFlow:
-    file: subflows/add-recipe.yaml
-    env:
-      NAME: 'Salsa'
-      TAG: 'Vegetarian'
-      LINE1: '4 roma tomatoes'
-      LINE2: '1 bunch cilantro'
-- back
-- runFlow:
-    file: subflows/add-recipe.yaml
-    env:
-      NAME: 'Pico'
-      TAG: 'Vegetarian'
-      LINE1: '3 plum tomatoes'
-      LINE2: '1 lime'
-- back
-
+      FIXTURE: recipes
 # Ingredients list shows the guessed category; open roma tomatoes.
 - runFlow:
     file: subflows/open-settings-item.yaml
     env:
       ITEM: 'Ingredients'
-- extendedWaitUntil:
-    visible: 'roma tomatoes, Produce · any store'
-    timeout: 15000
+- scrollUntilVisible:
+    element: 'roma tomatoes, Produce · any store'
+    timeout: 30000
 - tapOn: 'roma tomatoes.*'
 - extendedWaitUntil:
     visible:
@@ -70,6 +54,9 @@ appId: com.jmangelson.kaytlinsrecipes
     timeout: 15000
 
 # Merge plum tomatoes into roma tomatoes; the Pico recipe follows.
+- scrollUntilVisible:
+    element: 'plum tomatoes.*'
+    direction: UP
 - tapOn: 'plum tomatoes.*'
 - extendedWaitUntil:
     visible:
@@ -98,6 +85,8 @@ appId: com.jmangelson.kaytlinsrecipes
 - back
 - back
 - tapOn: 'Recipes'
+- scrollUntilVisible:
+    element: 'Pico'
 - tapOn: 'Pico'
 - extendedWaitUntil:
     visible: 'roma tomatoes'

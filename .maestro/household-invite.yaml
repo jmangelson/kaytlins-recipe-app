@@ -2,6 +2,8 @@
 # the invite code, and both see two members. Also checks sign-out and that an
 # existing member goes straight to the app on next sign-in.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - auth
 ---
 - launchApp:
     clearState: true

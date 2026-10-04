@@ -146,6 +146,17 @@ over edited stores.
 - Follow-up: closing a row's editor scrolls that row back into view. Names
   keep her capitalization (spaces tidied); matching ignores case.
 
+### Faster tests (2026-10-04)
+
+- Test-only `dev-setup` deep link (emulator builds): signs in a test user,
+  creates the household, optionally adds sample recipes, using the app's own
+  code. Setup went from ~18 s per flow (plus ~25 s per typed recipe) to ~11 s
+  including four recipes.
+- Flows are tagged (`quick`, `auth`, `recipes`, `ingredients`, `stores`,
+  `settings`) with `e2e:quick` / `e2e:tag` scripts; `e2e:parallel` splits
+  the suite across two emulators (start-emulator.sh now supports
+  `EMULATOR_COUNT=2`; e2e-setup.sh prepares every connected emulator).
+
 ## Decisions
 
 - 2026-10-04: ingredient names keep her capitalization ("Monterey Jack");
@@ -192,6 +203,7 @@ over edited stores.
 | Scripted edits silently missed after Prettier reflowed code (again)    | String replace with no check                                                                                                                                                                                                                       | Every scripted replace now throws if its target isn't found                                                                                                      |
 | Maestro tapped a recipe row instead of the "yellow onions" choice chip | Same visible text on both; rows' labels also omitted the note                                                                                                                                                                                      | Choice chips say "Use yellow onions for onion"; row labels include the note                                                                                      |
 | Edited row ended up above the screen after Done                        | The tall inline editor collapsed and the scroll position stayed put                                                                                                                                                                                | On Done, measure the row against the scroll content (`innerViewRef`) and scroll to it                                                                            |
+| App opened on the test setup screen at launch                          | The root stack opens on the first screen it may show; the always-available `dev-setup` was listed first                                                                                                                                            | List it last, after the guarded groups                                                                                                                           |
 
 ## Lessons learned
 

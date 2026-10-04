@@ -2,15 +2,17 @@
 # vague ones ("onion") ask every time, and one line's amount can be edited
 # without retyping the recipe.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - quick
+  - recipes
+  - ingredients
 ---
-- launchApp:
-    clearState: true
 - evalScript: ${output.email = 'matching' + Date.now() + '@test.dev'}
 - runFlow:
-    file: subflows/sign-in-test-user.yaml
+    file: subflows/setup.yaml
     env:
       EMAIL: ${output.email}
-- runFlow: subflows/create-household.yaml
+      FIXTURE: none
 
 # Recipe 1 creates "yellow onions" and "ground beef".
 - runFlow:

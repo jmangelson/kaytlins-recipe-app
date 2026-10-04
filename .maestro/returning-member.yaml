@@ -1,6 +1,8 @@
 # A member who signs out and back in goes straight to their household,
 # skipping household setup.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - auth
 ---
 - launchApp:
     clearState: true

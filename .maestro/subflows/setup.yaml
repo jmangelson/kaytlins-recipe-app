@@ -1,0 +1,14 @@
+# Fast setup: fresh app, signed-in test user, household with starter stores
+# and tags, and (FIXTURE=recipes) sample recipes, via the test-only
+# dev-setup link. Params: EMAIL, FIXTURE ('none' or 'recipes')
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Sign in with Google'
+    timeout: 60000
+- openLink: kaytlinsrecipes://dev-setup?email=${EMAIL}&fixture=${FIXTURE}
+- extendedWaitUntil:
+    visible: 'Add recipe'
+    timeout: 60000

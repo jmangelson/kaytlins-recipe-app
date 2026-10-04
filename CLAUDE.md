@@ -93,6 +93,20 @@ maestro test --test-output-dir=build/maestro-results .maestro
 ```
 
 Only run `npm install` when dependencies changed or the install is missing.
+
+Run Maestro in tiers so the loop stays fast:
+
+- While iterating: `npm run e2e:tag -- <tag>` for the area you changed
+  (`auth`, `recipes`, `ingredients`, `stores`, `settings`), or
+  `npm run e2e:quick` (core paths, a few minutes).
+- Before committing a milestone: the full suite, ideally split across two
+  emulators (`EMULATOR_COUNT=2 bash .devcontainer/start-emulator.sh`, then
+  `npm run e2e:parallel`), plus `npm run screenshots`.
+- Flows that aren't testing sign-in or household setup start with
+  `subflows/setup.yaml`, which opens the test-only `dev-setup` link
+  (signed-in user, household, optional sample recipes) in seconds. Only flows
+  that test those screens go through them.
+- Run one Maestro command at a time per emulator; overlapping runs collide.
 Keep repeatable end-to-end flows in `.maestro/`, organized by user journey.
 Flows should verify visible behavior rather than implementation details. Add a
 focused flow for each important feature and keep a smoke flow for launch,

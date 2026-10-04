@@ -1,5 +1,8 @@
 # Smoke: launch, sign in, create a household, and open every tab.
 appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - quick
+  - auth
 ---
 - launchApp:
     clearState: true
