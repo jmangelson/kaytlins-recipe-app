@@ -53,6 +53,7 @@ app:assembleRelease`): JS bundled, real Firebase, signed with the debug key
   (SHA-1 `5E:8F:16:…:F6:25`, verified with `apksigner`). On the emulator it
   launches without Metro and opens Google's sign-in UI with no config error.
 
+- 2026-10-04: second test APK (Milestones 1–4) built for phone testing.
 - 2026-10-04: **verified on a physical phone** with the test APK: Google
   sign-in, household creation, app restart, and offline launch (airplane mode)
   all work. Not yet tried: a second phone joining with the invite code.
@@ -213,5 +214,11 @@ firestore:rules`, after `npm run test:rules` passes.
   labels count ("Settings"); scroll to an element unique to the screen.
 - **Test renderer quirk:** RNTL could not observe a save made in an unmount
   cleanup; that behavior is verified on the device instead.
+- **Release builds starve the emulator.** `./gradlew app:assembleRelease` on all
+  cores froze the emulator's CPU threads for 15 s+ and its watchdog killed it.
+  Run release builds with `nice -n 19`, or with the emulator stopped.
+- **Installing the release APK over the dev build keeps its data** (same debug
+  signing key), including an Auth-emulator sign-in the real backend rejects.
+  Uninstall first (and check it succeeded) or `pm clear` before testing.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.
