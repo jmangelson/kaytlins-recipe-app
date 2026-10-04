@@ -27,7 +27,25 @@ export function nameProblem(
 }
 
 export function addSection(sections: StoreSection[], id: string, name: string): StoreSection[] {
-  return [...sections, { id, name: name.trim(), order: sections.length }];
+  return [...sections, { id, name: name.trim(), order: sections.length, categoryIds: [] }];
+}
+
+/** Turns a category on or off for an area. */
+export function toggleSectionCategory(
+  sections: StoreSection[],
+  id: string,
+  categoryId: StoreSection['categoryIds'][number]
+): StoreSection[] {
+  return sections.map((s) =>
+    s.id !== id
+      ? s
+      : {
+          ...s,
+          categoryIds: s.categoryIds.includes(categoryId)
+            ? s.categoryIds.filter((c) => c !== categoryId)
+            : [...s.categoryIds, categoryId],
+        }
+  );
 }
 
 export function renameSection(sections: StoreSection[], id: string, name: string): StoreSection[] {
@@ -36,16 +54,4 @@ export function renameSection(sections: StoreSection[], id: string, name: string
 
 export function removeSection(sections: StoreSection[], id: string): StoreSection[] {
   return sections.filter((s) => s.id !== id);
-}
-
-/** "Macey's › Produce", "Macey's", or null when no store is set. */
-export function describeLocation(
-  stores: { id: string; name: string; sections: StoreSection[] }[],
-  storeId: string | null,
-  sectionId: string | null
-): string | null {
-  const store = stores.find((s) => s.id === storeId);
-  if (!store) return null;
-  const section = store.sections.find((s) => s.id === sectionId);
-  return section ? `${store.name} › ${section.name}` : store.name;
 }

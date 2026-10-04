@@ -1,9 +1,10 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
@@ -11,6 +12,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedSwitch } from '@/components/themed-switch';
 import { Spacing } from '@/constants/theme';
+import { CATEGORIES, categoryName, type CategoryId } from '@/features/ingredients/categories';
 import { useHousehold } from '@/features/session/session-provider';
 import {
   addSection,
@@ -18,6 +20,7 @@ import {
   nameProblem,
   removeSection,
   renameSection,
+  toggleSectionCategory,
 } from '@/features/stores/store-edit';
 import { listStores, newId, saveStore } from '@/features/stores/store-repo';
 import type { Store, StoreSection } from '@/features/stores/store-types';
@@ -210,6 +213,12 @@ function StoreEditor({
                   : undefined
               }
               onRemove={() => confirmRemove(section)}
+              onToggleCategory={(categoryId) =>
+                persist({
+                  ...latest.current,
+                  sections: toggleSectionCategory(latest.current.sections, section.id, categoryId),
+                })
+              }
             />
           ))
         )}
@@ -241,9 +250,11 @@ function AreaRow({
   onUp,
   onDown,
   onRemove,
+  onToggleCategory,
 }: {
   section: StoreSection;
   position: number;
+  onToggleCategory: (categoryId: CategoryId) => void;
   /** Returns an error message, or null when the rename is accepted. */
   onRename: (name: string) => string | null;
   onUp?: () => void;
@@ -253,7 +264,9 @@ function AreaRow({
   const theme = useTheme();
   const [name, setName] = useState(section.name);
   const [error, setError] = useState<string | null>(null);
+  const [showCategories, setShowCategories] = useState(false);
   useAutosave(name, (value) => setError(onRename(value)));
+  const holds = section.categoryIds.map(categoryName).join(', ');
 
   return (
     <View style={[styles.areaBlock, { borderBottomColor: theme.border }]}>
@@ -282,6 +295,18 @@ function AreaRow({
       )}
       {/* Actions on their own line so the name gets the full width on a phone. */}
       <View style={styles.areaActions}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Categories in ${section.name}: ${holds || 'none'}`}
+          onPress={() => setShowCategories((v) => !v)}
+          style={styles.holds}>
+          <ThemedText
+            type="small"
+            themeColor={holds ? 'textSecondary' : 'attention'}
+            numberOfLines={2}>
+            {holds ? `Holds ${holds}` : 'Holds no categories'}
+          </ThemedText>
+        </Pressable>
         <IconButton
           icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
           label={`Move ${section.name} up`}
@@ -301,6 +326,23 @@ function AreaRow({
           tone="danger"
         />
       </View>
+      {showCategories && (
+        <View style={styles.categoryChips}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Ingredients in these categories go to {section.name} unless you choose otherwise.
+          </ThemedText>
+          <View style={styles.chipWrap}>
+            {CATEGORIES.map((c) => (
+              <Chip
+                key={c.id}
+                label={c.name}
+                selected={section.categoryIds.includes(c.id)}
+                onPress={() => onToggleCategory(c.id)}
+              />
+            ))}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -323,7 +365,23 @@ const styles = StyleSheet.create({
   },
   areaActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  holds: {
+    flex: 1,
+    marginLeft: 32,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  categoryChips: {
+    marginLeft: 32,
+    gap: Spacing.two,
+    paddingBottom: Spacing.two,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
   },
   areaRow: {
     flexDirection: 'row',

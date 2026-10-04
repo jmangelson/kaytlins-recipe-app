@@ -3,35 +3,39 @@
  * household gets once. Ids are fixed so seeding twice writes the same docs.
  * Bump SEED_VERSION when adding seed content.
  */
-export const SEED_VERSION = 1;
+import type { CategoryId } from '@/features/ingredients/categories';
 
-export type SeedSection = { id: string; name: string };
+/** 1: stores, areas, tags. 2: areas list the grocery categories they hold. */
+export const SEED_VERSION = 2;
+
+export type SeedSection = { id: string; name: string; categoryIds: CategoryId[] };
 export type SeedStore = { id: string; name: string; sections: SeedSection[] };
 export type SeedTag = { id: string; name: string };
 
 const GROCERY_SECTIONS: SeedSection[] = [
-  { id: 'produce', name: 'Produce' },
-  { id: 'bakery', name: 'Bakery' },
-  { id: 'deli', name: 'Deli' },
-  { id: 'meat-seafood', name: 'Meat & Seafood' },
-  { id: 'dairy-eggs', name: 'Dairy & Eggs' },
-  { id: 'frozen', name: 'Frozen' },
-  { id: 'pantry-canned', name: 'Pantry & Canned' },
-  { id: 'baking-spices', name: 'Baking & Spices' },
-  { id: 'snacks', name: 'Snacks' },
-  { id: 'beverages', name: 'Beverages' },
-  { id: 'household', name: 'Household' },
+  { id: 'produce', name: 'Produce', categoryIds: ['produce'] },
+  { id: 'bakery', name: 'Bakery', categoryIds: ['bakery'] },
+  { id: 'deli', name: 'Deli', categoryIds: ['deli'] },
+  { id: 'meat-seafood', name: 'Meat & Seafood', categoryIds: ['meat-seafood'] },
+  { id: 'dairy-eggs', name: 'Dairy & Eggs', categoryIds: ['dairy-eggs'] },
+  { id: 'frozen', name: 'Frozen', categoryIds: ['frozen'] },
+  { id: 'pantry-canned', name: 'Pantry & Canned', categoryIds: ['pantry-canned'] },
+  { id: 'baking-spices', name: 'Baking & Spices', categoryIds: ['baking-spices'] },
+  { id: 'snacks', name: 'Snacks', categoryIds: ['snacks'] },
+  { id: 'beverages', name: 'Beverages', categoryIds: ['beverages'] },
+  { id: 'household', name: 'Household', categoryIds: ['household', 'other'] },
 ];
 
+// Warehouse clubs combine departments, so one area holds several categories.
 const WAREHOUSE_SECTIONS: SeedSection[] = [
-  { id: 'produce', name: 'Produce' },
-  { id: 'bakery', name: 'Bakery' },
-  { id: 'meat-seafood', name: 'Meat & Seafood' },
-  { id: 'dairy-eggs', name: 'Dairy & Eggs' },
-  { id: 'frozen', name: 'Frozen' },
-  { id: 'pantry', name: 'Pantry' },
-  { id: 'snacks-beverages', name: 'Snacks & Beverages' },
-  { id: 'household', name: 'Household' },
+  { id: 'produce', name: 'Produce', categoryIds: ['produce'] },
+  { id: 'bakery', name: 'Bakery', categoryIds: ['bakery'] },
+  { id: 'meat-seafood', name: 'Meat & Seafood', categoryIds: ['meat-seafood', 'deli'] },
+  { id: 'dairy-eggs', name: 'Dairy & Eggs', categoryIds: ['dairy-eggs'] },
+  { id: 'frozen', name: 'Frozen', categoryIds: ['frozen'] },
+  { id: 'pantry', name: 'Pantry', categoryIds: ['pantry-canned', 'baking-spices'] },
+  { id: 'snacks-beverages', name: 'Snacks & Beverages', categoryIds: ['snacks', 'beverages'] },
+  { id: 'household', name: 'Household', categoryIds: ['household', 'other'] },
 ];
 
 export const SEED_STORES: SeedStore[] = [

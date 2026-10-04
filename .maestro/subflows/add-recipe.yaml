@@ -1,5 +1,6 @@
 # From the Recipes tab, adds a recipe with one tag and two ingredient lines
-# and waits for its detail screen. Params: NAME, TAG, LINE1, LINE2
+# (both must resolve without a choice) and waits for its detail screen.
+# Params: NAME, TAG, LINE1, LINE2
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - tapOn: 'Add recipe'
@@ -13,15 +14,16 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: ${TAG}
 - scrollUntilVisible:
     element:
-      id: 'recipe-ingredients'
+      id: 'recipe-add-ingredients'
 - tapOn:
-    id: 'recipe-ingredients'
+    id: 'recipe-add-ingredients'
 - inputText: ${LINE1}
 - pressKey: Enter
 - inputText: ${LINE2}
 - hideKeyboard
 - scrollUntilVisible:
-    element: 'Read as 2 ingredients:'
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'

@@ -241,13 +241,19 @@ describe('stores, tags, and ingredients', () => {
     const ingredient = {
       name: 'Yellow onion',
       nameKey: 'yellow onion',
+      aliases: ['onion'],
+      aliasKeys: ['onion'],
+      category: 'produce',
+      storePriority: ['costco', 'maceys'],
+      areaOverrides: { costco: 'produce' },
       defaultUnit: null,
-      storeId: 'maceys',
-      sectionId: 'produce',
     };
     await assertSucceeds(setDoc(doc(db, 'households', HID, 'ingredients', 'i1'), ingredient));
     await assertFails(
-      setDoc(doc(db, 'households', HID, 'ingredients', 'i2'), { ...ingredient, storeId: 5 })
+      setDoc(doc(db, 'households', HID, 'ingredients', 'i2'), { ...ingredient, aliasKeys: [] })
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'ingredients', 'i3'), { ...ingredient, storeId: 'x' })
     );
   });
 
@@ -277,11 +283,14 @@ describe('recipes and recipe photos', () => {
     const db = dbAs('alice');
     const batch = writeBatch(db);
     batch.set(doc(db, 'households', HID, 'ingredients', 'i1'), {
-      name: 'ground beef',
+      name: 'Ground beef',
       nameKey: 'ground beef',
+      aliases: [],
+      aliasKeys: [],
+      category: 'meat-seafood',
+      storePriority: [],
+      areaOverrides: {},
       defaultUnit: null,
-      storeId: null,
-      sectionId: null,
     });
     batch.set(doc(db, 'households', HID, 'recipes', 'r2'), { ...recipe, hasPhoto: true });
     batch.set(doc(db, 'households', HID, 'recipePhotos', 'r2'), { jpegBase64: 'abc' });

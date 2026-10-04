@@ -10,12 +10,23 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { categoryName } from '@/features/ingredients/categories';
+import { searchIngredients, type Ingredient } from '@/features/ingredients/ingredient-model';
+import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { useHousehold } from '@/features/session/session-provider';
-import { describeLocation } from '@/features/stores/store-edit';
-import { listIngredients, listStores } from '@/features/stores/store-repo';
+import { listStores } from '@/features/stores/store-repo';
+import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
+
+/** "Produce · Costco › Sam's", or "Produce · any store". */
+function summary(ingredient: Ingredient, stores: Store[]): string {
+  const names = ingredient.storePriority
+    .map((id) => stores.find((s) => s.id === id && !s.hidden)?.name)
+    .filter(Boolean);
+  return `${categoryName(ingredient.category)} · ${names.length ? names.join(' › ') : 'any store'}`;
+}
 
 export default function IngredientsScreen() {
   const { household } = useHousehold();
@@ -27,7 +38,7 @@ export default function IngredientsScreen() {
     return { ingredients, stores };
   }, [household.id]);
   const [search, setSearch] = useState('');
-  const [onlyUnassigned, setOnlyUnassigned] = useState(false);
+  const [onlyOther, setOnlyOther] = useState(false);
 
   const refresh = data.refresh;
   useFocusEffect(
@@ -47,60 +58,54 @@ export default function IngredientsScreen() {
   }
 
   const { ingredients, stores } = data.state.data;
-  const rows = ingredients.map((ingredient) => ({
-    ingredient,
-    location: describeLocation(stores, ingredient.storeId, ingredient.sectionId),
-  }));
-  const unassignedCount = rows.filter((r) => !r.location).length;
-  const needle = search.trim().toLowerCase();
-  const visible = rows.filter(
-    (r) =>
-      (!onlyUnassigned || !r.location) &&
-      (!needle || r.ingredient.name.toLowerCase().includes(needle))
-  );
-
   if (ingredients.length === 0) {
     return (
       <Screen edges={HEADER_EDGES}>
         <ThemedText themeColor="textSecondary">
-          No ingredients yet. They’re added automatically when you save a recipe.
+          No ingredients yet. They’re added when you save a recipe.
         </ThemedText>
       </Screen>
     );
   }
 
+  const otherCount = ingredients.filter((i) => i.category === 'other').length;
+  const visible = searchIngredients(search, ingredients).filter(
+    (i) => !onlyOther || i.category === 'other'
+  );
+
   return (
     <Screen edges={HEADER_EDGES}>
       <ThemedText themeColor="textSecondary">
-        Set where you usually buy each ingredient so shopping lists group it by store and area.
+        One entry per ingredient, used by every recipe. Set where you buy each one once; its area in
+        each store follows from its category.
       </ThemedText>
       <TextField
         label="Search"
         testID="ingredient-search"
         value={search}
         onChangeText={setSearch}
-        placeholder="Ingredient name"
+        placeholder="Name or other name"
         autoCorrect={false}
       />
-      <View style={styles.filters}>
-        <Chip
-          label={`No store yet (${unassignedCount})`}
-          selected={onlyUnassigned}
-          onPress={() => setOnlyUnassigned((v) => !v)}
-        />
-      </View>
+      {otherCount > 0 && (
+        <View style={styles.filters}>
+          <Chip
+            label={`Category: Other (${otherCount})`}
+            selected={onlyOther}
+            onPress={() => setOnlyOther((v) => !v)}
+          />
+        </View>
+      )}
       {visible.length === 0 ? (
-        <ThemedText themeColor="textSecondary">
-          {onlyUnassigned && !needle ? 'Every ingredient has a store.' : 'No ingredients match.'}
-        </ThemedText>
+        <ThemedText themeColor="textSecondary">No ingredients match.</ThemedText>
       ) : (
         <View>
-          {visible.map(({ ingredient, location }) => (
+          {visible.map((ingredient) => (
             <ListRow
               key={ingredient.id}
               title={ingredient.name}
-              subtitle={location ?? 'No store yet'}
-              subtitleTone={location ? 'default' : 'attention'}
+              subtitle={summary(ingredient, stores)}
+              subtitleTone={ingredient.category === 'other' ? 'attention' : 'default'}
               onPress={() =>
                 router.push({ pathname: '/ingredient/[id]', params: { id: ingredient.id } })
               }

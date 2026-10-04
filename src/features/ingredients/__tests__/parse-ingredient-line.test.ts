@@ -1,6 +1,7 @@
 import {
   ingredientNameKey,
   parseAmount,
+  parseAmountRange,
   parseIngredientLine,
 } from '@/features/ingredients/parse-ingredient-line';
 
@@ -79,5 +80,23 @@ describe('ingredientNameKey', () => {
     ['peas', 'pea'],
   ])('%s → %s', (name, key) => {
     expect(ingredientNameKey(name)).toBe(key);
+  });
+});
+
+describe('parseAmountRange', () => {
+  it.each([
+    ['2', 2, null],
+    ['1 1/2', 1.5, null],
+    ['1 ½', 1.5, null],
+    ['.5', 0.5, null],
+    ['2-3', 2, 3],
+    ['2 to 3', 2, 3],
+    ['', null, null],
+  ])('%s', (text, quantity, quantityMax) => {
+    expect(parseAmountRange(text)).toEqual({ quantity, quantityMax });
+  });
+
+  it.each(['abc', '2 cups', '0', '3-2'])('rejects %s', (text) => {
+    expect(parseAmountRange(text)).toBeNull();
   });
 });

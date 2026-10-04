@@ -88,9 +88,9 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Chicken/Poultry'
 - scrollUntilVisible:
     element:
-      id: 'recipe-ingredients'
+      id: 'recipe-add-ingredients'
 - tapOn:
-    id: 'recipe-ingredients'
+    id: 'recipe-add-ingredients'
 - inputText: '2 lbs chicken breasts'
 - pressKey: Enter
 - inputText: '1 (10 oz) can red enchilada sauce'
@@ -103,10 +103,21 @@ appId: com.jmangelson.kaytlinsrecipes
 - pressKey: Enter
 - inputText: 'Salt to taste'
 - hideKeyboard
+- takeScreenshot: build/screenshots/15-recipe-form-paste
 - scrollUntilVisible:
-    element: 'Read as 6 ingredients:'
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Edit 1 can red enchilada sauce, 10 oz'
+    direction: UP
     centerElement: true
-- takeScreenshot: build/screenshots/15-recipe-form-preview
+- takeScreenshot: build/screenshots/15b-recipe-form-rows
+- tapOn: 'Edit 2 lb chicken breasts'
+- takeScreenshot: build/screenshots/15c-row-editor
+- scrollUntilVisible:
+    element: 'Done'
+- takeScreenshot: build/screenshots/15d-row-editor-bottom
+- tapOn: 'Done'
 - runFlow: ../subflows/choose-recipe-photo.yaml
 - takeScreenshot: build/screenshots/16-recipe-form-photo
 - scrollUntilVisible:
@@ -143,6 +154,40 @@ appId: com.jmangelson.kaytlinsrecipes
 - inputText: 'zzz'
 - hideKeyboard
 - takeScreenshot: build/screenshots/21-recipes-no-match
+- tapOn:
+    id: 'recipe-search'
+- eraseText: 5
+- hideKeyboard
+
+# A vague line asks which ingredient it means (Milestone 4b)
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'French Onion Soup'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'recipe-add-ingredients'
+- tapOn:
+    id: 'recipe-add-ingredients'
+- inputText: '3 sweet onions, sliced'
+- pressKey: Enter
+- inputText: '4 cups beef broth'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Which ingredient is.*'
+    direction: UP
+    centerElement: true
+- takeScreenshot: build/screenshots/21b-recipe-vague-match
+- tapOn: 'New: sweet onions'
+- back
 
 # Settings and shopping setup (Milestone 4)
 - tapOn: 'Settings'
@@ -174,6 +219,9 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'store-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/25-store-edit
+- tapOn: 'Categories in Bakery.*'
+- takeScreenshot: build/screenshots/25b-store-area-categories
+- tapOn: 'Categories in Bakery.*'
 - scrollUntilVisible:
     element: 'Add area'
 - takeScreenshot: build/screenshots/26-store-edit-bottom
@@ -198,16 +246,32 @@ appId: com.jmangelson.kaytlinsrecipes
     centerElement: true
 - tapOn: 'Ingredients'
 - extendedWaitUntil:
-    visible: 'No store yet.*'
+    visible: 'chicken breasts.*'
     timeout: 15000
 - takeScreenshot: build/screenshots/28-ingredients
 - tapOn: 'chicken breasts.*'
-- tapOn: "Macey's"
-- tapOn: 'Meat & Seafood'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
 - takeScreenshot: build/screenshots/29-ingredient-edit
+- scrollUntilVisible:
+    element: '\+ Costco'
+- tapOn: '\+ Costco'
+- scrollUntilVisible:
+    element: "\\+ Macey's"
+- tapOn: "\\+ Macey's"
+- scrollUntilVisible:
+    element: 'Where to buy it'
+    centerElement: true
+- takeScreenshot: build/screenshots/29b-ingredient-stores
+- scrollUntilVisible:
+    element: 'Area in each store'
+    centerElement: true
+- takeScreenshot: build/screenshots/29c-ingredient-areas
 - tapOn: 'Save'
 - extendedWaitUntil:
-    visible: "Macey's › Meat & Seafood"
+    visible: "chicken breasts, Meat & Seafood · Costco › Macey's"
     timeout: 15000
 - takeScreenshot: build/screenshots/30-ingredients-assigned
 - back

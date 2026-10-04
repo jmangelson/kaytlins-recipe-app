@@ -1,10 +1,10 @@
 import {
   addSection,
-  describeLocation,
   moveItem,
   nameProblem,
   removeSection,
   renameSection,
+  toggleSectionCategory,
 } from '@/features/stores/store-edit';
 
 describe('moveItem', () => {
@@ -34,28 +34,29 @@ describe('nameProblem', () => {
 
 describe('section edits', () => {
   const sections = [
-    { id: 'produce', name: 'Produce', order: 0 },
-    { id: 'dairy', name: 'Dairy', order: 1 },
+    { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce' as const] },
+    { id: 'dairy', name: 'Dairy', order: 1, categoryIds: [] },
   ];
 
   it('adds, renames, and removes', () => {
     expect(addSection(sections, 'x', ' Bulk ')).toEqual([
       ...sections,
-      { id: 'x', name: 'Bulk', order: 2 },
+      { id: 'x', name: 'Bulk', order: 2, categoryIds: [] },
     ]);
     expect(renameSection(sections, 'dairy', 'Dairy & Eggs')[1].name).toBe('Dairy & Eggs');
     expect(removeSection(sections, 'produce').map((s) => s.id)).toEqual(['dairy']);
   });
 });
 
-describe('describeLocation', () => {
-  const stores = [{ id: 'm', name: "Macey's", sections: [{ id: 'p', name: 'Produce', order: 0 }] }];
-
-  it('names the store and area', () => {
-    expect(describeLocation(stores, 'm', 'p')).toBe("Macey's › Produce");
-    expect(describeLocation(stores, 'm', null)).toBe("Macey's");
-    expect(describeLocation(stores, 'm', 'gone')).toBe("Macey's");
-    expect(describeLocation(stores, null, null)).toBeNull();
-    expect(describeLocation(stores, 'deleted-store', 'p')).toBeNull();
+describe('toggleSectionCategory', () => {
+  it('adds and removes a category from one area', () => {
+    const sections = [
+      { id: 'pantry', name: 'Pantry', order: 0, categoryIds: ['pantry-canned' as const] },
+    ];
+    const added = toggleSectionCategory(sections, 'pantry', 'baking-spices');
+    expect(added[0].categoryIds).toEqual(['pantry-canned', 'baking-spices']);
+    expect(toggleSectionCategory(added, 'pantry', 'pantry-canned')[0].categoryIds).toEqual([
+      'baking-spices',
+    ]);
   });
 });

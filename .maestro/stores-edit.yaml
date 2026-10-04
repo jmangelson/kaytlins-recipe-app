@@ -25,8 +25,9 @@ appId: com.jmangelson.kaytlinsrecipes
 - eraseText: 20
 - inputText: 'Costco Wholesale'
 - hideKeyboard
+# The header title follows the saved store; "Saved" only shows for 2 seconds.
 - extendedWaitUntil:
-    visible: 'Saved'
+    visible: 'Costco Wholesale'
     timeout: 10000
 
 # Add an area, move it up, remove another
@@ -74,9 +75,6 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn:
     text: 'Use on shopping lists'
     index: 1
-- extendedWaitUntil:
-    visible: 'Saved'
-    timeout: 10000
 - back
 - scrollUntilVisible:
     element: 'Hidden stores'

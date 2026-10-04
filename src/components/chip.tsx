@@ -9,10 +9,12 @@ type ChipProps = {
   /** When set, the chip is a toggle button. */
   selected?: boolean;
   onPress?: () => void;
+  /** Spoken label when the visible text alone is ambiguous. */
+  accessibilityLabel?: string;
 };
 
 /** Small rounded label; becomes a toggle when `onPress` is given. */
-export function Chip({ label, selected = false, onPress }: ChipProps) {
+export function Chip({ label, selected = false, onPress, accessibilityLabel }: ChipProps) {
   const theme = useTheme();
   const colors = selected
     ? { backgroundColor: theme.tint, borderColor: theme.tint }
@@ -27,7 +29,7 @@ export function Chip({ label, selected = false, onPress }: ChipProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected }}
       onPress={onPress}
       hitSlop={4}

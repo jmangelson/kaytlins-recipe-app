@@ -9,17 +9,13 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import {
-  formatIngredientAmount,
-  parseDraftIngredients,
-  validateDraft,
-  type DraftErrors,
-} from '@/features/recipes/recipe-draft';
+import type { Ingredient } from '@/features/ingredients/ingredient-model';
+import { IngredientRowsEditor } from '@/features/recipes/ingredient-rows-editor';
+import { validateDraft, type DraftErrors } from '@/features/recipes/recipe-draft';
 import { pickRecipePhoto } from '@/features/recipes/recipe-photo';
 import type { PhotoChange } from '@/features/recipes/recipe-repo';
 import type { RecipeDraft } from '@/features/recipes/recipe-types';
 import type { Tag } from '@/features/stores/store-types';
-import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
@@ -28,6 +24,8 @@ type RecipeFormProps = {
   /** Existing photo (base64 JPEG) when editing. */
   initialPhoto: string | null;
   tags: Tag[];
+  /** Her canonical ingredient list, for matching and picking. */
+  ingredients: Ingredient[];
   saveLabel: string;
   onSave: (draft: RecipeDraft, photo: PhotoChange) => Promise<void>;
 };
@@ -36,10 +34,10 @@ export function RecipeForm({
   initialDraft,
   initialPhoto,
   tags,
+  ingredients,
   saveLabel,
   onSave,
 }: RecipeFormProps) {
-  const theme = useTheme();
   const [draft, setDraft] = useState(initialDraft);
   const [photo, setPhoto] = useState<PhotoChange>({ kind: 'unchanged' });
   const [errors, setErrors] = useState<DraftErrors>({});
@@ -47,14 +45,14 @@ export function RecipeForm({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
-  const parsed = parseDraftIngredients(draft.ingredientsText);
   const hasErrors = Object.values(errors).some(Boolean);
   const shownPhoto =
     photo.kind === 'set' ? photo.jpegBase64 : photo.kind === 'remove' ? null : initialPhoto;
 
   function update<K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
-    if (key in errors) setErrors((e) => ({ ...e, [key]: undefined }));
+    const errorKey = key === 'rows' ? 'ingredients' : key;
+    if (errorKey in errors) setErrors((e) => ({ ...e, [errorKey]: undefined }));
   }
 
   function toggleTag(id: string) {
@@ -125,41 +123,12 @@ export function RecipeForm({
         </View>
       )}
 
-      <TextField
-        label="Ingredients"
-        testID="recipe-ingredients"
-        hint="One per line, like “1 ½ cups flour, sifted”. You can paste a whole list."
-        value={draft.ingredientsText}
-        onChangeText={(v) => update('ingredientsText', v)}
-        multiline
-        autoCapitalize="none"
-        autoCorrect={false}
+      <IngredientRowsEditor
+        rows={draft.rows}
+        onChange={(rows) => update('rows', rows)}
+        ingredients={ingredients}
         error={errors.ingredients}
       />
-      {parsed.length > 0 && (
-        <View
-          style={[styles.preview, { borderColor: theme.border }]}
-          accessibilityLabel="How the ingredients were read">
-          <ThemedText type="small" themeColor="textSecondary">
-            Read as {parsed.length} {parsed.length === 1 ? 'ingredient' : 'ingredients'}:
-          </ThemedText>
-          {parsed.map((p, index) => (
-            <View key={index} style={styles.previewRow}>
-              <ThemedText type="smallBold" style={styles.previewAmount}>
-                {formatIngredientAmount(p) || '—'}
-              </ThemedText>
-              <ThemedText type="small" style={styles.previewName}>
-                {p.name}
-                {p.note ? (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {` (${p.note})`}
-                  </ThemedText>
-                ) : null}
-              </ThemedText>
-            </View>
-          ))}
-        </View>
-      )}
 
       <TextField
         label="Notes or source"
@@ -221,23 +190,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  preview: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: Spacing.three,
-    gap: Spacing.one,
-    marginTop: -Spacing.two,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  previewAmount: {
-    width: 88,
-  },
-  previewName: {
-    flex: 1,
   },
   photo: {
     width: '100%',

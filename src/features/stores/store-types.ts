@@ -1,7 +1,11 @@
+import type { CategoryId } from '@/features/ingredients/categories';
+
 export type StoreSection = {
   id: string;
   name: string;
   order: number;
+  /** Grocery categories shelved in this area. */
+  categoryIds: CategoryId[];
 };
 
 export type Store = {
@@ -18,12 +22,4 @@ export type Tag = {
   order: number;
 };
 
-export type Ingredient = {
-  id: string;
-  name: string;
-  /** Matching key from ingredientNameKey(): "Yellow Onions" → "yellow onion". */
-  nameKey: string;
-  defaultUnit: string | null;
-  storeId: string | null;
-  sectionId: string | null;
-};
+export type { Ingredient } from '@/features/ingredients/ingredient-model';

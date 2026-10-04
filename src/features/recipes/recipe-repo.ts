@@ -7,9 +7,10 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 
-import { linkIngredients, parseDraftIngredients } from '@/features/recipes/recipe-draft';
+import { ingredientToData, newIngredient } from '@/features/ingredients/ingredient-model';
+import { listIngredients, newIngredientRef } from '@/features/ingredients/ingredient-repo';
+import { linesForSave } from '@/features/recipes/recipe-draft';
 import type { Recipe, RecipeDraft } from '@/features/recipes/recipe-types';
-import { listIngredients } from '@/features/stores/store-repo';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
@@ -53,8 +54,8 @@ export async function getRecipePhoto(
 }
 
 /**
- * Creates or updates a recipe, linking each ingredient line to the household's
- * ingredient list (creating ingredients it hasn't seen), in one batch.
+ * Creates or updates a recipe in one batch, creating the canonical
+ * ingredients for rows marked "new" (category guessed from the name).
  * Returns the recipe id.
  */
 export async function saveRecipe(
@@ -65,23 +66,14 @@ export async function saveRecipe(
   hadPhoto: boolean
 ): Promise<string> {
   const existing = await listIngredients(householdId);
-  const { lines, newIngredients } = linkIngredients(
-    parseDraftIngredients(draft.ingredientsText),
-    existing
-  );
+  const { lines, newIngredients } = linesForSave(draft.rows, existing);
 
   const batch = writeBatch(db);
   const realIds = new Map<string, string>();
   for (const ingredient of newIngredients) {
-    const ref = doc(collection(db, 'households', householdId, 'ingredients'));
+    const ref = newIngredientRef(householdId);
     realIds.set(ingredient.tempId, ref.id);
-    batch.set(ref, {
-      name: ingredient.name,
-      nameKey: ingredient.nameKey,
-      defaultUnit: null,
-      storeId: null,
-      sectionId: null,
-    });
+    batch.set(ref, ingredientToData(newIngredient(ingredient.name)));
   }
 
   const recipeRef = recipeId

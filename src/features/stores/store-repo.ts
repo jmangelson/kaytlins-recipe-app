@@ -1,20 +1,16 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
-  limit,
   orderBy,
   query,
   setDoc,
-  where,
   writeBatch,
 } from '@react-native-firebase/firestore';
 
-import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
-import type { Ingredient, Store, StoreSection, Tag } from '@/features/stores/store-types';
+import { isCategoryId } from '@/features/ingredients/categories';
+import type { Store, StoreSection, Tag } from '@/features/stores/store-types';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
@@ -29,7 +25,10 @@ export async function listStores(householdId: string): Promise<Store[]> {
   return snapshot.docs.map((d) => {
     const data = d.data();
     const sections = ((data.sections ?? []) as StoreSection[])
-      .slice()
+      .map((section) => ({
+        ...section,
+        categoryIds: (section.categoryIds ?? []).filter(isCategoryId),
+      }))
       .sort((a, b) => a.order - b.order);
     return { id: d.id, name: data.name, order: data.order, hidden: !!data.hidden, sections };
   });
@@ -38,33 +37,6 @@ export async function listStores(householdId: string): Promise<Store[]> {
 export async function listTags(householdId: string): Promise<Tag[]> {
   const snapshot = await getDocs(query(householdCollection(householdId, 'tags'), orderBy('order')));
   return snapshot.docs.map((d) => ({ id: d.id, name: d.data().name, order: d.data().order }));
-}
-
-export async function findIngredientByName(
-  householdId: string,
-  name: string
-): Promise<Ingredient | null> {
-  const snapshot = await getDocs(
-    query(
-      householdCollection(householdId, 'ingredients'),
-      where('nameKey', '==', ingredientNameKey(name)),
-      limit(1)
-    )
-  );
-  const match = snapshot.docs[0];
-  return match ? ({ id: match.id, ...match.data() } as Ingredient) : null;
-}
-
-export async function createIngredient(
-  householdId: string,
-  ingredient: Omit<Ingredient, 'id' | 'nameKey'>
-): Promise<string> {
-  const ref = await addDoc(householdCollection(householdId, 'ingredients'), {
-    ...ingredient,
-    name: ingredient.name.trim(),
-    nameKey: ingredientNameKey(ingredient.name),
-  });
-  return ref.id;
 }
 
 function storeDoc(householdId: string, storeId: string) {
@@ -87,6 +59,7 @@ export async function saveStore(householdId: string, store: Store): Promise<void
         id: section.id,
         name: section.name.trim(),
         order,
+        categoryIds: section.categoryIds,
       })),
     })
   );
@@ -122,33 +95,4 @@ export async function saveTag(householdId: string, tag: Tag): Promise<void> {
 
 export async function deleteTag(householdId: string, tagId: string): Promise<void> {
   await commitOrQueue(() => deleteDoc(doc(db, 'households', householdId, 'tags', tagId)));
-}
-
-export async function listIngredients(householdId: string): Promise<Ingredient[]> {
-  const snapshot = await getDocs(householdCollection(householdId, 'ingredients'));
-  return snapshot.docs
-    .map((d) => ({ id: d.id, ...d.data() }) as Ingredient)
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-}
-
-export async function getIngredient(
-  householdId: string,
-  ingredientId: string
-): Promise<Ingredient | null> {
-  const snapshot = await getDoc(doc(db, 'households', householdId, 'ingredients', ingredientId));
-  const data = snapshot.data();
-  return data ? ({ id: snapshot.id, ...data } as Ingredient) : null;
-}
-
-/** Renames an ingredient and/or sets where she usually buys it. */
-export async function saveIngredient(householdId: string, ingredient: Ingredient): Promise<void> {
-  await commitOrQueue(() =>
-    setDoc(doc(db, 'households', householdId, 'ingredients', ingredient.id), {
-      name: ingredient.name.trim(),
-      nameKey: ingredientNameKey(ingredient.name),
-      defaultUnit: ingredient.defaultUnit,
-      storeId: ingredient.storeId,
-      sectionId: ingredient.sectionId,
-    })
-  );
 }

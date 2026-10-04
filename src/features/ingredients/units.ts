@@ -252,3 +252,19 @@ export function bestDisplayUnit(dimension: 'volume' | 'weight', baseAmount: numb
 export function baseAmount(amount: number, unit: UnitKey): number {
   return amount * UNITS[unit].toBase;
 }
+
+/** Units offered first in the unit picker; the rest appear under "More units". */
+export const COMMON_UNITS: UnitKey[] = [
+  'tsp',
+  'tbsp',
+  'cup',
+  'oz',
+  'lb',
+  'can',
+  'jar',
+  'package',
+  'clove',
+  'pinch',
+];
+
+export const ALL_UNITS = Object.keys(UNITS) as UnitKey[];

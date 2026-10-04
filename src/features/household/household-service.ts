@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocFromServer,
+  getDocs,
   updateDoc,
   serverTimestamp,
   writeBatch,
@@ -163,7 +164,36 @@ export async function seedHouseholdIfNeeded(householdId: string): Promise<void> 
   } catch {
     return;
   }
-  if (serverSeedVersion < SEED_VERSION) await seedHousehold(householdId);
+  if (serverSeedVersion === 0) await seedHousehold(householdId);
+  else if (serverSeedVersion < SEED_VERSION) await upgradeSeed(householdId);
+}
+
+/**
+ * Version 1 → 2: gives the starter areas their grocery categories. Only areas
+ * that still have their starter id and no categories are touched, so names,
+ * order, hidden stores, and her own areas stay as she left them.
+ */
+async function upgradeSeed(householdId: string): Promise<void> {
+  const stores = await getDocs(collection(db, 'households', householdId, 'stores'));
+  const batch = writeBatch(db);
+  for (const store of stores.docs) {
+    const seed = SEED_STORES.find((s) => s.id === store.id);
+    if (!seed) continue;
+    const sections = (store.data().sections ?? []) as {
+      id: string;
+      categoryIds?: string[];
+    }[];
+    batch.update(store.ref, {
+      sections: sections.map((section) => {
+        const seeded = seed.sections.find((s) => s.id === section.id);
+        return seeded && !section.categoryIds?.length
+          ? { ...section, categoryIds: seeded.categoryIds }
+          : { ...section, categoryIds: section.categoryIds ?? [] };
+      }),
+    });
+  }
+  batch.update(doc(db, 'households', householdId), { seedVersion: SEED_VERSION });
+  await batch.commit();
 }
 
 /** Renames the household and/or changes its settings. */

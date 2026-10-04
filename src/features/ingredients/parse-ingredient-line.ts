@@ -65,6 +65,23 @@ export function parseAmount(text: string): number {
   return Number(t);
 }
 
+/**
+ * Reads an amount box: "2", "1 1/2", "1 ½", ".5", "2-3", "2 to 3". Blank means
+ * no amount ("to taste"). Returns null when the text isn't an amount.
+ */
+export function parseAmountRange(
+  text: string
+): { quantity: number | null; quantityMax: number | null } | null {
+  const trimmed = text.trim();
+  if (!trimmed) return { quantity: null, quantityMax: null };
+  const match = trimmed.match(AMOUNT_RANGE);
+  if (!match || match[0].trim().length !== trimmed.length) return null;
+  const quantity = parseAmount(match[1]);
+  const quantityMax = match[2] ? parseAmount(match[2]) : null;
+  if (!(quantity > 0) || (quantityMax !== null && !(quantityMax > quantity))) return null;
+  return { quantity, quantityMax };
+}
+
 /** Matches a unit at the start of text, trying two-word units ("fl oz") first. */
 function takeUnit(text: string): { unit: UnitKey; rest: string } | null {
   const words = text.split(/\s+/);

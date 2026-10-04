@@ -1,14 +1,15 @@
 import type { UnitKey } from '@/features/ingredients/units';
 
 export type RecipeIngredient = {
-  /** Link to the household's ingredient (carries store/area for shopping). */
+  /** Link to the household's canonical ingredient (store, area, category). */
   ingredientId: string;
+  /** The canonical ingredient's name when saved. */
   name: string;
   quantity: number | null;
   quantityMax: number | null;
   unit: UnitKey | null;
   note: string | null;
-  /** The line as typed, so editing shows exactly what was entered. */
+  /** The line as originally written or scanned. */
   raw: string;
 };
 
@@ -22,12 +23,33 @@ export type Recipe = {
   ingredients: RecipeIngredient[];
 };
 
-/** What the add/edit form holds while she types. */
+/** Which canonical ingredient a form row refers to. */
+export type RowLink =
+  | { kind: 'existing'; ingredientId: string; name: string }
+  /** Create a new canonical ingredient with this name on save. */
+  | { kind: 'new'; name: string }
+  /** Vague match ("onion"): she must pick one of these, or make a new one. */
+  | { kind: 'choose'; candidates: { id: string; name: string }[] };
+
+/** One ingredient line in the add/edit form. */
+export type DraftRow = {
+  /** Stable key for the list while editing. */
+  key: string;
+  quantity: number | null;
+  quantityMax: number | null;
+  unit: UnitKey | null;
+  note: string | null;
+  /** The ingredient name as written ("onion"), used for "New: onion". */
+  writtenName: string;
+  raw: string;
+  link: RowLink;
+};
+
+/** What the add/edit form holds while she edits. */
 export type RecipeDraft = {
   name: string;
   servings: string;
   tagIds: string[];
-  /** One ingredient per line. */
-  ingredientsText: string;
+  rows: DraftRow[];
   notes: string;
 };

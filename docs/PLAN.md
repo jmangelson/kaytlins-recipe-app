@@ -23,6 +23,17 @@ pantry-checked shopping list organized by store and store area.
 - **Stores:** Macey's, Sam's Club, Costco, Walmart, Smith's — configurable
   (add, rename, reorder, hide), each with its own ordered store areas.
 - **Week start:** Sunday by default (configurable).
+- **Canonical ingredients** (decided 2026-10-04): one entry per ingredient,
+  shared by all recipes. Recipe lines link automatically only on an exact name
+  or alias match (case and plural ignored); vague matches ("onion" vs "Yellow
+  onion") ask every time, and choices are not remembered. Aliases are added
+  deliberately or by merging duplicates. Any line's link can be changed.
+- **Categories and areas:** each ingredient has a standard category (guessed
+  from a built-in list); each store area lists the categories it holds, so the
+  area per store is automatic, with per-store overrides.
+- **Store priority per ingredient** (e.g. Costco › Sam's › Macey's); empty
+  means her overall store order. On a trip, items go to their most preferred
+  visited store, else the first visited store, marked "usually from …".
 - **Sharing a list:** "Share as text" via the Android share sheet.
 
 ## Meal plans and calendar
@@ -82,7 +93,7 @@ Lists are **snapshots**: editing recipes later does not change an existing list.
 users/{uid}                  householdId
 invites/{code}               householdId, createdBy, createdAt   (get-only; 8-char code)
 households/{hid}             name, memberIds[], inviteCode, settings{weekStart, showBreakfastLunch}
-  stores/{id}                name, order, hidden, sections[{id, name, order}]
+  stores/{id}                name, order, hidden, sections[{id, name, order, categoryIds[]}]
   ingredients/{id}           name, nameLower, defaultUnit, storeId, sectionId
   tags/{id}                  name
   recipes/{id}               name, servings, tagIds[], notes, hasPhoto,

@@ -58,12 +58,16 @@ service cloud.firestore {
     }
 
     function validIngredient(data) {
-      return data.keys().hasOnly(['name', 'nameKey', 'defaultUnit', 'storeId', 'sectionId'])
+      return data.keys().hasOnly(['name', 'nameKey', 'aliases', 'aliasKeys', 'category',
+          'storePriority', 'areaOverrides', 'defaultUnit'])
         && validName(data.name, 80)
         && validName(data.nameKey, 80)
-        && optionalString(data, 'defaultUnit')
-        && optionalString(data, 'storeId')
-        && optionalString(data, 'sectionId');
+        && data.aliases is list && data.aliases.size() <= 30
+        && data.aliasKeys is list && data.aliasKeys.size() == data.aliases.size()
+        && data.category is string && data.category.size() <= 40
+        && data.storePriority is list && data.storePriority.size() <= 20
+        && data.areaOverrides is map && data.areaOverrides.size() <= 20
+        && optionalString(data, 'defaultUnit');
     }
 
     function validRecipe(data) {

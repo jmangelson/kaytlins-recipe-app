@@ -29,9 +29,9 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Beef'
 - scrollUntilVisible:
     element:
-      id: 'recipe-ingredients'
+      id: 'recipe-add-ingredients'
 - tapOn:
-    id: 'recipe-ingredients'
+    id: 'recipe-add-ingredients'
 - inputText: '1 lb ground beef'
 - pressKey: Enter
 - inputText: '8 small tortillas'
@@ -39,7 +39,12 @@ appId: com.jmangelson.kaytlinsrecipes
 - inputText: '1 1/2 cups shredded cheddar'
 - hideKeyboard
 - scrollUntilVisible:
-    element: 'Read as 3 ingredients:'
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Edit 1 ½ cups shredded cheddar'
+- assertVisible: 'Edit 1 lb ground beef'
+- assertVisible: 'Edit 8 tortillas.*'
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'

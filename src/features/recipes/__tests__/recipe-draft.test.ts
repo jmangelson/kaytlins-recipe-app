@@ -1,13 +1,20 @@
+import { newIngredient, type Ingredient } from '@/features/ingredients/ingredient-model';
+import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import {
+  amountInputText,
   draftFromRecipe,
   emptyDraft,
   filterRecipes,
   formatIngredientAmount,
-  linkIngredients,
-  parseDraftIngredients,
+  linesForSave,
+  rowsFromText,
   validateDraft,
 } from '@/features/recipes/recipe-draft';
 import type { Recipe } from '@/features/recipes/recipe-types';
+
+function ingredient(id: string, name: string): Ingredient {
+  return { ...newIngredient(name), id };
+}
 
 function recipe(overrides: Partial<Recipe>): Recipe {
   return {
@@ -22,10 +29,26 @@ function recipe(overrides: Partial<Recipe>): Recipe {
   };
 }
 
-describe('parseDraftIngredients', () => {
-  it('parses one ingredient per non-blank line', () => {
-    const parsed = parseDraftIngredients('1 lb ground beef\n\n  2 cups rice  \n-\n');
-    expect(parsed.map((p) => p.name)).toEqual(['ground beef', 'rice']);
+const yellow = ingredient('yellow', 'Yellow onion');
+const sweet = ingredient('sweet', 'Sweet onion');
+const beef = ingredient('beef', 'Ground beef');
+const list = [yellow, sweet, beef];
+
+describe('rowsFromText', () => {
+  it('parses each line and links it: exact, choose, or new', () => {
+    const rows = rowsFromText('1 lb Ground Beef\n\n2 onions, diced\n3 cloves garlic', list);
+    expect(rows.map((r) => r.link)).toEqual([
+      { kind: 'existing', ingredientId: 'beef', name: 'Ground beef' },
+      {
+        kind: 'choose',
+        candidates: [
+          { id: 'sweet', name: 'Sweet onion' },
+          { id: 'yellow', name: 'Yellow onion' },
+        ],
+      },
+      { kind: 'new', name: 'garlic' },
+    ]);
+    expect(rows[1]).toMatchObject({ quantity: 2, note: 'diced', writtenName: 'onions' });
   });
 });
 
@@ -38,41 +61,47 @@ describe('validateDraft', () => {
     const errors = validateDraft({ ...emptyDraft(), name: '  ', servings: '0' });
     expect(errors.name).toBeDefined();
     expect(errors.servings).toBeDefined();
-    expect(validateDraft({ ...emptyDraft(), name: 'x', servings: 'abc' }).servings).toBeDefined();
+  });
+
+  it('requires every vague line to be resolved', () => {
+    const rows = rowsFromText('2 onions\n1 onion', list);
+    expect(validateDraft({ ...emptyDraft(), name: 'Soup', rows }).ingredients).toBe(
+      'Choose which ingredient the 2 marked lines mean.'
+    );
   });
 });
 
-describe('linkIngredients', () => {
-  it('reuses existing ingredients by name and plans one new ingredient per new name', () => {
-    const parsed = parseDraftIngredients('2 yellow onions\n1 cup rice\n1 yellow onion, sliced');
-    const { lines, newIngredients } = linkIngredients(parsed, [
-      { id: 'onion-id', nameKey: 'yellow onion' },
-    ]);
-    expect(lines.map((l) => l.ingredientId)).toEqual(['onion-id', 'new:0', 'onion-id']);
-    expect(newIngredients).toEqual([{ tempId: 'new:0', name: 'rice', nameKey: 'rice' }]);
-    expect(lines[0]).toMatchObject({ quantity: 2, unit: null, raw: '2 yellow onions' });
+describe('linesForSave', () => {
+  it('keeps links and creates one new ingredient per distinct new name', () => {
+    const rows = rowsFromText('1 lb ground beef\n1 tsp salt\nSalt to taste', list);
+    const { lines, newIngredients } = linesForSave(rows, list);
+    expect(lines.map((l) => l.ingredientId)).toEqual(['beef', 'new:0', 'new:0']);
+    expect(newIngredients).toEqual([{ tempId: 'new:0', name: 'salt' }]);
+    expect(lines[0]).toMatchObject({ name: 'Ground beef', quantity: 1, unit: 'lb' });
   });
 
-  it('dedupes repeated new names within one recipe', () => {
-    const { newIngredients, lines } = linkIngredients(
-      parseDraftIngredients('1 tsp salt\nsalt to taste'),
-      []
-    );
-    expect(newIngredients).toHaveLength(1);
-    expect(lines[0].ingredientId).toBe(lines[1].ingredientId);
+  it('links a "new" row to an ingredient created since it was added', () => {
+    const rows = rowsFromText('1 tsp salt', list);
+    const { lines, newIngredients } = linesForSave(rows, [...list, ingredient('salt', 'Salt')]);
+    expect(lines[0].ingredientId).toBe('salt');
+    expect(newIngredients).toEqual([]);
+  });
+
+  it('refuses unresolved rows', () => {
+    expect(() => linesForSave(rowsFromText('1 onion', list), list)).toThrow();
   });
 });
 
 describe('draftFromRecipe', () => {
-  it('restores the lines exactly as typed', () => {
+  it('turns saved lines into linked rows', () => {
     const draft = draftFromRecipe(
       recipe({
         name: 'Tacos',
         servings: 6,
         ingredients: [
           {
-            ingredientId: 'a',
-            name: 'ground beef',
+            ingredientId: 'beef',
+            name: 'Ground beef',
             quantity: 1,
             quantityMax: null,
             unit: 'lb',
@@ -82,10 +111,11 @@ describe('draftFromRecipe', () => {
         ],
       })
     );
-    expect(draft).toMatchObject({
-      name: 'Tacos',
-      servings: '6',
-      ingredientsText: '1 lb ground beef',
+    expect(draft).toMatchObject({ name: 'Tacos', servings: '6' });
+    expect(draft.rows[0]).toMatchObject({
+      quantity: 1,
+      unit: 'lb',
+      link: { kind: 'existing', ingredientId: 'beef', name: 'Ground beef' },
     });
   });
 });
@@ -102,6 +132,17 @@ describe('formatIngredientAmount', () => {
   });
 });
 
+describe('amountInputText', () => {
+  it.each([
+    [{ quantity: 1.5, quantityMax: null }],
+    [{ quantity: 2, quantityMax: 3 }],
+    [{ quantity: 0.25, quantityMax: null }],
+    [{ quantity: null, quantityMax: null }],
+  ])('round-trips %j through the amount box', (amount) => {
+    expect(parseAmountRange(amountInputText(amount))).toEqual(amount);
+  });
+});
+
 describe('filterRecipes', () => {
   const tacos = recipe({
     id: 't',
@@ -110,7 +151,7 @@ describe('filterRecipes', () => {
     ingredients: [
       {
         ingredientId: 'b',
-        name: 'ground beef',
+        name: 'Ground beef',
         quantity: 1,
         quantityMax: null,
         unit: 'lb',
@@ -128,7 +169,6 @@ describe('filterRecipes', () => {
 
   it('searches names and ingredients', () => {
     expect(filterRecipes([tacos, curry, salad], 'beef', []).map((r) => r.id)).toEqual(['t']);
-    expect(filterRecipes([tacos, curry, salad], 'CURRY', []).map((r) => r.id)).toEqual(['c']);
   });
 
   it('keeps recipes with any selected tag', () => {

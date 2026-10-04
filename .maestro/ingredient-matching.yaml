@@ -1,0 +1,84 @@
+# Recipe lines link to her ingredient list: exact names link automatically,
+# vague ones ("onion") ask every time, and one line's amount can be edited
+# without retyping the recipe.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'matching' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+
+# Recipe 1 creates "yellow onions" and "ground beef".
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Tacos'
+      TAG: 'Beef'
+      LINE1: '2 yellow onions'
+      LINE2: '1 lb ground beef'
+- back
+
+# Recipe 2: "Yellow Onion" links exactly; "onion" asks which one.
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'Soup'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'recipe-add-ingredients'
+- tapOn:
+    id: 'recipe-add-ingredients'
+- inputText: '1 Yellow Onion'
+- pressKey: Enter
+- inputText: '1 onion, diced'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Which ingredient is “onion”.*'
+    centerElement: true
+- assertNotVisible: 'New ingredient'
+
+# Saving is blocked until she chooses.
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- assertVisible: 'Check the fields marked in red above.'
+- scrollUntilVisible:
+    element: 'Which ingredient is “onion”.*'
+    direction: UP
+    centerElement: true
+- tapOn: 'Use yellow onions for onion'
+- assertNotVisible: 'Which ingredient is “onion”.*'
+
+# Change one line's amount: 1 → 2.
+- tapOn: 'Edit 1 yellow onions, diced'
+- tapOn:
+    id: 'row-amount'
+- eraseText: 5
+- inputText: '2'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Done'
+- tapOn: 'Done'
+- scrollUntilVisible:
+    element: 'Edit 2 yellow onions, diced'
+    direction: UP
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- extendedWaitUntil:
+    visible: 'Serves 4'
+    timeout: 15000
+- assertVisible: '2'
+- assertNotVisible: 'onion, diced'

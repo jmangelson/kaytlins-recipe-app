@@ -1,0 +1,104 @@
+# Canonical ingredients: add another name (alias), choose preferred stores,
+# override the area at one store, and merge a duplicate.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'setup' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Salsa'
+      TAG: 'Vegetarian'
+      LINE1: '4 roma tomatoes'
+      LINE2: '1 bunch cilantro'
+- back
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Pico'
+      TAG: 'Vegetarian'
+      LINE1: '3 plum tomatoes'
+      LINE2: '1 lime'
+- back
+
+# Ingredients list shows the guessed category; open roma tomatoes.
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Ingredients'
+- extendedWaitUntil:
+    visible: 'roma tomatoes, Produce · any store'
+    timeout: 15000
+- tapOn: 'roma tomatoes.*'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
+
+# Prefer Costco, then Macey's.
+- scrollUntilVisible:
+    element: '\+ Costco'
+- tapOn: '\+ Costco'
+- scrollUntilVisible:
+    element: "\\+ Macey's"
+- tapOn: "\\+ Macey's"
+- assertVisible: 'Prefer Costco less'
+
+# At Costco, shelve it with the bakery (an override for that store only).
+- scrollUntilVisible:
+    element: 'Area in each store'
+- scrollUntilVisible:
+    element: 'Change'
+- tapOn:
+    text: 'Change'
+    index: 0
+- scrollUntilVisible:
+    element: 'Bakery'
+- tapOn: 'Bakery'
+- scrollUntilVisible:
+    element: 'Bakery'
+    direction: UP
+- tapOn: 'Save'
+- extendedWaitUntil:
+    visible: "roma tomatoes, Produce · Costco › Macey's"
+    timeout: 15000
+
+# Merge plum tomatoes into roma tomatoes; the Pico recipe follows.
+- tapOn: 'plum tomatoes.*'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Merge into another ingredient'
+- tapOn: 'Merge into another ingredient'
+- scrollUntilVisible:
+    element: 'Use roma tomatoes'
+- tapOn: 'Use roma tomatoes'
+- tapOn: 'MERGE|Merge'
+- extendedWaitUntil:
+    visible: "roma tomatoes, Produce · Costco › Macey's"
+    timeout: 15000
+- assertNotVisible: 'plum tomatoes.*'
+
+# "plum tomatoes" is now another name for roma tomatoes: a new recipe links it.
+- tapOn: 'roma tomatoes.*'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Remove plum tomatoes'
+- back
+- back
+- tapOn: 'Recipes'
+- tapOn: 'Pico'
+- extendedWaitUntil:
+    visible: 'roma tomatoes'
+    timeout: 15000
