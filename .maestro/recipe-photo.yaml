@@ -1,0 +1,46 @@
+# Add a photo to a recipe from the gallery, see it on the detail screen, then
+# remove it.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'photo' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Pancakes'
+      TAG: 'Vegetarian'
+      LINE1: '2 cups flour'
+      LINE2: '2 eggs'
+- tapOn: 'Edit recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- runFlow: subflows/choose-recipe-photo.yaml
+- scrollUntilVisible:
+    element: 'Save changes'
+- tapOn: 'Save changes'
+- extendedWaitUntil:
+    visible: 'Photo of Pancakes'
+    timeout: 15000
+- tapOn: 'Edit recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Remove photo'
+- tapOn: 'Remove photo'
+- scrollUntilVisible:
+    element: 'Save changes'
+- tapOn: 'Save changes'
+- extendedWaitUntil:
+    visible: 'Edit recipe'
+    timeout: 15000
+- assertNotVisible: 'Photo of Pancakes'

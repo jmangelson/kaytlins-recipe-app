@@ -25,10 +25,14 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, attempt]);
 
+  /** Shows the spinner again and reloads. */
   const reload = useCallback(() => {
     setState({ status: 'loading' });
     setAttempt((n) => n + 1);
   }, []);
 
-  return { state, reload };
+  /** Reloads in the background, keeping what's on screen until new data arrives. */
+  const refresh = useCallback(() => setAttempt((n) => n + 1), []);
+
+  return { state, reload, refresh };
 }

@@ -62,3 +62,84 @@ appId: com.jmangelson.kaytlinsrecipes
     element: "Smith's"
 - scroll
 - takeScreenshot: build/screenshots/12-stores-bottom
+
+# Recipes (Milestone 3)
+- back
+- tapOn: 'Recipes'
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- takeScreenshot: build/screenshots/13-recipe-form-empty
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- takeScreenshot: build/screenshots/14-recipe-form-save-error
+- scrollUntilVisible:
+    element:
+      id: 'recipe-name'
+    direction: UP
+- takeScreenshot: build/screenshots/14b-recipe-form-name-error
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'Chicken Enchiladas'
+- hideKeyboard
+- tapOn: 'Chicken/Poultry'
+- scrollUntilVisible:
+    element:
+      id: 'recipe-ingredients'
+- tapOn:
+    id: 'recipe-ingredients'
+- inputText: '2 lbs chicken breasts'
+- pressKey: Enter
+- inputText: '1 (10 oz) can red enchilada sauce'
+- pressKey: Enter
+- inputText: '8 flour tortillas'
+- pressKey: Enter
+- inputText: '2 cups shredded Monterey Jack, divided'
+- pressKey: Enter
+- inputText: '1 medium onion, diced'
+- pressKey: Enter
+- inputText: 'Salt to taste'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Read as 6 ingredients:'
+    centerElement: true
+- takeScreenshot: build/screenshots/15-recipe-form-preview
+- runFlow: ../subflows/choose-recipe-photo.yaml
+- takeScreenshot: build/screenshots/16-recipe-form-photo
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- extendedWaitUntil:
+    visible: 'Edit recipe'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Photo of Chicken Enchiladas'
+    direction: UP
+- takeScreenshot: build/screenshots/17-recipe-detail
+- scrollUntilVisible:
+    element: 'Delete recipe'
+- takeScreenshot: build/screenshots/18-recipe-detail-bottom
+- back
+- runFlow:
+    file: ../subflows/add-recipe.yaml
+    env:
+      NAME: 'Veggie Pasta'
+      TAG: 'Vegetarian'
+      LINE1: '1 lb penne'
+      LINE2: '1 jar marinara'
+- back
+- extendedWaitUntil:
+    visible: '2 recipes'
+    timeout: 15000
+- takeScreenshot: build/screenshots/19-recipes-list
+- tapOn: 'Vegetarian'
+- takeScreenshot: build/screenshots/20-recipes-filtered
+- tapOn: 'Vegetarian'
+- tapOn:
+    id: 'recipe-search'
+- inputText: 'zzz'
+- hideKeyboard
+- takeScreenshot: build/screenshots/21-recipes-no-match

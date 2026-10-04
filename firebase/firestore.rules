@@ -66,6 +66,25 @@ service cloud.firestore {
         && optionalString(data, 'sectionId');
     }
 
+    function validRecipe(data) {
+      return data.keys().hasOnly(['name', 'servings', 'tagIds', 'notes', 'hasPhoto',
+          'ingredients', 'createdAt', 'updatedAt'])
+        && validName(data.name, 120)
+        && data.servings is number && data.servings > 0 && data.servings <= 100
+        && data.tagIds is list && data.tagIds.size() <= 20
+        && data.notes is string && data.notes.size() <= 5000
+        && data.hasPhoto is bool
+        && data.ingredients is list && data.ingredients.size() <= 100
+        && data.updatedAt == request.time
+        && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    function validRecipePhoto(data) {
+      // Photos are resized on the phone to ~60 KB; cap well under the 1 MiB doc limit.
+      return data.keys().hasOnly(['jpegBase64'])
+        && data.jpegBase64 is string && data.jpegBase64.size() <= 700000;
+    }
+
     function validHouseholdName(name) {
       return name is string && name.size() > 0 && name.size() <= 60;
     }
@@ -138,12 +157,22 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validIngredient(request.resource.data);
       }
 
+      match /recipes/{recipeId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validRecipe(request.resource.data);
+      }
+
+      match /recipePhotos/{recipeId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validRecipePhoto(request.resource.data);
+      }
+
       // Everything else in the household: members only. `{collection}`
       // forces at least one segment: in rules v2 a bare `{document=**}` also
       // matches the household doc itself and would bypass the rules above.
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
-          && !(collection in ['stores', 'tags', 'ingredients']);
+          && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos']);
       }
     }
   }

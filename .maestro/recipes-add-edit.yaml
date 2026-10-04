@@ -1,0 +1,92 @@
+# Add a recipe by typing ingredient lines, see it parsed on the detail screen,
+# confirm it survives an app restart, edit it, then delete it.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'recipes' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- assertVisible: 'No recipes yet.'
+
+# Add
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible: 'Recipe name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'Beef Tacos'
+- hideKeyboard
+- tapOn:
+    id: 'recipe-servings'
+- eraseText: 3
+- inputText: '6'
+- hideKeyboard
+- tapOn: 'Beef'
+- scrollUntilVisible:
+    element:
+      id: 'recipe-ingredients'
+- tapOn:
+    id: 'recipe-ingredients'
+- inputText: '1 lb ground beef'
+- pressKey: Enter
+- inputText: '8 small tortillas'
+- pressKey: Enter
+- inputText: '1 1/2 cups shredded cheddar'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Read as 3 ingredients:'
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- extendedWaitUntil:
+    visible: 'Serves 6'
+    timeout: 15000
+- assertVisible: '1 lb'
+- assertVisible: 'ground beef'
+- assertVisible: '1 ½ cups'
+- assertVisible: 'shredded cheddar'
+
+# Survives a restart (still signed in, recipe still listed)
+- launchApp
+- extendedWaitUntil:
+    visible: 'Beef Tacos'
+    timeout: 30000
+- assertVisible: '1 recipe'
+
+# Edit
+- tapOn: 'Beef Tacos'
+- tapOn: 'Edit recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- eraseText: 20
+- inputText: 'Street Tacos'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Save changes'
+- tapOn: 'Save changes'
+- extendedWaitUntil:
+    visible: 'Street Tacos'
+    timeout: 15000
+- assertVisible: 'Serves 6'
+- back
+- assertVisible: 'Street Tacos'
+- assertNotVisible: 'Beef Tacos'
+
+# Delete
+- tapOn: 'Street Tacos'
+- scrollUntilVisible:
+    element: 'Delete recipe'
+- tapOn: 'Delete recipe'
+- tapOn: 'DELETE|Delete'
+- extendedWaitUntil:
+    visible: 'No recipes yet.'
+    timeout: 15000

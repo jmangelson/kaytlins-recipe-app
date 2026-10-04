@@ -1,9 +1,15 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import { ActivityIndicator, StyleSheet, useColorScheme } from 'react-native';
+import { ActivityIndicator, LogBox, StyleSheet, useColorScheme } from 'react-native';
 
 import { ThemedView } from '@/components/themed-view';
 import { SessionErrorScreen } from '@/features/session/session-error-screen';
 import { SessionProvider, useSession } from '@/features/session/session-provider';
+import { usingFirebaseEmulators } from '@/lib/firebase';
+
+// In emulator test runs, the dev-only warning toast can cover buttons at the
+// bottom of the screen (e.g. Save on a long form). Warnings still reach the
+// Metro log.
+if (usingFirebaseEmulators) LogBox.ignoreAllLogs();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -42,6 +48,12 @@ function RootNavigator() {
       <Stack.Protected guard={session.status === 'ready'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="stores" options={{ headerShown: true, title: 'Stores & aisles' }} />
+        <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
+        <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
+        <Stack.Screen
+          name="recipe/[id]/edit"
+          options={{ headerShown: true, title: 'Edit recipe' }}
+        />
       </Stack.Protected>
     </Stack>
   );

@@ -11,8 +11,8 @@ Update this file at the end of every milestone.
 | 0   | Scaffold: Expo + router + TS, tooling, emulator, smoke flow                | Done        |
 | 1   | Firebase: Google sign-in, create/join household, rules + tests, offline    | Done        |
 | 2   | Seed data + data layer: stores/areas, tags, repositories, unit/line parser | Done        |
-| 3   | Recipes                                                                    | Next        |
-| 4   | Settings: stores & areas, ingredient defaults, tags                        | Not started |
+| 3   | Recipes                                                                    | Done        |
+| 4   | Settings: stores & areas, ingredient defaults, tags                        | Next        |
 | 5   | Meal plans (N-day, B/L/D)                                                  | Not started |
 | 6   | Calendar: apply plans to dates                                             | Not started |
 | 7   | Shopping generation + pantry check                                         | Not started |
@@ -82,6 +82,27 @@ Known limitation: if a phone with a stale offline copy (no `seedVersion`)
 seeds after someone has edited stores (M4), it would overwrite those edits.
 Revisit when store editing lands.
 
+### Milestone 3 — Recipes (2026-10-04)
+
+- Recipes tab: list sorted by name, search by name or ingredient, tag filter
+  (any selected tag), counts, empty and no-match states, refresh on return.
+- Recipe screen: photo, servings, tags, ingredient amounts in a column, notes;
+  Edit in the header; Delete with confirmation.
+- Add/edit form: name, servings, tag chips, one-ingredient-per-line box
+  (paste-friendly) with a live "Read as N ingredients" preview, notes/source,
+  optional photo (camera or gallery, cropped 4:3, ~600 px JPEG stored in
+  Firestore). Inline validation plus a message above Save.
+- Saving links each line to the household ingredient list (creating new
+  ingredients once per name) in one batch; the typed line is kept for editing.
+- Offline: saves wait briefly for the server, then continue with the write
+  queued. Verified: saved a recipe in airplane mode; it appeared in the list
+  and reached Firestore ~1 s after reconnecting.
+- Rules validate recipes and photos (24 rules tests). 93 unit tests.
+- Maestro: `recipes-add-edit` (incl. app restart), `recipes-filter`,
+  `recipe-photo`; `scripts/e2e-setup.sh` puts a test photo in the gallery.
+  Screenshot review: 6 UI issues found and fixed (below).
+- Plan: scan result JSON contract defined (PLAN.md → "Scan result format").
+
 ## Decisions
 
 - 2026-10-04: photo scan switched from on-device ML Kit to AI (Claude via a
@@ -104,6 +125,15 @@ Revisit when store editing lands.
 | Extra blank band under the Stores & aisles header                 | `Screen` padded the top safe-area inset even under a navigation header                                                                                                                                                                             | `Screen` takes `edges`; header screens skip `top`                                                                                                                |
 | Tag chip text crowded its right edge                              | Padding and border were on the `Text` itself (same Android measuring issue as the button label)                                                                                                                                                    | Chip is a `View` with padding wrapping the `Text`                                                                                                                |
 | household-invite flow failed after Settings grew                  | Invite code moved below the fold; `copyTextFrom` needs it on screen                                                                                                                                                                                | Flow scrolls to `invite-code` first                                                                                                                              |
+| Typing landed in the wrong field (tests)                          | Taps on a field's label text didn't focus the input, and the open keyboard covered lower fields so taps hit keys                                                                                                                                   | Labels now focus their input; flows target inputs by `testID` and hide the keyboard first                                                                        |
+| Red error border never showed                                     | The normal border color was applied after the error color in the style array                                                                                                                                                                       | Pick the border color once: danger when there's an error                                                                                                         |
+| "Add recipe" button clipped to "Add"                              | Shrink-wrapped button beside the large title on a narrow phone                                                                                                                                                                                     | Full-width button under the title                                                                                                                                |
+| Edit button off-screen on long recipes                            | Edit was at the bottom of the recipe screen                                                                                                                                                                                                        | Edit moved to the header; Delete stays at the bottom                                                                                                             |
+| Validation error invisible after tapping Save                     | Save is at the bottom; the field error is at the top                                                                                                                                                                                               | Message above Save: "Check the fields marked in red above."                                                                                                      |
+| "Monterey Jack" shown as "monterey jack"                          | Parser lowercased ingredient names                                                                                                                                                                                                                 | Keep her capitalization; matching already uses a case-insensitive key                                                                                            |
+| Save would hang offline                                           | A Firestore write's promise resolves only when the server confirms                                                                                                                                                                                 | `commitOrQueue`: wait up to 2.5 s, then continue with the write queued                                                                                           |
+| Save tap hit a toast in offline tests                             | Dev-only LogBox warning toast covered the bottom button                                                                                                                                                                                            | LogBox toasts off in emulator test mode (warnings still in Metro log)                                                                                            |
+| Typed-route errors for `/recipe/${id}`                            | expo-router typed routes reject template strings                                                                                                                                                                                                   | Use `{ pathname: '/recipe/[id]', params: { id } }`                                                                                                               |
 
 ## Lessons learned
 
@@ -141,5 +171,14 @@ firestore:rules`, after `npm run test:rules` passes.
   shape, exclude it from the members-only catch-all, or the catch-all
   silently allows malformed writes.
 - **Don't put padding/borders on `Text`** on Android; wrap it in a `View`.
+- **Maestro forms:** tap inputs by `id` (label text matches the label, not the
+  input); `hideKeyboard` before tapping fields lower on the screen; in a
+  multiline input `pressKey: Enter` inserts a newline. Wait for elements near
+  the top of a screen, not buttons that may be below the fold.
+- **Android photo picker in Maestro:** `tapOn: 'Photo taken on.*'`, then the
+  crop screen's `id: crop_image_menu_crop`.
+- **Offline checks:** `adb shell cmd connectivity airplane-mode enable|disable`.
+  Query the Firestore emulator directly with `Authorization: Bearer owner`.
+  The dev build loses Metro in airplane mode; fill forms online first.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.

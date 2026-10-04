@@ -1,0 +1,30 @@
+# From the Recipes tab, adds a recipe with one tag and two ingredient lines
+# and waits for its detail screen. Params: NAME, TAG, LINE1, LINE2
+appId: com.jmangelson.kaytlinsrecipes
+---
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible: 'Recipe name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: ${NAME}
+- hideKeyboard
+- tapOn: ${TAG}
+- scrollUntilVisible:
+    element:
+      id: 'recipe-ingredients'
+- tapOn:
+    id: 'recipe-ingredients'
+- inputText: ${LINE1}
+- pressKey: Enter
+- inputText: ${LINE2}
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Read as 2 ingredients:'
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- extendedWaitUntil:
+    visible: 'Edit recipe'
+    timeout: 15000

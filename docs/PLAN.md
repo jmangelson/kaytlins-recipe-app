@@ -138,9 +138,58 @@ results on cookbook pages, two-column layouts, and handwritten cards.
   Worker's secrets, never in the APK. The Worker accepts only requests with a
   valid Firebase ID token for this project and limits scans per user per day.
 - **Model call:** official Anthropic TypeScript SDK, `claude-opus-5-5`,
-  image content blocks, structured outputs (`output_config.format` JSON
-  schema): `{ title, servings, ingredients: [{ quantity, unit, name, note,
-raw_text }], notes, warnings }`. Check `stop_reason` before using the result.
+  image content blocks, and **structured outputs** (`output_config.format`
+  with the JSON schema below), so the API itself guarantees the response
+  matches the schema. Check `stop_reason` before using the result.
+
+### Scan result format (fixed contract)
+
+One JSON shape, defined once in shared TypeScript and used by both the Worker
+(as the structured-output schema) and the app (to validate again before
+filling the form). Every field has one meaning and one destination:
+
+```json
+{
+  "title": "Chicken Enchiladas",
+  "servings": 6,
+  "suggested_tag_ids": ["chicken-poultry"],
+  "ingredients": [
+    {
+      "quantity": 1.5,
+      "quantity_max": null,
+      "unit": "cup",
+      "name": "shredded Monterey Jack",
+      "note": "divided",
+      "source_text": "1 1/2 c. shredded Monterey Jack, divided",
+      "confidence": "high"
+    }
+  ],
+  "notes": "Betty Crocker Cookbook, p. 212",
+  "warnings": ["Bottom of the page is cut off"]
+}
+```
+
+- `quantity` / `quantity_max`: numbers (fractions converted), or null for
+  "to taste"; `quantity_max` only for ranges.
+- `unit`: one of the app's unit keys (`tsp`, `tbsp`, `cup`, `floz`, `pint`,
+  `quart`, `gallon`, `ml`, `l`, `oz`, `lb`, `g`, `kg`, `can`, `jar`, …) as an
+  enum, or null for plain counts. No free-text units.
+- `suggested_tag_ids`: an enum built per request from her household's tags.
+- `notes`: source or short notes only; cooking steps are not captured.
+- `confidence`: `"low"` when the line was hard to read.
+
+| JSON field          | Form destination                                                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`             | Recipe name                                                                                                                                                                                           |
+| `servings`          | Servings (default 4 and flagged if null)                                                                                                                                                              |
+| `suggested_tag_ids` | Tag chips pre-selected                                                                                                                                                                                |
+| `ingredients[]`     | One line each in Ingredients, written as `amount unit name, note` (e.g. "1 ½ cups shredded Monterey Jack, divided"); the existing parser re-reads it, and a unit test checks this round trip is exact |
+| `confidence: "low"` | Line highlighted with `source_text` shown under it                                                                                                                                                    |
+| `notes`             | Notes or source                                                                                                                                                                                       |
+| `warnings[]`        | Banner at the top of the form                                                                                                                                                                         |
+
+Nothing is saved until she reviews the form and taps Save.
+
 - **Cost:** about 2–3¢ per scan; set a monthly spend limit in the Anthropic
   console.
 - **Testing:** unit tests map saved model responses to form drafts; an

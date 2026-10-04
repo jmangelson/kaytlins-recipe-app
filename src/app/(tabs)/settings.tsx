@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
@@ -10,7 +11,6 @@ import { useHousehold } from '@/features/session/session-provider';
 import { signOut } from '@/features/session/sign-in';
 import { listTags } from '@/features/stores/store-repo';
 import { useAsync } from '@/hooks/use-async';
-import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
   const { user, household } = useHousehold();
@@ -75,7 +75,6 @@ export default function SettingsScreen() {
 }
 
 function TagList({ householdId }: { householdId: string }) {
-  const theme = useTheme();
   const { state } = useAsync(() => listTags(householdId), [householdId]);
 
   if (state.status === 'loading') {
@@ -90,14 +89,7 @@ function TagList({ householdId }: { householdId: string }) {
   return (
     <View style={styles.tags}>
       {state.data.map((tag) => (
-        <View
-          key={tag.id}
-          style={[
-            styles.tag,
-            { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-          ]}>
-          <ThemedText type="small">{tag.name}</ThemedText>
-        </View>
+        <Chip key={tag.id} label={tag.name} />
       ))}
     </View>
   );
@@ -111,11 +103,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.two,
-  },
-  tag: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one,
   },
 });

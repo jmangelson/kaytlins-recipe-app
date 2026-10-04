@@ -46,12 +46,13 @@ describe('parseIngredientLine', () => {
     ['2 to 3 cups spinach', 2, 3, 'cup', 'spinach', null],
     ['a pinch of salt', 1, null, 'pinch', 'salt', null],
     ['one onion', 1, null, null, 'onion', null],
-    ['Salt and pepper to taste', null, null, null, 'salt and pepper', 'to taste'],
+    ['Salt and pepper to taste', null, null, null, 'Salt and pepper', 'to taste'],
     ['- 1/4 cup sugar', 0.25, null, 'cup', 'sugar', null],
     ['• 2 lbs chicken thighs (boneless)', 2, null, 'lb', 'chicken thighs', 'boneless'],
-    ['Fresh parsley, for serving', null, null, null, 'fresh parsley', 'for serving'],
+    ['Fresh parsley, for serving', null, null, null, 'Fresh parsley', 'for serving'],
     ['1 can black beans, drained and rinsed', 1, null, 'can', 'black beans', 'drained and rinsed'],
-    ['Juice of 1 lemon', null, null, null, 'juice of 1 lemon', null],
+    ['Juice of 1 lemon', null, null, null, 'Juice of 1 lemon', null],
+    ['2 cups shredded Monterey Jack', 2, null, 'cup', 'shredded Monterey Jack', null],
   ])('%s', (line, quantity, quantityMax, unit, name, note) => {
     const parsed = parseIngredientLine(line);
     if (quantity === null) expect(parsed.quantity).toBeNull();

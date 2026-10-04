@@ -7,6 +7,7 @@ import {
 import {
   arrayUnion,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -170,7 +171,7 @@ describe('household data access', () => {
   it('lets members read and write household data', async () => {
     const db = dbAs('alice');
     await assertSucceeds(getDoc(doc(db, 'households', HID)));
-    await assertSucceeds(setDoc(doc(db, 'households', HID, 'recipes', 'r2'), { name: 'Chili' }));
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'mealPlans', 'p1'), { name: 'Week A' }));
   });
 
   it('blocks non-members from household data', async () => {
@@ -255,5 +256,71 @@ describe('stores, tags, and ingredients', () => {
     await assertFails(getDocs(collection(db, 'households', HID, 'stores')));
     await assertFails(setDoc(doc(db, 'households', HID, 'stores', 'x'), validStore));
     await assertFails(setDoc(doc(db, 'households', HID, 'tags', 'x'), { name: 'X', order: 0 }));
+  });
+});
+
+describe('recipes and recipe photos', () => {
+  beforeEach(seedHousehold);
+
+  const recipe = {
+    name: 'Tacos',
+    servings: 4,
+    tagIds: ['beef'],
+    notes: '',
+    hasPhoto: false,
+    ingredients: [{ ingredientId: 'i1', name: 'ground beef', raw: '1 lb ground beef' }],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  it('lets members save a recipe with a new ingredient and a photo in one batch', async () => {
+    const db = dbAs('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'households', HID, 'ingredients', 'i1'), {
+      name: 'ground beef',
+      nameKey: 'ground beef',
+      defaultUnit: null,
+      storeId: null,
+      sectionId: null,
+    });
+    batch.set(doc(db, 'households', HID, 'recipes', 'r2'), { ...recipe, hasPhoto: true });
+    batch.set(doc(db, 'households', HID, 'recipePhotos', 'r2'), { jpegBase64: 'abc' });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('lets members update and delete recipes', async () => {
+    const db = dbAs('alice');
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'recipes', 'r2'), recipe));
+    await assertSucceeds(
+      updateDoc(doc(db, 'households', HID, 'recipes', 'r2'), {
+        name: 'Street tacos',
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await assertSucceeds(deleteDoc(doc(db, 'households', HID, 'recipes', 'r2')));
+  });
+
+  it('rejects malformed recipes', async () => {
+    const db = dbAs('alice');
+    const ref = doc(db, 'households', HID, 'recipes', 'r2');
+    await assertFails(setDoc(ref, { ...recipe, name: '' }));
+    await assertFails(setDoc(ref, { ...recipe, servings: 0 }));
+    await assertFails(setDoc(ref, { ...recipe, owner: 'mallory' }));
+    await assertFails(setDoc(ref, { ...recipe, updatedAt: new Date(2000, 0, 1) }));
+  });
+
+  it('rejects oversized photos', async () => {
+    await assertFails(
+      setDoc(doc(dbAs('alice'), 'households', HID, 'recipePhotos', 'r2'), {
+        jpegBase64: 'x'.repeat(700001),
+      })
+    );
+  });
+
+  it('blocks non-members from recipes and photos', async () => {
+    const db = dbAs('mallory');
+    await assertFails(getDoc(doc(db, 'households', HID, 'recipes', 'r1')));
+    await assertFails(setDoc(doc(db, 'households', HID, 'recipes', 'r9'), recipe));
+    await assertFails(getDoc(doc(db, 'households', HID, 'recipePhotos', 'r1')));
   });
 });

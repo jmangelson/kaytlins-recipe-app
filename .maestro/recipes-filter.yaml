@@ -1,0 +1,56 @@
+# Filter recipes by tag and search by ingredient, including the no-match state.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'filter' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Veggie Pasta'
+      TAG: 'Vegetarian'
+      LINE1: '1 lb penne'
+      LINE2: '1 jar marinara'
+- back
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Chicken Curry'
+      TAG: 'Chicken/Poultry'
+      LINE1: '2 lbs chicken thighs'
+      LINE2: '1 can coconut milk'
+- back
+- extendedWaitUntil:
+    visible: '2 recipes'
+    timeout: 15000
+
+# Tag filter
+- tapOn: 'Vegetarian'
+- assertVisible: '1 of 2 recipes'
+- assertVisible: 'Veggie Pasta'
+- assertNotVisible: 'Chicken Curry'
+- tapOn: 'Vegetarian'
+- assertVisible: '2 recipes'
+
+# Search by ingredient
+- tapOn:
+    id: 'recipe-search'
+- inputText: 'coconut'
+- hideKeyboard
+- assertVisible: 'Chicken Curry'
+- assertNotVisible: 'Veggie Pasta'
+
+# No matches, then clear
+- tapOn:
+    id: 'recipe-search'
+- eraseText: 20
+- inputText: 'zzz'
+- hideKeyboard
+- assertVisible: 'No recipes match.'
+- tapOn: 'Clear search and filters'
+- assertVisible: '2 recipes'

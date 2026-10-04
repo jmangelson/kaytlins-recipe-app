@@ -164,7 +164,8 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     }
   }
 
-  const name = rest.replace(/\s+/g, ' ').trim().toLowerCase();
+  // Keep her capitalization ("Monterey Jack"); matching uses ingredientNameKey().
+  const name = rest.replace(/\s+/g, ' ').trim();
   return {
     quantity,
     quantityMax,
