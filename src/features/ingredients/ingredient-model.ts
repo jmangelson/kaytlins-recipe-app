@@ -2,6 +2,15 @@ import { guessCategory, isCategoryId, type CategoryId } from '@/features/ingredi
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import type { Store, StoreSection } from '@/features/stores/store-types';
 
+/**
+ * Tidies an ingredient name for storage: trimmed, single spaces, her
+ * capitalization kept ("Monterey Jack"). Matching ignores case through
+ * ingredientNameKey, so "monterey jack" still links to it.
+ */
+export function canonicalName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
 /** A canonical ingredient in the household's list. */
 export type Ingredient = {
   id: string;
@@ -26,8 +35,8 @@ export type Ingredient = {
  * and that store's area).
  */
 export function ingredientFromData(id: string, data: Record<string, unknown>): Ingredient {
-  const name = (data.name as string) ?? '';
-  const aliases = Array.isArray(data.aliases) ? (data.aliases as string[]) : [];
+  const name = canonicalName((data.name as string) ?? '');
+  const aliases = Array.isArray(data.aliases) ? (data.aliases as string[]).map(canonicalName) : [];
   let storePriority = Array.isArray(data.storePriority) ? (data.storePriority as string[]) : [];
   let areaOverrides =
     data.areaOverrides && typeof data.areaOverrides === 'object'
@@ -52,11 +61,12 @@ export function ingredientFromData(id: string, data: Record<string, unknown>): I
 
 /** The fields stored in Firestore for an ingredient. */
 export function ingredientToData(ingredient: Omit<Ingredient, 'id'>) {
+  const aliases = ingredient.aliases.map(canonicalName);
   return {
-    name: ingredient.name.trim(),
+    name: canonicalName(ingredient.name),
     nameKey: ingredientNameKey(ingredient.name),
-    aliases: ingredient.aliases,
-    aliasKeys: ingredient.aliases.map(ingredientNameKey),
+    aliases,
+    aliasKeys: aliases.map(ingredientNameKey),
     category: ingredient.category,
     storePriority: ingredient.storePriority,
     areaOverrides: ingredient.areaOverrides,
@@ -66,7 +76,7 @@ export function ingredientToData(ingredient: Omit<Ingredient, 'id'>) {
 
 export function newIngredient(name: string): Omit<Ingredient, 'id'> {
   return {
-    name: name.trim(),
+    name: canonicalName(name),
     nameKey: ingredientNameKey(name),
     aliases: [],
     aliasKeys: [],

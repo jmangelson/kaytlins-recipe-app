@@ -80,6 +80,15 @@ describe('linesForSave', () => {
     expect(lines[0]).toMatchObject({ name: 'Ground beef', quantity: 1, unit: 'lb' });
   });
 
+  it('keeps her capitalization for new ingredients', () => {
+    const rows = rowsFromText('2 cups shredded Monterey Jack', list);
+    expect(rows[0].link).toEqual({ kind: 'new', name: 'shredded Monterey Jack' });
+    expect(linesForSave(rows, list).newIngredients).toEqual([
+      { tempId: 'new:0', name: 'shredded Monterey Jack' },
+    ]);
+    expect(rows[0].raw).toBe('2 cups shredded Monterey Jack');
+  });
+
   it('links a "new" row to an ingredient created since it was added', () => {
     const rows = rowsFromText('1 tsp salt', list);
     const { lines, newIngredients } = linesForSave(rows, [...list, ingredient('salt', 'Salt')]);

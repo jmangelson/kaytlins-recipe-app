@@ -143,8 +143,14 @@ over edited stores.
 - Maestro: `ingredient-matching`, `ingredient-setup` (replaces
   `ingredient-store`).
 
+- Follow-up: closing a row's editor scrolls that row back into view. Names
+  keep her capitalization (spaces tidied); matching ignores case.
+
 ## Decisions
 
+- 2026-10-04: ingredient names keep her capitalization ("Monterey Jack");
+  matching ignores case. (Briefly switched to all-lowercase, then reverted at
+  her request.)
 - 2026-10-04: canonical ingredients with aliases, categories, store priority,
   and per-store areas; vague matches always ask (see PLAN.md).
 - 2026-10-04: photo scan switched from on-device ML Kit to AI (Claude via a
@@ -185,6 +191,7 @@ over edited stores.
 | Row dividers stopped short of the arrow buttons                        | Divider drawn by the inner row only                                                                                                                                                                                                                | `ListRow` `divider={false}`; outer row draws it                                                                                                                  |
 | Scripted edits silently missed after Prettier reflowed code (again)    | String replace with no check                                                                                                                                                                                                                       | Every scripted replace now throws if its target isn't found                                                                                                      |
 | Maestro tapped a recipe row instead of the "yellow onions" choice chip | Same visible text on both; rows' labels also omitted the note                                                                                                                                                                                      | Choice chips say "Use yellow onions for onion"; row labels include the note                                                                                      |
+| Edited row ended up above the screen after Done                        | The tall inline editor collapsed and the scroll position stayed put                                                                                                                                                                                | On Done, measure the row against the scroll content (`innerViewRef`) and scroll to it                                                                            |
 
 ## Lessons learned
 

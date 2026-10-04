@@ -7,7 +7,11 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 
-import { ingredientToData, newIngredient } from '@/features/ingredients/ingredient-model';
+import {
+  canonicalName,
+  ingredientToData,
+  newIngredient,
+} from '@/features/ingredients/ingredient-model';
 import { listIngredients, newIngredientRef } from '@/features/ingredients/ingredient-repo';
 import { linesForSave } from '@/features/recipes/recipe-draft';
 import type { Recipe, RecipeDraft } from '@/features/recipes/recipe-types';
@@ -30,7 +34,10 @@ function toRecipe(id: string, data: Record<string, unknown>): Recipe {
     tagIds: (data.tagIds as string[]) ?? [],
     notes: (data.notes as string) ?? '',
     hasPhoto: !!data.hasPhoto,
-    ingredients: (data.ingredients as Recipe['ingredients']) ?? [],
+    ingredients: ((data.ingredients as Recipe['ingredients']) ?? []).map((line) => ({
+      ...line,
+      name: canonicalName(line.name),
+    })),
   };
 }
 

@@ -1,4 +1,8 @@
-import { matchIngredient, type Ingredient } from '@/features/ingredients/ingredient-model';
+import {
+  canonicalName,
+  matchIngredient,
+  type Ingredient,
+} from '@/features/ingredients/ingredient-model';
 import {
   ingredientNameKey,
   parseIngredientLine,
@@ -38,9 +42,9 @@ export function draftFromRecipe(recipe: Recipe): RecipeDraft {
       quantityMax: line.quantityMax,
       unit: line.unit,
       note: line.note,
-      writtenName: line.name,
+      writtenName: canonicalName(line.name),
       raw: line.raw,
-      link: { kind: 'existing', ingredientId: line.ingredientId, name: line.name },
+      link: { kind: 'existing', ingredientId: line.ingredientId, name: canonicalName(line.name) },
     })),
     notes: recipe.notes,
   };
@@ -58,7 +62,7 @@ export function linkFor(writtenName: string, ingredients: Ingredient[]): RowLink
       candidates: match.candidates.map((c) => ({ id: c.id, name: c.name })),
     };
   }
-  return { kind: 'new', name: writtenName };
+  return { kind: 'new', name: canonicalName(writtenName) };
 }
 
 export function rowFromParsed(parsed: ParsedIngredient, ingredients: Ingredient[]): DraftRow {
@@ -68,7 +72,7 @@ export function rowFromParsed(parsed: ParsedIngredient, ingredients: Ingredient[
     quantityMax: parsed.quantityMax,
     unit: parsed.unit,
     note: parsed.note,
-    writtenName: parsed.name,
+    writtenName: canonicalName(parsed.name),
     raw: parsed.raw,
     link: linkFor(parsed.name, ingredients),
   };
@@ -134,7 +138,10 @@ export function linesForSave(
         const key = ingredientNameKey(row.link.name);
         let planned = newByKey.get(key);
         if (!planned) {
-          planned = { tempId: `new:${newIngredients.length}`, name: row.link.name.trim() };
+          planned = {
+            tempId: `new:${newIngredients.length}`,
+            name: canonicalName(row.link.name),
+          };
           newIngredients.push(planned);
           newByKey.set(key, planned);
         }

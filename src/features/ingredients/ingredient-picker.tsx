@@ -35,7 +35,7 @@ export function IngredientPicker({
     search,
     ingredients.filter((i) => !excludeIds.includes(i.id))
   ).slice(0, MAX_RESULTS);
-  const trimmed = search.trim();
+  const trimmed = search.trim().replace(/\s+/g, ' ');
   const exactExists = results.some((i) => i.name.toLowerCase() === trimmed.toLowerCase());
 
   return (

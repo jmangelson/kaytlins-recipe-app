@@ -2,6 +2,7 @@ import { guessCategory } from '@/features/ingredients/categories';
 import {
   areaForStore,
   ingredientFromData,
+  ingredientToData,
   matchIngredient,
   newIngredient,
   searchIngredients,
@@ -151,6 +152,25 @@ describe('store priority', () => {
       store: stores[0],
       usualStore: stores[1],
     });
+  });
+});
+
+describe('names keep her capitalization', () => {
+  it('tidies spaces but keeps capitals; keys are lowercase for matching', () => {
+    expect(newIngredient('  Yellow   Onion ').name).toBe('Yellow Onion');
+    expect(ingredientToData({ ...newIngredient('Feta'), aliases: ['Feta  Cheese'] })).toMatchObject(
+      {
+        name: 'Feta',
+        nameKey: 'feta',
+        aliases: ['Feta Cheese'],
+        aliasKeys: ['feta cheese'],
+      }
+    );
+  });
+
+  it('matches regardless of case', () => {
+    const jack = { ...newIngredient('Monterey Jack'), id: 'j' };
+    expect(matchIngredient('monterey JACK', [jack])).toEqual({ kind: 'exact', ingredient: jack });
   });
 });
 

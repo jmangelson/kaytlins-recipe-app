@@ -71,9 +71,8 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Done'
 - tapOn: 'Done'
-- scrollUntilVisible:
-    element: 'Edit 2 yellow onions, diced'
-    direction: UP
+# After Done, the app scrolls the closed row back into view.
+- assertVisible: 'Edit 2 yellow onions, diced'
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'

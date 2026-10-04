@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useRef, useState, type RefObject } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -39,6 +39,8 @@ export function RecipeForm({
   onSave,
 }: RecipeFormProps) {
   const [draft, setDraft] = useState(initialDraft);
+  const scrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
   const [photo, setPhoto] = useState<PhotoChange>({ kind: 'unchanged' });
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saving, setSaving] = useState(false);
@@ -87,7 +89,11 @@ export function RecipeForm({
   }
 
   return (
-    <Screen edges={HEADER_EDGES}>
+    <Screen
+      edges={HEADER_EDGES}
+      scrollRef={scrollRef}
+      // ScrollView types this ref as never-null; it's only read after mount.
+      innerViewRef={contentRef as RefObject<View>}>
       <TextField
         label="Recipe name"
         testID="recipe-name"
@@ -128,6 +134,8 @@ export function RecipeForm({
         onChange={(rows) => update('rows', rows)}
         ingredients={ingredients}
         error={errors.ingredients}
+        scrollRef={scrollRef}
+        contentRef={contentRef}
       />
 
       <TextField

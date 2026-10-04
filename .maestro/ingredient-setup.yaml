@@ -62,7 +62,7 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Bakery'
 - tapOn: 'Bakery'
 - scrollUntilVisible:
-    element: 'Bakery'
+    element: 'Bakery · your choice'
     direction: UP
 - tapOn: 'Save'
 - extendedWaitUntil:

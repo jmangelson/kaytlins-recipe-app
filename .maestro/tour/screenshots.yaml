@@ -118,6 +118,7 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Done'
 - takeScreenshot: build/screenshots/15d-row-editor-bottom
 - tapOn: 'Done'
+- takeScreenshot: build/screenshots/15e-row-closed
 - runFlow: ../subflows/choose-recipe-photo.yaml
 - takeScreenshot: build/screenshots/16-recipe-form-photo
 - scrollUntilVisible:

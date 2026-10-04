@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState, type RefObject } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
@@ -7,7 +7,7 @@ import { IconButton } from '@/components/icon-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import type { Ingredient } from '@/features/ingredients/ingredient-model';
+import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import { ALL_UNITS, COMMON_UNITS, unitLabel, type UnitKey } from '@/features/ingredients/units';
@@ -25,6 +25,9 @@ type IngredientRowsEditorProps = {
   onChange: (rows: DraftRow[]) => void;
   ingredients: Ingredient[];
   error?: string;
+  /** The form's scroll view and its content, to bring a closed row back into view. */
+  scrollRef?: RefObject<ScrollView | null>;
+  contentRef?: RefObject<View | null>;
 };
 
 /**
@@ -36,9 +39,28 @@ export function IngredientRowsEditor({
   onChange,
   ingredients,
   error,
+  scrollRef,
+  contentRef,
 }: IngredientRowsEditorProps) {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [addText, setAddText] = useState('');
+  const rowViews = useRef(new Map<string, View>());
+
+  /**
+   * Closing a tall row editor can leave that row above the screen, so scroll
+   * it back near the top once the collapsed row has been laid out.
+   */
+  function closeEditor(key: string) {
+    setEditingKey(null);
+    requestAnimationFrame(() => {
+      const row = rowViews.current.get(key);
+      const content = contentRef?.current;
+      if (!row || !content) return;
+      row.measureLayout(content, (_x, y) => {
+        scrollRef?.current?.scrollTo({ y: Math.max(0, y - 96), animated: true });
+      });
+    });
+  }
 
   function update(key: string, change: Partial<DraftRow>) {
     onChange(rows.map((r) => (r.key === key ? { ...r, ...change } : r)));
@@ -79,7 +101,7 @@ export function IngredientRowsEditor({
                 row={row}
                 ingredients={ingredients}
                 onChange={(change) => update(row.key, change)}
-                onDone={() => setEditingKey(null)}
+                onDone={() => closeEditor(row.key)}
                 onRemove={() => {
                   onChange(rows.filter((r) => r.key !== row.key));
                   setEditingKey(null);
@@ -90,12 +112,18 @@ export function IngredientRowsEditor({
                 }
               />
             ) : (
-              <RowSummary
+              <View
                 key={row.key}
-                row={row}
-                onEdit={() => setEditingKey(row.key)}
-                onLink={(link) => update(row.key, { link })}
-              />
+                ref={(view) => {
+                  if (view) rowViews.current.set(row.key, view);
+                  else rowViews.current.delete(row.key);
+                }}>
+                <RowSummary
+                  row={row}
+                  onEdit={() => setEditingKey(row.key)}
+                  onLink={(link) => update(row.key, { link })}
+                />
+              </View>
             )
           )}
         </View>
@@ -288,7 +316,8 @@ function RowEditor({
               setPicking(false);
             }}
             onCreate={(name) => {
-              onChange({ link: { kind: 'new', name }, writtenName: name });
+              const lower = canonicalName(name);
+              onChange({ link: { kind: 'new', name: lower }, writtenName: lower });
               setPicking(false);
             }}
           />
