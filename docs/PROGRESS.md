@@ -53,8 +53,11 @@ app:assembleRelease`): JS bundled, real Firebase, signed with the debug key
   (SHA-1 `5E:8F:16:…:F6:25`, verified with `apksigner`). On the emulator it
   launches without Metro and opens Google's sign-in UI with no config error.
 
-Still open for M1: complete real Google sign-in on a physical phone with the
-test APK. Installing the release APK on the emulator replaces the dev build;
+- 2026-10-04: **verified on a physical phone** with the test APK: Google
+  sign-in, household creation, app restart, and offline launch (airplane mode)
+  all work. Not yet tried: a second phone joining with the invite code.
+
+Installing the release APK on the emulator replaces the dev build;
 reinstall it with `npx expo run:android` before Maestro work.
 
 ## Decisions
