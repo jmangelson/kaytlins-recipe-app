@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// Data model: docs/PLAN.md ("Firestore layout").
+//
+// - users/{uid}            which household a signed-in user belongs to
+// - invites/{code}         maps an invite code to a household id; get-only, so
+//                          codes cannot be listed or enumerated
+// - households/{hid}       readable/writable only by its members; anyone who
+//                          knows the household id (via an invite code) may add
+//                          only themselves to memberIds
+// - households/{hid}/**    all household data, members only
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function householdPath(hid) {
+      return /databases/$(database)/documents/households/$(hid);
+    }
+
+    function isMember(hid) {
+      return signedIn() && request.auth.uid in get(householdPath(hid)).data.memberIds;
+    }
+
+    function isMemberAfterWrite(hid) {
+      return signedIn() && request.auth.uid in getAfter(householdPath(hid)).data.memberIds;
+    }
+
+    function validSettings(settings) {
+      return settings is map
+        && settings.keys().hasOnly(['weekStart', 'showBreakfastLunch'])
+        && (!('weekStart' in settings) || (settings.weekStart is int
+          && settings.weekStart >= 0 && settings.weekStart <= 6))
+        && (!('showBreakfastLunch' in settings) || settings.showBreakfastLunch is bool);
+    }
+
+    function validHouseholdName(name) {
+      return name is string && name.size() > 0 && name.size() <= 60;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      // A user may only point at a household they are a member of (checked
+      // after the batch, so create/join and this write can happen together).
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['householdId'])
+        && request.resource.data.householdId is string
+        && isMemberAfterWrite(request.resource.data.householdId);
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['householdId', 'createdBy', 'createdAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && isMemberAfterWrite(request.resource.data.householdId)
+        && getAfter(householdPath(request.resource.data.householdId)).data.inviteCode == code;
+      allow update, delete: if false;
+    }
+
+    match /households/{hid} {
+      allow read: if signedIn() && request.auth.uid in resource.data.memberIds;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'memberIds', 'inviteCode', 'createdAt', 'settings'])
+        && validHouseholdName(request.resource.data.name)
+        && request.resource.data.memberIds == [request.auth.uid]
+        && request.resource.data.inviteCode is string
+        && request.resource.data.createdAt == request.time
+        && validSettings(request.resource.data.settings);
+
+      // Members edit name/settings; membership and invite code are fixed.
+      allow update: if signedIn() && request.auth.uid in resource.data.memberIds
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'settings'])
+        && validHouseholdName(request.resource.data.name)
+        && validSettings(request.resource.data.settings);
+
+      // Joining: a non-member appends exactly themselves and changes nothing else.
+      allow update: if signedIn() && !(request.auth.uid in resource.data.memberIds)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+        && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid])
+        && request.resource.data.memberIds.size() <= 10;
+
+      allow delete: if false;
+
+      // `{collection}` forces at least one segment: in rules v2 a bare
+      // `{document=**}` also matches the household doc itself and would
+      // bypass the membership rules above.
+      match /{collection}/{document=**} {
+        allow read, write: if isMember(hid);
+      }
+    }
+  }
+}

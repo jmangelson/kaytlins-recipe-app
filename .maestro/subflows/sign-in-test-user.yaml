@@ -1,0 +1,14 @@
+# Signs in with the emulator-only test sign-in. Requires Metro started with
+# EXPO_PUBLIC_USE_FIREBASE_EMULATORS=1 and `npm run emulators` running.
+# Params: EMAIL
+appId: com.jmangelson.kaytlinsrecipes
+---
+- extendedWaitUntil:
+    visible: 'Sign in with Google'
+    timeout: 60000
+- scrollUntilVisible:
+    element: 'Test email'
+- tapOn: 'Test email'
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: 'Test sign in'

@@ -16,12 +16,30 @@ place it in the repo root.
 ```bash
 npm install
 npm run android      # build + install the dev build (rerun after native changes)
-npm start            # Metro for an already-installed dev build
+npm start            # Metro for an already-installed dev build (real Firebase)
 ```
+
+After adding or changing config plugins or native dependencies, regenerate the
+native project before building: `npx expo prebuild --platform android --clean`.
+
+## Local Firebase emulators
+
+Day-to-day development and Maestro flows run against the Firebase Local
+Emulator Suite (Auth + Firestore), never the real project:
+
+```bash
+npm run emulators         # terminal 1: Auth :9099, Firestore :8080
+npm run start:emulators   # terminal 2: Metro with EXPO_PUBLIC_USE_FIREBASE_EMULATORS=1
+```
+
+In emulator mode the sign-in screen also shows an **Emulator test sign-in**
+(email only) used by Maestro. The Android emulator reaches the container's
+localhost at `10.0.2.2`.
 
 ## Checks
 
 ```bash
 npm run validate     # prettier check, eslint, tsc, jest
-npm run e2e          # Maestro flows in .maestro/ (emulator + Metro running)
+npm run test:rules   # Firestore security rules tests (uses a running emulator or starts one)
+npm run e2e          # Maestro flows in .maestro/ (emulator, Firebase emulators, Metro running)
 ```

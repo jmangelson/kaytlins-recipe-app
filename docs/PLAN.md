@@ -21,6 +21,7 @@ pantry-checked shopping list organized by store and store area.
 - **Units:** US by default.
 - **Stores:** Macey's, Sam's Club, Costco, Walmart, Smith's — configurable
   (add, rename, reorder, hide), each with its own ordered store areas.
+- **Week start:** Sunday by default (configurable).
 - **Sharing a list:** "Share as text" via the Android share sheet.
 
 ## Meal plans and calendar
@@ -66,17 +67,19 @@ Lists are **snapshots**: editing recipes later does not change an existing list.
 
 | Concern    | Choice                                                                                                                                                                                         |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App        | Expo (dev build) + TypeScript + `expo-router`; tabs: Recipes · Plans · Calendar · Shopping (Settings in header)                                                                                |
+| App        | Expo (dev build) + TypeScript + `expo-router`; tabs: Recipes · Plans · Calendar · Shopping · Settings                                                                                          |
 | Backend    | Firebase Spark (free): Auth (Google) + Firestore                                                                                                                                               |
 | Offline    | `@react-native-firebase/firestore` (on-disk cache + queued writes)                                                                                                                             |
 | Photos     | Resized (~600px, ~60 KB JPEG) stored in Firestore (`recipePhotos/{id}`); Firebase Storage is not free                                                                                          |
 | Photo scan | On-device Google ML Kit text recognition → crop to ingredients → shared line parser → pre-filled recipe form for review. Optional future upgrade: free Cloudflare Worker + Claude (~2–3¢/scan) |
-| Tests      | Jest + React Native Testing Library; Firebase Local Emulator Suite (dev dependency) for rules/integration; Maestro flows in `.maestro/`                                                        |
+| Tests      | Jest + React Native Testing Library; Firebase Local Emulator Suite for rules tests and Maestro runs (emulator-only test sign-in); Maestro in `.maestro/`                                       |
 | Release    | EAS Build → APK installed on both phones                                                                                                                                                       |
 
 ### Firestore layout
 
 ```
+users/{uid}                  householdId
+invites/{code}               householdId, createdBy, createdAt   (get-only; 8-char code)
 households/{hid}             name, memberIds[], inviteCode, settings{weekStart, showBreakfastLunch}
   stores/{id}                name, order, hidden, sections[{id, name, order}]
   ingredients/{id}           name, nameLower, defaultUnit, storeId, sectionId

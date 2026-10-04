@@ -1,0 +1,62 @@
+# Two people share a household: the first creates it, the second joins with
+# the invite code, and both see two members. Also checks sign-out and that an
+# existing member goes straight to the app on next sign-in.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.owner = 'owner' + Date.now() + '@test.dev'}
+- evalScript: ${output.joiner = 'joiner' + Date.now() + '@test.dev'}
+
+# Owner creates the household and copies the invite code.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.owner}
+- runFlow: subflows/create-household.yaml
+- tapOn: 'Settings'
+- assertVisible: '1 member'
+- copyTextFrom:
+    id: 'invite-code'
+- tapOn: 'Sign out'
+
+# A wrong code shows an error and stays on setup.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.joiner}
+- extendedWaitUntil:
+    visible: 'Set up your household'
+    timeout: 30000
+- tapOn: 'Invite code'
+- inputText: 'ZZZZ-9999'
+- hideKeyboard
+- tapOn: 'Join household'
+- extendedWaitUntil:
+    visible: "That invite code wasn't found.*"
+    timeout: 15000
+
+# Joiner uses the real code.
+- tapOn: 'Invite code'
+- eraseText: 20
+- pasteText
+- hideKeyboard
+- tapOn: 'Join household'
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- tapOn: 'Settings'
+- assertVisible: 'Our Kitchen'
+- assertVisible: '2 members'
+- tapOn: 'Sign out'
+
+# Owner signs back in and lands directly in the app.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.owner}
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- tapOn: 'Settings'
+- assertVisible: '2 members'

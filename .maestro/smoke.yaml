@@ -1,16 +1,21 @@
-# Smoke: app launches and every tab opens to its screen.
+# Smoke: launch, sign in, create a household, and open every tab.
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - launchApp:
     clearState: true
-- extendedWaitUntil:
-    visible: 'No recipes yet.*'
-    timeout: 30000
+- evalScript: ${output.email = 'smoke' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
 - tapOn: 'Plans'
 - assertVisible: 'Meal plans'
 - tapOn: 'Calendar'
 - assertVisible: 'Nothing scheduled.*'
 - tapOn: 'Shopping'
 - assertVisible: 'No shopping lists yet.*'
+- tapOn: 'Settings'
+- assertVisible: 'Our Kitchen'
 - tapOn: 'Recipes'
 - assertVisible: 'No recipes yet.*'

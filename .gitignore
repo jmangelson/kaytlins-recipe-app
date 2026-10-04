@@ -50,3 +50,8 @@ GoogleService-Info.plist
 build/
 coverage/
 *.log
+
+# Firebase emulator logs and debug output
+firebase-debug.log
+firestore-debug.log
+ui-debug.log

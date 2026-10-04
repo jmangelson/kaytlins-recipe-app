@@ -11,6 +11,7 @@ export default function AppTabs() {
     <NativeTabs
       backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
+      labelVisibilityMode="labeled"
       labelStyle={{ selected: { color: colors.text } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Recipes</NativeTabs.Trigger.Label>
@@ -30,6 +31,11 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="shopping">
         <NativeTabs.Trigger.Label>Shopping</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="cart" md="shopping_cart" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="settings">
+        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="gearshape" md="settings" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
