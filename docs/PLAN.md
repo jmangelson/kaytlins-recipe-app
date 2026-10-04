@@ -10,7 +10,8 @@ pantry-checked shopping list organized by store and store area.
 - **Sync:** data is stored in the cloud so it survives app close / phone reset and
   is shared between phones. Live (real-time) sync is **not** required; changes
   appear the next time a screen loads. The app must work offline in the store.
-- **Cost:** free. Firebase Spark plan (no card). Photo scan runs on-device.
+- **Cost:** free hosting (Firebase Spark, Cloudflare Workers free tier). The only
+  paid piece is AI photo scanning: Claude API, roughly 2–3¢ per scanned recipe.
 - **Recipes:** ingredients (amount, unit, ingredient, note) are essential.
   Steps are tracked elsewhere → optional free-text **Notes / source** field.
   Optional photo.
@@ -61,19 +62,19 @@ Lists are **snapshots**: editing recipes later does not change an existing list.
   same unit.
 - Pantry "have" subtracts in the same unit; ≤ 0 removes the line.
 - One shared amount/unit/ingredient-line parser is used by the recipe form,
-  aggregation, and photo scan.
+  aggregation, and matching scanned ingredients to existing ones.
 
 ## Architecture
 
-| Concern    | Choice                                                                                                                                                                                         |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| App        | Expo (dev build) + TypeScript + `expo-router`; tabs: Recipes · Plans · Calendar · Shopping · Settings                                                                                          |
-| Backend    | Firebase Spark (free): Auth (Google) + Firestore                                                                                                                                               |
-| Offline    | `@react-native-firebase/firestore` (on-disk cache + queued writes)                                                                                                                             |
-| Photos     | Resized (~600px, ~60 KB JPEG) stored in Firestore (`recipePhotos/{id}`); Firebase Storage is not free                                                                                          |
-| Photo scan | On-device Google ML Kit text recognition → crop to ingredients → shared line parser → pre-filled recipe form for review. Optional future upgrade: free Cloudflare Worker + Claude (~2–3¢/scan) |
-| Tests      | Jest + React Native Testing Library; Firebase Local Emulator Suite for rules tests and Maestro runs (emulator-only test sign-in); Maestro in `.maestro/`                                       |
-| Release    | EAS Build → APK installed on both phones                                                                                                                                                       |
+| Concern    | Choice                                                                                                                                                                                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App        | Expo (dev build) + TypeScript + `expo-router`; tabs: Recipes · Plans · Calendar · Shopping · Settings                                                                                                                                                                                           |
+| Backend    | Firebase Spark (free): Auth (Google) + Firestore                                                                                                                                                                                                                                                |
+| Offline    | `@react-native-firebase/firestore` (on-disk cache + queued writes)                                                                                                                                                                                                                              |
+| Photos     | Resized (~600px, ~60 KB JPEG) stored in Firestore (`recipePhotos/{id}`); Firebase Storage is not free                                                                                                                                                                                           |
+| Photo scan | AI: phone resizes photo(s) → Cloudflare Worker (free tier) verifies the Firebase ID token, holds the Anthropic API key, applies a per-user daily limit → Claude (`claude-opus-5-5`, image input + structured JSON output) → pre-filled recipe form for review; nothing saves without her review |
+| Tests      | Jest + React Native Testing Library; Firebase Local Emulator Suite for rules tests and Maestro runs (emulator-only test sign-in); Maestro in `.maestro/`                                                                                                                                        |
+| Release    | EAS Build → APK installed on both phones                                                                                                                                                                                                                                                        |
 
 ### Firestore layout
 
@@ -101,22 +102,50 @@ households/{hid}             name, memberIds[], inviteCode, settings{weekStart, 
 
 Each follows the feature loop in `CLAUDE.md`.
 
-| #   | Milestone                                                                                                 | Done when                                        |
-| --- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| 0   | Scaffold: git, Expo TS + expo-router, lint/format/typecheck/Jest, emulator, dev build, smoke Maestro flow | App launches; smoke flow passes                  |
-| 1   | Firebase: Google sign-in, create/join household (invite code), security rules + tests, offline cache      | Two accounts share a household; rules tests pass |
-| 2   | Seed data + data layer: stores/areas, tags, repositories; shared unit/line parser                         | Unit tests pass; data survives restart           |
-| 3   | Recipes: list, search, tag filter, detail, add/edit (accepts prefilled draft), optional photo             | Maestro recipe flows pass                        |
-| 4   | Settings: stores & areas, ingredient defaults, tags, B/L toggle, week start                               | Maestro store-setup flow passes                  |
-| 5   | Meal plans: N-day plans, B/L/D slots, duplicate                                                           | Maestro plan flow passes                         |
-| 6   | Calendar: apply plan to dates with repeat, conflict handling, edit days                                   | Maestro schedule flow passes                     |
-| 7   | Shopping generation: source selection (dates/subset or plan days), aggregation, pantry check              | Aggregation tests + Maestro flow pass            |
-| 8   | Checklist: grouped by store → area, offline check-off, manual items, share as text                        | Airplane-mode check-off, then sync verified      |
-| 9   | Release: EAS APK on both phones, in-store trial                                                           | Both phones in daily use                         |
-| 10  | Photo scan: ML Kit + crop + parser → prefilled form                                                       | Real-photo accuracy check + manual review        |
+| #   | Milestone                                                                                                 | Done when                                                       |
+| --- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| 0   | Scaffold: git, Expo TS + expo-router, lint/format/typecheck/Jest, emulator, dev build, smoke Maestro flow | App launches; smoke flow passes                                 |
+| 1   | Firebase: Google sign-in, create/join household (invite code), security rules + tests, offline cache      | Two accounts share a household; rules tests pass                |
+| 2   | Seed data + data layer: stores/areas, tags, repositories; shared unit/line parser                         | Unit tests pass; data survives restart                          |
+| 3   | Recipes: list, search, tag filter, detail, add/edit (accepts prefilled draft), optional photo             | Maestro recipe flows pass                                       |
+| 4   | Settings: stores & areas, ingredient defaults, tags, B/L toggle, week start                               | Maestro store-setup flow passes                                 |
+| 5   | Meal plans: N-day plans, B/L/D slots, duplicate                                                           | Maestro plan flow passes                                        |
+| 6   | Calendar: apply plan to dates with repeat, conflict handling, edit days                                   | Maestro schedule flow passes                                    |
+| 7   | Shopping generation: source selection (dates/subset or plan days), aggregation, pantry check              | Aggregation tests + Maestro flow pass                           |
+| 8   | Checklist: grouped by store → area, offline check-off, manual items, share as text                        | Airplane-mode check-off, then sync verified                     |
+| 9   | Release: EAS APK on both phones, in-store trial                                                           | Both phones in daily use                                        |
+| 10  | AI photo scan: Worker + Claude → prefilled form (multi-page, handwritten cards)                           | Accuracy check on ~10 of her real recipe photos + manual review |
 
 ## Manual-review items (emulator cannot validate)
 
 - Real two-phone sync and Google sign-in on physical devices.
 - Poor in-store connectivity.
 - Real camera photos (glare, curved cookbook pages).
+
+## AI photo scan (Milestone 10)
+
+Decided 2026-10-04: use a vision model instead of on-device OCR, for better
+results on cookbook pages, two-column layouts, and handwritten cards.
+
+- **Flow:** Add Recipe → "Scan from photo" → camera or gallery
+  (`expo-image-picker`), one or more pages → resize on the phone
+  (`expo-image-manipulator`, ~1500 px long edge, JPEG) → POST to the Worker →
+  the form opens pre-filled; ingredient names are matched to her existing
+  ingredients (so store/area come along); unclear lines are highlighted with
+  the original printed text.
+- **Backend:** a Cloudflare Worker (free tier, no card) because Firebase
+  Functions need the paid Blaze plan. The Anthropic API key lives only in the
+  Worker's secrets, never in the APK. The Worker accepts only requests with a
+  valid Firebase ID token for this project and limits scans per user per day.
+- **Model call:** official Anthropic TypeScript SDK, `claude-opus-5-5`,
+  image content blocks, structured outputs (`output_config.format` JSON
+  schema): `{ title, servings, ingredients: [{ quantity, unit, name, note,
+raw_text }], notes, warnings }`. Check `stop_reason` before using the result.
+- **Cost:** about 2–3¢ per scan; set a monthly spend limit in the Anthropic
+  console.
+- **Testing:** unit tests map saved model responses to form drafts; an
+  accuracy set of ~10 of her real photos (printed, cookbook page,
+  handwritten); Maestro uses a canned-response dev mode so routine runs don't
+  call the paid API; real-camera check on her phone.
+- **Needs from you at M10:** an Anthropic API account/key and a free
+  Cloudflare account.

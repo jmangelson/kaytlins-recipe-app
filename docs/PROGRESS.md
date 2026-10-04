@@ -18,7 +18,7 @@ Update this file at the end of every milestone.
 | 7   | Shopping generation + pantry check                                         | Not started |
 | 8   | Checklist by store → area, share as text                                   | Not started |
 | 9   | Release: EAS APK on both phones                                            | Not started |
-| 10  | Photo scan (on-device ML Kit)                                              | Not started |
+| 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
 
 ## Completed
 
@@ -47,6 +47,12 @@ Update this file at the end of every milestone.
 
 Still open for M1: deploy rules to the real project (`firebase login` needed),
 and real Google sign-in on a physical phone.
+
+## Decisions
+
+- 2026-10-04: photo scan switched from on-device ML Kit to AI (Claude via a
+  free-tier Cloudflare Worker, ~2–3¢ per scan) for better accuracy. See
+  PLAN.md → "AI photo scan".
 
 ## Important bugs and resolutions
 
