@@ -55,7 +55,7 @@ emulator or a physical device is available.
 ## Android test loop
 
 The current recipe workspace has the Android layer and emulator enabled. The
-container provides Java 17, the Android SDK, `adb`, the Android CLI, Maestro,
+container provides Java 17 (`JAVA_HOME`) plus a Java 21 runtime for the Firebase emulators, the Android SDK, `adb`, the Android CLI, Maestro,
 and Android skills for both Claude and Codex.
 
 Use the Android CLI for SDK operations; `sdkmanager` is deprecated:

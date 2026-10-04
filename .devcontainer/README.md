@@ -125,7 +125,7 @@ This installs `texlive-latex-extra` and `latexmk`, including the standard LaTeX 
 ## Android development (optional)
 
 The Android layer is intended for an Expo/React Native Android project. It
-installs JDK 17, Android SDK command-line tools, `adb`, one Android compile
+installs JDK 17 (`JAVA_HOME`, for Gradle) plus a Java 21 runtime (default `java`, for the Firebase emulators), Android SDK command-line tools, `adb`, one Android compile
 platform, Android build tools, and Maestro. It does **not** install React or
 Expo globally; those belong in the application project and are created with
 `npx create-expo-app@latest`.
@@ -349,7 +349,7 @@ The cached image is reused -- the container is ready in seconds.
 | **Docker** *(optional)* | `docker.io` CLI and daemon -- only if `ENABLE_DOCKER_IN_DOCKER=true` |
 | **Chrome** *(optional)* | for browser GUI via noVNC -- only if `ENABLE_GUI=true` |
 | **Xvfb / x11vnc / noVNC / Fluxbox** *(optional)* | virtual display + browser access -- only if `ENABLE_GUI=true` |
-| **JDK 17** *(optional)* | Android/Gradle builds and Maestro -- only if `ENABLE_ANDROID=true` |
+| **JDK 17 + Java 21 runtime** *(optional)* | Android/Gradle builds and Maestro (17, `JAVA_HOME`); Firebase emulators (21, default `java`) -- only if `ENABLE_ANDROID=true` |
 | **Android SDK** *(optional)* | command-line tools, platform-tools/`adb`, API platform, and build tools -- only if `ENABLE_ANDROID=true` |
 | **Android Emulator** *(optional)* | headless emulator plus API 35 Google APIs image -- only if `ENABLE_ANDROID_EMULATOR=true` |
 | **Maestro** *(optional)* | Android end-to-end UI tests and screenshots -- only if `ENABLE_ANDROID=true` |
