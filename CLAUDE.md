@@ -65,26 +65,18 @@ android info
 android sdk list
 ```
 
-Create and boot the configured API 35 emulator when one is not already
-available:
+Create (if needed) and cold-boot the configured API 35 emulator with 4 GB of
+RAM. The script does nothing if an emulator is already attached:
 
 ```bash
-echo no | avdmanager create avd \
-  --force \
-  --name devpod-api35 \
-  --package "system-images;android-35;google_apis;x86_64"
-
-emulator -avd devpod-api35 -no-window -no-audio -no-boot-anim \
-  >/tmp/devpod-emulator.log 2>&1 &
-
-adb wait-for-device
-until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do
-  sleep 2
-done
-adb devices
+bash .devcontainer/start-emulator.sh
 ```
 
-Do not start duplicate emulators. Check `adb devices` first. If boot fails,
+Do not start duplicate emulators. Check `adb devices` first. If Maestro runs
+fail with "device offline" or "device not found", check
+`/tmp/adb.$(id -u).log` for "connection terminated" before retrying; the
+emulator showed that with 2 GB of RAM and a snapshot boot, and stopped once
+cold-booted with 4 GB (both changed together). If boot fails,
 read `/tmp/devpod-emulator.log` before trying again. The emulator requires the
 container’s `/dev/kvm` access; do not enable privileged Docker-in-Docker just
 to accelerate Android tests.
@@ -129,6 +121,13 @@ Before handing off a feature, check:
 - Generated build output and emulator logs remain under ignored/build paths.
 - A human has a clear manual-review note for anything the emulator cannot
   faithfully validate.
+- **Screenshot review (required for every milestone):** extend
+  `.maestro/tour/screenshots.yaml` to capture every new or changed screen and
+  state (empty, error, filled, scrolled), run `npm run screenshots`, then open
+  and inspect each image for clipped or truncated text, content hidden under
+  the keyboard, tab bar, or gesture bar, overlap, misalignment, unreadable
+  contrast, and wrong copy. Fix every issue found, rerun the tour, and
+  re-inspect until clean. Share the final screenshots with the user.
 
 For release work, use EAS Build for the Android artifact and keep signing
 credentials outside the repository.
@@ -144,3 +143,6 @@ credentials outside the repository.
   a large feature.
 - At the end of an iteration, report files changed, checks run, test results,
   and the next smallest useful step.
+- Keep `docs/PROGRESS.md` current: update the completed list, record
+  important bugs with their root cause and fix, and add lessons learned about
+  the toolchain. Read it at the start of a session.

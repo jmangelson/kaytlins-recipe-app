@@ -200,16 +200,17 @@ android init
 Create and start an emulator inside the container:
 
 ```bash
-echo no | avdmanager create avd \
-    --force \
-    --name devpod-api35 \
-    --package "system-images;android-35;google_apis;x86_64"
-
-emulator -avd devpod-api35 -no-window -no-audio -no-boot-anim \
-    >/tmp/devpod-emulator.log 2>&1 &
-adb wait-for-device
-adb devices
+bash .devcontainer/start-emulator.sh
 ```
+
+The script creates the `devpod-api35` AVD if it doesn't exist, sets its RAM
+to 4 GB (`EMULATOR_RAM_MB` overrides it), and cold-boots it detached from the
+shell, waiting for boot to finish. It does nothing if an emulator is already
+attached. With avdmanager's default 2 GB and a snapshot boot, the emulator's adb
+transport repeatedly dropped during Maestro runs; a 4 GB cold boot fixed it
+(both were changed together). The AVD lives in
+`~/.android/avd/`, not in the image, and `--shm-size=2g` in `runArgs` is
+unrelated Docker shared memory.
 
 The existing GUI/noVNC layer is not required for a headless emulator. Enable
 it only if you want to watch the emulator visually; automated tests can use
