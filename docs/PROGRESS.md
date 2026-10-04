@@ -48,8 +48,14 @@ Update this file at the end of every milestone.
 - 2026-10-04: Firestore rules deployed to `kaytlin-s-recipe-app`
   (`npx firebase deploy --only firestore:rules`).
 
-Still open for M1: real Google sign-in on a physical phone (needs a
-standalone APK signed with the registered debug key).
+- 2026-10-04: standalone test APK built (`cd android && ./gradlew
+app:assembleRelease`): JS bundled, real Firebase, signed with the debug key
+  (SHA-1 `5E:8F:16:…:F6:25`, verified with `apksigner`). On the emulator it
+  launches without Metro and opens Google's sign-in UI with no config error.
+
+Still open for M1: complete real Google sign-in on a physical phone with the
+test APK. Installing the release APK on the emulator replaces the dev build;
+reinstall it with `npx expo run:android` before Maestro work.
 
 ## Decisions
 
@@ -100,5 +106,8 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Firebase emulators** accept any Google credential, so Maestro uses an
   emulator-only email sign-in; real Google sign-in needs a manual check on a
   phone (needs the debug SHA-1 registered, which it is).
+- **Google Sign-In deprecation:** the original `GoogleSignin` API logs a
+  "gsi-migration" warning (legacy Google Sign-In for Android is deprecated in
+  favor of Credential Manager). It works today; revisit before release (M9).
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.
