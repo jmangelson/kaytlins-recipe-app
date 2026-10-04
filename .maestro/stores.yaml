@@ -1,0 +1,35 @@
+# A new household gets the starter stores (with areas in walking order) and
+# recipe tags; Stores & aisles opens from Settings and Back returns there.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'stores' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- tapOn: 'Settings'
+- extendedWaitUntil:
+    visible: 'Chicken/Poultry'
+    timeout: 15000
+- assertVisible: 'Vegetarian'
+- assertVisible: 'Fish/Seafood'
+- assertVisible: 'Beef'
+- assertVisible: 'Pork'
+- tapOn: 'Stores & aisles'
+- extendedWaitUntil:
+    visible: "Macey's"
+    timeout: 15000
+- assertVisible: 'Produce'
+- scrollUntilVisible:
+    element: 'Costco'
+- scrollUntilVisible:
+    element: "Sam's Club"
+- scrollUntilVisible:
+    element: 'Walmart'
+- scrollUntilVisible:
+    element: "Smith's"
+- back
+- assertVisible: 'Recipe tags'

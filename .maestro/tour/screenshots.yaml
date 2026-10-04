@@ -39,4 +39,26 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/07-shopping
 - tapOn: 'Settings'
 - assertVisible: 'Our Kitchen'
+- extendedWaitUntil:
+    visible: 'Chicken/Poultry'
+    timeout: 15000
 - takeScreenshot: build/screenshots/08-settings
+- scrollUntilVisible:
+    element: 'Sign out'
+- takeScreenshot: build/screenshots/09-settings-scrolled
+- scrollUntilVisible:
+    element: 'Stores & aisles'
+    direction: UP
+- tapOn: 'Stores & aisles'
+- extendedWaitUntil:
+    visible: "Macey's"
+    timeout: 15000
+- takeScreenshot: build/screenshots/10-stores
+- scrollUntilVisible:
+    element: 'Costco'
+    centerElement: true
+- takeScreenshot: build/screenshots/11-stores-costco
+- scrollUntilVisible:
+    element: "Smith's"
+- scroll
+- takeScreenshot: build/screenshots/12-stores-bottom

@@ -1,14 +1,24 @@
 import { ScrollView, StyleSheet, type ScrollViewProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 
+type ScreenProps = ScrollViewProps & {
+  /** Safe-area edges to pad. Screens under a navigation header skip 'top'. */
+  edges?: Edge[];
+};
+
 /** Scrollable, padded page container for form-style screens. */
-export function Screen({ children, contentContainerStyle, ...rest }: ScrollViewProps) {
+export function Screen({
+  children,
+  contentContainerStyle,
+  edges = ['top', 'right', 'bottom', 'left'],
+  ...rest
+}: ScreenProps) {
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={edges}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.content, contentContainerStyle]}

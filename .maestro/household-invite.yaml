@@ -16,6 +16,9 @@ appId: com.jmangelson.kaytlinsrecipes
 - runFlow: subflows/create-household.yaml
 - tapOn: 'Settings'
 - assertVisible: '1 member'
+- scrollUntilVisible:
+    element:
+      id: 'invite-code'
 - copyTextFrom:
     id: 'invite-code'
 - runFlow: subflows/sign-out.yaml

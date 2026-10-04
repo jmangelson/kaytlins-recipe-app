@@ -200,3 +200,60 @@ describe('household data access', () => {
     await assertFails(getDoc(doc(dbAs('bob'), 'users', 'alice')));
   });
 });
+
+describe('stores, tags, and ingredients', () => {
+  beforeEach(seedHousehold);
+
+  const validStore = {
+    name: "Macey's",
+    order: 0,
+    hidden: false,
+    sections: [{ id: 'produce', name: 'Produce', order: 0 }],
+  };
+
+  it('lets a member write the starter data and mark the household seeded in one batch', async () => {
+    const db = dbAs('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'households', HID, 'stores', 'maceys'), validStore);
+    batch.set(doc(db, 'households', HID, 'tags', 'beef'), { name: 'Beef', order: 0 });
+    batch.update(doc(db, 'households', HID), { seedVersion: 1 });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('rejects a non-integer seed version', async () => {
+    await assertFails(updateDoc(doc(dbAs('alice'), 'households', HID), { seedVersion: 'one' }));
+  });
+
+  it('rejects malformed stores and tags', async () => {
+    const db = dbAs('alice');
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'stores', 's1'), { ...validStore, name: '' })
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'stores', 's1'), { ...validStore, extra: true })
+    );
+    await assertFails(setDoc(doc(db, 'households', HID, 'tags', 't1'), { name: 'Beef' }));
+  });
+
+  it('validates ingredients', async () => {
+    const db = dbAs('alice');
+    const ingredient = {
+      name: 'Yellow onion',
+      nameKey: 'yellow onion',
+      defaultUnit: null,
+      storeId: 'maceys',
+      sectionId: 'produce',
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'ingredients', 'i1'), ingredient));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'ingredients', 'i2'), { ...ingredient, storeId: 5 })
+    );
+  });
+
+  it('blocks non-members from stores, tags, and ingredients', async () => {
+    const db = dbAs('mallory');
+    await assertFails(getDocs(collection(db, 'households', HID, 'stores')));
+    await assertFails(setDoc(doc(db, 'households', HID, 'stores', 'x'), validStore));
+    await assertFails(setDoc(doc(db, 'households', HID, 'tags', 'x'), { name: 'X', order: 0 }));
+  });
+});

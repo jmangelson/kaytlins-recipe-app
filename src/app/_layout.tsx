@@ -41,6 +41,7 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={session.status === 'ready'}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="stores" options={{ headerShown: true, title: 'Stores & aisles' }} />
       </Stack.Protected>
     </Stack>
   );

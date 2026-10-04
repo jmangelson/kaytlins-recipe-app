@@ -9,7 +9,12 @@ import {
   type ReactNode,
 } from 'react';
 
-import { loadUserHousehold, type Household } from '@/features/household/household-service';
+import {
+  loadUserHousehold,
+  needsSeeding,
+  seedHousehold,
+  type Household,
+} from '@/features/household/household-service';
 import { auth } from '@/lib/firebase';
 
 export type SessionState =
@@ -31,6 +36,11 @@ async function resolveSession(user: User | null): Promise<SessionState> {
   if (!user) return { status: 'signedOut' };
   try {
     const household = await loadUserHousehold(user.uid);
+    if (household && needsSeeding(household)) {
+      // Not awaited: offline, the commit only resolves once the server sees it,
+      // but the writes are visible locally immediately.
+      seedHousehold(household.id).catch((error) => console.warn('Seeding failed', error));
+    }
     return household ? { status: 'ready', user, household } : { status: 'needsHousehold', user };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -35,6 +35,37 @@ service cloud.firestore {
         && (!('showBreakfastLunch' in settings) || settings.showBreakfastLunch is bool);
     }
 
+    function validName(name, maxLength) {
+      return name is string && name.size() > 0 && name.size() <= maxLength;
+    }
+
+    function optionalString(data, key) {
+      return !(key in data) || data[key] == null || data[key] is string;
+    }
+
+    function validStore(data) {
+      return data.keys().hasOnly(['name', 'order', 'hidden', 'sections'])
+        && validName(data.name, 60)
+        && data.order is int
+        && data.hidden is bool
+        && data.sections is list && data.sections.size() <= 40;
+    }
+
+    function validTag(data) {
+      return data.keys().hasOnly(['name', 'order'])
+        && validName(data.name, 40)
+        && data.order is int;
+    }
+
+    function validIngredient(data) {
+      return data.keys().hasOnly(['name', 'nameKey', 'defaultUnit', 'storeId', 'sectionId'])
+        && validName(data.name, 80)
+        && validName(data.nameKey, 80)
+        && optionalString(data, 'defaultUnit')
+        && optionalString(data, 'storeId')
+        && optionalString(data, 'sectionId');
+    }
+
     function validHouseholdName(name) {
       return name is string && name.size() > 0 && name.size() <= 60;
     }
@@ -73,11 +104,14 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && validSettings(request.resource.data.settings);
 
-      // Members edit name/settings; membership and invite code are fixed.
+      // Members edit name/settings and record seeding; membership and invite
+      // code are fixed.
       allow update: if signedIn() && request.auth.uid in resource.data.memberIds
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'settings'])
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'settings', 'seedVersion'])
         && validHouseholdName(request.resource.data.name)
-        && validSettings(request.resource.data.settings);
+        && validSettings(request.resource.data.settings)
+        && (!('seedVersion' in request.resource.data) || request.resource.data.seedVersion is int);
 
       // Joining: a non-member appends exactly themselves and changes nothing else.
       allow update: if signedIn() && !(request.auth.uid in resource.data.memberIds)
@@ -87,11 +121,29 @@ service cloud.firestore {
 
       allow delete: if false;
 
-      // `{collection}` forces at least one segment: in rules v2 a bare
-      // `{document=**}` also matches the household doc itself and would
-      // bypass the membership rules above.
+      // Collections with a validated shape. Rules allow a request if ANY
+      // matching rule allows it, so the catch-all below excludes these.
+      match /stores/{storeId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validStore(request.resource.data);
+      }
+
+      match /tags/{tagId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validTag(request.resource.data);
+      }
+
+      match /ingredients/{ingredientId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validIngredient(request.resource.data);
+      }
+
+      // Everything else in the household: members only. `{collection}`
+      // forces at least one segment: in rules v2 a bare `{document=**}` also
+      // matches the household doc itself and would bypass the rules above.
       match /{collection}/{document=**} {
-        allow read, write: if isMember(hid);
+        allow read, write: if isMember(hid)
+          && !(collection in ['stores', 'tags', 'ingredients']);
       }
     }
   }

@@ -8,6 +8,7 @@ import {
 } from '@react-native-firebase/firestore';
 import { getRandomBytes } from 'expo-crypto';
 
+import { SEED_STORES, SEED_TAGS, SEED_VERSION } from '@/features/household/seed-data';
 import {
   generateInviteCode,
   isValidInviteCode,
@@ -27,6 +28,8 @@ export type Household = {
   memberIds: string[];
   inviteCode: string;
   settings: HouseholdSettings;
+  /** Which version of the starter stores/tags has been written (0 = none). */
+  seedVersion: number;
 };
 
 export const DEFAULT_HOUSEHOLD_SETTINGS: HouseholdSettings = {
@@ -56,6 +59,7 @@ export async function loadUserHousehold(uid: string): Promise<Household | null> 
     memberIds: data.memberIds,
     inviteCode: data.inviteCode,
     settings: { ...DEFAULT_HOUSEHOLD_SETTINGS, ...data.settings },
+    seedVersion: data.seedVersion ?? 0,
   };
 }
 
@@ -105,4 +109,34 @@ export async function joinHousehold(uid: string, typedCode: string): Promise<voi
   batch.update(doc(db, 'households', householdId), { memberIds: arrayUnion(uid) });
   batch.set(doc(db, 'users', uid), { householdId });
   await batch.commit();
+}
+
+/**
+ * Writes the starter stores, store areas, and tags once per household. Ids are
+ * fixed, so two phones seeding at the same time write identical documents.
+ * The returned promise resolves when the server confirms; the writes show up
+ * locally right away, including offline.
+ */
+export async function seedHousehold(householdId: string): Promise<void> {
+  const batch = writeBatch(db);
+  SEED_STORES.forEach((store, order) => {
+    batch.set(doc(db, 'households', householdId, 'stores', store.id), {
+      name: store.name,
+      order,
+      hidden: false,
+      sections: store.sections.map((section, sectionOrder) => ({
+        ...section,
+        order: sectionOrder,
+      })),
+    });
+  });
+  SEED_TAGS.forEach((tag, order) => {
+    batch.set(doc(db, 'households', householdId, 'tags', tag.id), { name: tag.name, order });
+  });
+  batch.update(doc(db, 'households', householdId), { seedVersion: SEED_VERSION });
+  await batch.commit();
+}
+
+export function needsSeeding(household: Household): boolean {
+  return household.seedVersion < SEED_VERSION;
 }

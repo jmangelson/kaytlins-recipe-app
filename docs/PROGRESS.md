@@ -10,8 +10,8 @@ Update this file at the end of every milestone.
 | --- | -------------------------------------------------------------------------- | ----------- |
 | 0   | Scaffold: Expo + router + TS, tooling, emulator, smoke flow                | Done        |
 | 1   | Firebase: Google sign-in, create/join household, rules + tests, offline    | Done        |
-| 2   | Seed data + data layer: stores/areas, tags, repositories, unit/line parser | Next        |
-| 3   | Recipes                                                                    | Not started |
+| 2   | Seed data + data layer: stores/areas, tags, repositories, unit/line parser | Done        |
+| 3   | Recipes                                                                    | Next        |
 | 4   | Settings: stores & areas, ingredient defaults, tags                        | Not started |
 | 5   | Meal plans (N-day, B/L/D)                                                  | Not started |
 | 6   | Calendar: apply plans to dates                                             | Not started |
@@ -60,6 +60,28 @@ app:assembleRelease`): JS bundled, real Firebase, signed with the debug key
 Installing the release APK on the emulator replaces the dev build;
 reinstall it with `npx expo run:android` before Maestro work.
 
+### Milestone 2 — Starter data, data layer, amount parser (2026-10-04)
+
+- Every household gets Macey's, Costco, Sam's Club, Walmart, Smith's with
+  store areas in walking order, plus tags Vegetarian, Chicken/Poultry,
+  Fish/Seafood, Beef, Pork. Seeded once (`seedVersion`), with fixed ids so two
+  phones seeding at once write identical docs; runs in the background and
+  works offline. Existing households are seeded on next launch.
+- Ingredient line parser (`parseIngredientLine`): mixed/unicode fractions,
+  ranges, package sizes, size words, notes, "to taste"; US units with
+  case-sensitive T/t; name matching key with simple singulars.
+- Amount helpers: convert, combine (2 cups + 4 tbsp → 2 ¼ cups; 8 oz + 1 lb →
+  1 ½ lb), recipe-style display fractions. 70 unit tests.
+- Data functions for stores, tags, ingredients; rules validate their shape
+  (19 rules tests). Settings shows tags and opens a read-only Stores & aisles
+  screen.
+- Maestro: new `stores` flow; tour adds Settings, Stores & aisles screens.
+  Screenshot review: 2 issues found and fixed (below).
+
+Known limitation: if a phone with a stale offline copy (no `seedVersion`)
+seeds after someone has edited stores (M4), it would overwrite those edits.
+Revisit when store editing lands.
+
 ## Decisions
 
 - 2026-10-04: photo scan switched from on-device ML Kit to AI (Claude via a
@@ -79,6 +101,9 @@ reinstall it with `npx expo run:android` before Maestro work.
 | Code edits never reached the device                               | Metro started with `CI=1` runs with **file watching disabled** ("Metro is running in CI mode, reloads are disabled")                                                                                                                               | Start Metro without `CI=1` (redirect stdin from `/dev/null` for non-interactive use)                                                                             |
 | "Share invite code" button rendered as "Share invite"             | Android under-measures a shrink-wrapped bold `Text` inside a centered `Pressable`; the last word wrapped onto a hidden second line                                                                                                                 | Button label stretches to full width with centered text                                                                                                          |
 | Invite-code error hidden under the gesture bar                    | Error rendered below the Join button at the bottom of the scroll view; `Screen` didn't pad for the bottom safe area                                                                                                                                | Errors render under their input, above the button; `Screen` applies all safe-area edges                                                                          |
+| Extra blank band under the Stores & aisles header                 | `Screen` padded the top safe-area inset even under a navigation header                                                                                                                                                                             | `Screen` takes `edges`; header screens skip `top`                                                                                                                |
+| Tag chip text crowded its right edge                              | Padding and border were on the `Text` itself (same Android measuring issue as the button label)                                                                                                                                                    | Chip is a `View` with padding wrapping the `Text`                                                                                                                |
+| household-invite flow failed after Settings grew                  | Invite code moved below the fold; `copyTextFrom` needs it on screen                                                                                                                                                                                | Flow scrolls to `invite-code` first                                                                                                                              |
 
 ## Lessons learned
 
@@ -112,5 +137,9 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Google Sign-In deprecation:** the original `GoogleSignin` API logs a
   "gsi-migration" warning (legacy Google Sign-In for Android is deprecated in
   favor of Credential Manager). It works today; revisit before release (M9).
+- **Rules: any matching rule grants access.** To validate a collection's
+  shape, exclude it from the members-only catch-all, or the catch-all
+  silently allows malformed writes.
+- **Don't put padding/borders on `Text`** on Android; wrap it in a `View`.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.

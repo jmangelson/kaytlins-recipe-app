@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -7,6 +8,9 @@ import { BottomTabInset, Spacing } from '@/constants/theme';
 import { formatInviteCode } from '@/features/household/invite-code';
 import { useHousehold } from '@/features/session/session-provider';
 import { signOut } from '@/features/session/sign-in';
+import { listTags } from '@/features/stores/store-repo';
+import { useAsync } from '@/hooks/use-async';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function SettingsScreen() {
   const { user, household } = useHousehold();
@@ -34,6 +38,23 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
+        <ThemedText type="smallBold">Shopping</ThemedText>
+        <ThemedText themeColor="textSecondary">
+          Your stores and the order of their aisles.
+        </ThemedText>
+        <Button
+          label="Stores & aisles"
+          variant="secondary"
+          onPress={() => router.push('/stores')}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <ThemedText type="smallBold">Recipe tags</ThemedText>
+        <TagList householdId={household.id} />
+      </View>
+
+      <View style={styles.section}>
         <ThemedText type="smallBold">Invite code</ThemedText>
         <ThemedText type="subtitle" selectable testID="invite-code">
           {inviteCode}
@@ -53,8 +74,48 @@ export default function SettingsScreen() {
   );
 }
 
+function TagList({ householdId }: { householdId: string }) {
+  const theme = useTheme();
+  const { state } = useAsync(() => listTags(householdId), [householdId]);
+
+  if (state.status === 'loading') {
+    return <ThemedText themeColor="textSecondary">Loading tags…</ThemedText>;
+  }
+  if (state.status === 'error') {
+    return <ThemedText themeColor="danger">Couldn&apos;t load tags.</ThemedText>;
+  }
+  if (state.data.length === 0) {
+    return <ThemedText themeColor="textSecondary">No tags yet.</ThemedText>;
+  }
+  return (
+    <View style={styles.tags}>
+      {state.data.map((tag) => (
+        <View
+          key={tag.id}
+          style={[
+            styles.tag,
+            { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+          ]}>
+          <ThemedText type="small">{tag.name}</ThemedText>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
+  },
+  tags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+  },
+  tag: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.one,
   },
 });
