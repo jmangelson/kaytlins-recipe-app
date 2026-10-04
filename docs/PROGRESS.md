@@ -74,7 +74,7 @@ reinstall it with `npx expo run:android` before Maestro work.
   1 ½ lb), recipe-style display fractions. 70 unit tests.
 - Data functions for stores, tags, ingredients; rules validate their shape
   (19 rules tests). Settings shows tags and opens a read-only Stores & aisles
-  screen.
+  screen. Rules deployed to the production project.
 - Maestro: new `stores` flow; tour adds Settings, Stores & aisles screens.
   Screenshot review: 2 issues found and fixed (below).
 
