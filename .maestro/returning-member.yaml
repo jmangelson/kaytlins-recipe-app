@@ -1,0 +1,25 @@
+# A member who signs out and back in goes straight to their household,
+# skipping household setup.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'returning' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- tapOn: 'Settings'
+- runFlow: subflows/sign-out.yaml
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- assertNotVisible: 'Set up your household'
+- tapOn: 'Settings'
+- assertVisible: 'Our Kitchen'
+- assertVisible: '1 member'

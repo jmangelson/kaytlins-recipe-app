@@ -1,0 +1,9 @@
+# From the Settings tab, scrolls to and taps Sign out.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- scrollUntilVisible:
+    element: 'Sign out'
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign in with Google'
+    timeout: 15000

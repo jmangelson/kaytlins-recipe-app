@@ -54,6 +54,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
+    // Full width + centered text: Android under-measures shrink-wrapped
+    // bold labels and clips the last word ("Share invite code" -> "Share invite").
+    alignSelf: 'stretch',
+    textAlign: 'center',
     fontWeight: 600,
   },
   dimmed: {

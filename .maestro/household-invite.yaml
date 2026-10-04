@@ -18,7 +18,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - assertVisible: '1 member'
 - copyTextFrom:
     id: 'invite-code'
-- tapOn: 'Sign out'
+- runFlow: subflows/sign-out.yaml
 
 # A wrong code shows an error and stays on setup.
 - runFlow:
@@ -48,7 +48,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Settings'
 - assertVisible: 'Our Kitchen'
 - assertVisible: '2 members'
-- tapOn: 'Sign out'
+- runFlow: subflows/sign-out.yaml
 
 # Owner signs back in and lands directly in the app.
 - runFlow:

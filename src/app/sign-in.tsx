@@ -10,20 +10,26 @@ import { signInForTesting, signInWithGoogle } from '@/features/session/sign-in';
 import { usingFirebaseEmulators } from '@/lib/firebase';
 
 export default function SignInScreen() {
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'google' | 'test' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testEmail, setTestEmail] = useState('');
 
-  async function run(action: () => Promise<unknown>) {
-    setBusy(true);
+  async function run(kind: 'google' | 'test', action: () => Promise<unknown>) {
+    if (busy) return;
+    setBusy(kind);
     setError(null);
     try {
       await action();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Sign-in failed. Please try again.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
+  }
+
+  function testSignIn() {
+    const email = testEmail.trim();
+    if (email) run('test', () => signInForTesting(email));
   }
 
   return (
@@ -37,7 +43,12 @@ export default function SignInScreen() {
         </ThemedText>
       </View>
 
-      <Button label="Sign in with Google" onPress={() => run(signInWithGoogle)} loading={busy} />
+      <Button
+        label="Sign in with Google"
+        onPress={() => run('google', signInWithGoogle)}
+        loading={busy === 'google'}
+        disabled={busy !== null}
+      />
 
       {error && (
         <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
@@ -55,12 +66,15 @@ export default function SignInScreen() {
             autoCapitalize="none"
             keyboardType="email-address"
             placeholder="tester@example.com"
+            returnKeyType="go"
+            onSubmitEditing={testSignIn}
           />
           <Button
             label="Test sign in"
             variant="secondary"
-            disabled={!testEmail.trim()}
-            onPress={() => run(() => signInForTesting(testEmail.trim()))}
+            disabled={!testEmail.trim() || busy !== null}
+            loading={busy === 'test'}
+            onPress={testSignIn}
           />
         </View>
       )}

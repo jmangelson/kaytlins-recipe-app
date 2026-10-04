@@ -1,0 +1,42 @@
+# Captures a screenshot of each screen for review (not an assertion suite;
+# lives outside .maestro/ top level so `npm run e2e` skips it).
+# Run: maestro test .maestro/tour/screenshots.yaml  (screenshots land under the test output dir)
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'tour' + Date.now() + '@test.dev'}
+- extendedWaitUntil:
+    visible: 'Sign in with Google'
+    timeout: 60000
+- takeScreenshot: build/screenshots/01-sign-in
+- runFlow:
+    file: ../subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- extendedWaitUntil:
+    visible: 'Set up your household'
+    timeout: 30000
+- takeScreenshot: build/screenshots/02-household-setup
+- tapOn: 'Invite code'
+- inputText: 'ZZZZ-9999'
+- hideKeyboard
+- tapOn: 'Join household'
+- extendedWaitUntil:
+    visible: "That invite code wasn't found.*"
+    timeout: 15000
+- takeScreenshot: build/screenshots/03-invite-code-not-found
+- tapOn: 'Create household'
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- takeScreenshot: build/screenshots/04-recipes
+- tapOn: 'Plans'
+- takeScreenshot: build/screenshots/05-plans
+- tapOn: 'Calendar'
+- takeScreenshot: build/screenshots/06-calendar
+- tapOn: 'Shopping'
+- takeScreenshot: build/screenshots/07-shopping
+- tapOn: 'Settings'
+- assertVisible: 'Our Kitchen'
+- takeScreenshot: build/screenshots/08-settings

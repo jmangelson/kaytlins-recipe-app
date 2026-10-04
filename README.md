@@ -5,6 +5,7 @@ pantry-checked shopping lists organized by store and store area. Built with
 Expo + React Native + TypeScript; data syncs through Firebase (free Spark plan).
 
 - Product and implementation plan: [`docs/PLAN.md`](docs/PLAN.md)
+- Progress, bugs fixed, and lessons learned: [`docs/PROGRESS.md`](docs/PROGRESS.md)
 - Development workflow and tooling: [`CLAUDE.md`](CLAUDE.md), [`.devcontainer/README.md`](.devcontainer/README.md)
 
 ## Setup
@@ -42,4 +43,5 @@ localhost at `10.0.2.2`.
 npm run validate     # prettier check, eslint, tsc, jest
 npm run test:rules   # Firestore security rules tests (uses a running emulator or starts one)
 npm run e2e          # Maestro flows in .maestro/ (emulator, Firebase emulators, Metro running)
+npm run screenshots  # capture every screen for review (required each milestone)
 ```

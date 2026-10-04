@@ -11,4 +11,14 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Test email'
 - inputText: ${EMAIL}
 - hideKeyboard
-- tapOn: 'Test sign in'
+# The button moves while the keyboard closes; wait for it to settle and retry
+# the tap if the screen doesn't react.
+- extendedWaitUntil:
+    visible: 'Test sign in'
+    timeout: 5000
+- tapOn:
+    text: 'Test sign in'
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    notVisible: 'Sign in with Google'
+    timeout: 30000

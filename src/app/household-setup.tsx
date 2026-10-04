@@ -15,7 +15,7 @@ export default function HouseholdSetupScreen() {
   const [name, setName] = useState('Our Kitchen');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ kind: 'create' | 'join'; message: string } | null>(null);
 
   if (session.status !== 'needsHousehold') return null;
   const uid = session.user.uid;
@@ -27,7 +27,8 @@ export default function HouseholdSetupScreen() {
       await action();
       await refreshHousehold();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
+      const message = e instanceof Error ? e.message : 'Something went wrong. Please try again.';
+      setError({ kind, message });
       setBusy(null);
     }
   }
@@ -48,6 +49,7 @@ export default function HouseholdSetupScreen() {
           Start a new household
         </ThemedText>
         <TextField label="Household name" value={name} onChangeText={setName} maxLength={60} />
+        {error?.kind === 'create' && <ErrorText message={error.message} />}
         <Button
           label="Create household"
           disabled={!name.trim() || busy !== null}
@@ -68,6 +70,7 @@ export default function HouseholdSetupScreen() {
           autoCorrect={false}
           placeholder="ABCD-2345"
         />
+        {error?.kind === 'join' && <ErrorText message={error.message} />}
         <Button
           label="Join household"
           variant="secondary"
@@ -77,14 +80,16 @@ export default function HouseholdSetupScreen() {
         />
       </View>
 
-      {error && (
-        <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
-          {error}
-        </ThemedText>
-      )}
-
       <Button label="Sign out" variant="secondary" onPress={() => signOut()} />
     </Screen>
+  );
+}
+
+function ErrorText({ message }: { message: string }) {
+  return (
+    <ThemedText themeColor="danger" accessibilityLiveRegion="polite">
+      {message}
+    </ThemedText>
   );
 }
 
