@@ -171,7 +171,9 @@ describe('household data access', () => {
   it('lets members read and write household data', async () => {
     const db = dbAs('alice');
     await assertSucceeds(getDoc(doc(db, 'households', HID)));
-    await assertSucceeds(setDoc(doc(db, 'households', HID, 'mealPlans', 'p1'), { name: 'Week A' }));
+    await assertSucceeds(
+      setDoc(doc(db, 'households', HID, 'shoppingLists', 'l1'), { name: 'This week' })
+    );
   });
 
   it('blocks non-members from household data', async () => {
@@ -216,7 +218,11 @@ describe('stores, tags, and ingredients', () => {
     const db = dbAs('alice');
     const batch = writeBatch(db);
     batch.set(doc(db, 'households', HID, 'stores', 'maceys'), validStore);
-    batch.set(doc(db, 'households', HID, 'tags', 'beef'), { name: 'Beef', order: 0 });
+    batch.set(doc(db, 'households', HID, 'tags', 'beef'), {
+      name: 'Beef',
+      order: 0,
+      group: 'type',
+    });
     batch.update(doc(db, 'households', HID), { seedVersion: 1 });
     await assertSucceeds(batch.commit());
   });
@@ -234,6 +240,9 @@ describe('stores, tags, and ingredients', () => {
       setDoc(doc(db, 'households', HID, 'stores', 's1'), { ...validStore, extra: true })
     );
     await assertFails(setDoc(doc(db, 'households', HID, 'tags', 't1'), { name: 'Beef' }));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'tags', 't1'), { name: 'Beef', order: 0, group: 'cuisine' })
+    );
   });
 
   it('validates ingredients', async () => {
@@ -261,7 +270,9 @@ describe('stores, tags, and ingredients', () => {
     const db = dbAs('mallory');
     await assertFails(getDocs(collection(db, 'households', HID, 'stores')));
     await assertFails(setDoc(doc(db, 'households', HID, 'stores', 'x'), validStore));
-    await assertFails(setDoc(doc(db, 'households', HID, 'tags', 'x'), { name: 'X', order: 0 }));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'tags', 'x'), { name: 'X', order: 0, group: 'type' })
+    );
   });
 });
 
@@ -331,5 +342,36 @@ describe('recipes and recipe photos', () => {
     await assertFails(getDoc(doc(db, 'households', HID, 'recipes', 'r1')));
     await assertFails(setDoc(doc(db, 'households', HID, 'recipes', 'r9'), recipe));
     await assertFails(getDoc(doc(db, 'households', HID, 'recipePhotos', 'r1')));
+  });
+});
+
+describe('meal plans', () => {
+  beforeEach(seedHousehold);
+
+  const day = { meals: { breakfast: [], lunch: [], dinner: [{ recipeId: 'r1', servings: null }] } };
+  const plan = {
+    name: 'Week A',
+    days: [day, day],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  it('lets members save, rename, and delete plans', async () => {
+    const db = dbAs('alice');
+    const ref = doc(db, 'households', HID, 'mealPlans', 'p1');
+    await assertSucceeds(setDoc(ref, plan));
+    await assertSucceeds(updateDoc(ref, { name: 'Week B', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('rejects malformed plans', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'mealPlans', 'p1');
+    await assertFails(setDoc(ref, { ...plan, name: '' }));
+    await assertFails(setDoc(ref, { ...plan, days: [] }));
+    await assertFails(setDoc(ref, { ...plan, owner: 'x' }));
+  });
+
+  it('blocks non-members', async () => {
+    await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'mealPlans', 'p1'), plan));
   });
 });

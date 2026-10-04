@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useRef, useState, type RefObject } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -16,6 +16,12 @@ import { pickRecipePhoto } from '@/features/recipes/recipe-photo';
 import type { PhotoChange } from '@/features/recipes/recipe-repo';
 import type { RecipeDraft } from '@/features/recipes/recipe-types';
 import type { Tag } from '@/features/stores/store-types';
+import {
+  missingGroups,
+  missingGroupsMessage,
+  TAG_GROUPS,
+  tagsByGroup,
+} from '@/features/stores/tag-groups';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
@@ -48,6 +54,7 @@ export function RecipeForm({
   const [photoError, setPhotoError] = useState<string | null>(null);
 
   const hasErrors = Object.values(errors).some(Boolean);
+  const tagGroups = tagsByGroup(tags);
   const shownPhoto =
     photo.kind === 'set' ? photo.jpegBase64 : photo.kind === 'remove' ? null : initialPhoto;
 
@@ -74,10 +81,27 @@ export function RecipeForm({
     }
   }
 
-  async function save() {
+  function save() {
     const found = validateDraft(draft);
     setErrors(found);
     if (Object.values(found).some(Boolean)) return;
+    // Type, Course, and Meal are encouraged, not required.
+    const missing = missingGroups(draft.tagIds, tags);
+    if (missing.length === 0) {
+      saveNow();
+      return;
+    }
+    Alert.alert(
+      missingGroupsMessage(missing),
+      'Course and Meal help meal plans suggest recipes. You can add them later.',
+      [
+        { text: 'Go back', style: 'cancel' },
+        { text: 'Save anyway', onPress: saveNow },
+      ]
+    );
+  }
+
+  async function saveNow() {
     setSaving(true);
     setSaveError(null);
     try {
@@ -113,20 +137,34 @@ export function RecipeForm({
         error={errors.servings}
       />
 
-      {tags.length > 0 && (
-        <View style={styles.group}>
-          <ThemedText type="smallBold">Tags</ThemedText>
-          <View style={styles.tags}>
-            {tags.map((tag) => (
-              <Chip
-                key={tag.id}
-                label={tag.name}
-                selected={draft.tagIds.includes(tag.id)}
-                onPress={() => toggleTag(tag.id)}
-              />
-            ))}
+      {TAG_GROUPS.map((group) =>
+        tagGroups[group.id].length === 0 ? null : (
+          <View key={group.id} style={styles.group}>
+            <View style={styles.groupHeader}>
+              <ThemedText type="smallBold" accessibilityRole="header">
+                {group.name}
+              </ThemedText>
+              {!tagGroups[group.id].some((t) => draft.tagIds.includes(t.id)) && (
+                <ThemedText type="small" themeColor="attention">
+                  Not set
+                </ThemedText>
+              )}
+            </View>
+            <ThemedText type="small" themeColor="textSecondary">
+              {group.hint}
+            </ThemedText>
+            <View style={styles.tags}>
+              {tagGroups[group.id].map((tag) => (
+                <Chip
+                  key={tag.id}
+                  label={tag.name}
+                  selected={draft.tagIds.includes(tag.id)}
+                  onPress={() => toggleTag(tag.id)}
+                />
+              ))}
+            </View>
           </View>
-        </View>
+        )
       )}
 
       <IngredientRowsEditor
@@ -192,6 +230,11 @@ export function RecipeForm({
 
 const styles = StyleSheet.create({
   group: {
+    gap: Spacing.two,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     gap: Spacing.two,
   },
   tags: {

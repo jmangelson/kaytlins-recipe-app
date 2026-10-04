@@ -11,6 +11,7 @@ import {
 
 import { isCategoryId } from '@/features/ingredients/categories';
 import type { Store, StoreSection, Tag } from '@/features/stores/store-types';
+import { isTagGroupId } from '@/features/stores/tag-groups';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
@@ -36,7 +37,16 @@ export async function listStores(householdId: string): Promise<Store[]> {
 
 export async function listTags(householdId: string): Promise<Tag[]> {
   const snapshot = await getDocs(query(householdCollection(householdId, 'tags'), orderBy('order')));
-  return snapshot.docs.map((d) => ({ id: d.id, name: d.data().name, order: d.data().order }));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    // Tags saved before groups existed are Type tags.
+    return {
+      id: d.id,
+      name: data.name,
+      order: data.order,
+      group: isTagGroupId(data.group) ? data.group : 'type',
+    };
+  });
 }
 
 function storeDoc(householdId: string, storeId: string) {
@@ -89,6 +99,7 @@ export async function saveTag(householdId: string, tag: Tag): Promise<void> {
     setDoc(doc(db, 'households', householdId, 'tags', tag.id), {
       name: tag.name.trim(),
       order: tag.order,
+      group: tag.group,
     })
   );
 }

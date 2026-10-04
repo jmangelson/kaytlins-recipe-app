@@ -6,22 +6,22 @@ import { saveRecipe } from '@/features/recipes/recipe-repo';
 export const FIXTURE_RECIPES = [
   {
     name: 'Chicken Enchiladas',
-    tagIds: ['chicken-poultry'],
+    tagIds: ['chicken-poultry', 'main-dish', 'dinner'],
     lines: ['2 lbs chicken breasts', '1 (10 oz) can red enchilada sauce', '8 flour tortillas'],
   },
   {
     name: 'Veggie Pasta',
-    tagIds: ['vegetarian'],
+    tagIds: ['vegetarian', 'main-dish', 'dinner'],
     lines: ['1 lb penne', '1 jar marinara'],
   },
   {
     name: 'Salsa',
-    tagIds: ['vegetarian'],
+    tagIds: ['vegetarian', 'appetizer', 'lunch'],
     lines: ['4 roma tomatoes', '1 bunch cilantro'],
   },
   {
     name: 'Pico',
-    tagIds: ['vegetarian'],
+    tagIds: ['vegetarian', 'side-dish', 'dinner'],
     lines: ['3 plum tomatoes', '1 lime'],
   },
 ];

@@ -55,7 +55,9 @@ tags:
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
-- assertVisible: 'Check the fields marked in red above.'
+- runFlow: subflows/accept-save-anyway.yaml
+- scrollUntilVisible:
+    element: 'Check the fields marked in red above.'
 - scrollUntilVisible:
     element: 'Which ingredient is “onion”.*'
     direction: UP
@@ -78,6 +80,7 @@ tags:
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
+- runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Serves 4'
     timeout: 15000

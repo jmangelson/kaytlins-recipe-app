@@ -17,6 +17,7 @@ import type {
   RecipeIngredient,
   RowLink,
 } from '@/features/recipes/recipe-types';
+import type { Tag } from '@/features/stores/store-types';
 
 export const DEFAULT_SERVINGS = 4;
 export const MAX_INGREDIENT_LINES = 100;
@@ -186,13 +187,20 @@ export function amountInputText(i: Pick<DraftRow, 'quantity' | 'quantityMax'>): 
 }
 
 /**
- * Recipes matching the search text (name or any ingredient) and having at
- * least one of the selected tags. Sorted by name.
+ * Recipes matching the search text (name or any ingredient) and the selected
+ * tags: any selected tag within a group (Beef or Pork), and every group that
+ * has a selection (Vegetarian and Dinner). Sorted by name.
  */
-export function filterRecipes(recipes: Recipe[], search: string, tagIds: string[]): Recipe[] {
+export function filterRecipes(
+  recipes: Recipe[],
+  search: string,
+  selected: Pick<Tag, 'id' | 'group'>[]
+): Recipe[] {
   const needle = search.trim().toLowerCase();
+  const groups = new Map<string, string[]>();
+  for (const tag of selected) groups.set(tag.group, [...(groups.get(tag.group) ?? []), tag.id]);
   return recipes
-    .filter((r) => tagIds.length === 0 || r.tagIds.some((t) => tagIds.includes(t)))
+    .filter((r) => [...groups.values()].every((ids) => r.tagIds.some((t) => ids.includes(t))))
     .filter(
       (r) =>
         !needle ||

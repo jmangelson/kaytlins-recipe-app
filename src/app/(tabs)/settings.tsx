@@ -3,7 +3,6 @@ import { useCallback } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
-import { Chip } from '@/components/chip';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
@@ -11,6 +10,7 @@ import { formatInviteCode } from '@/features/household/invite-code';
 import { useHousehold } from '@/features/session/session-provider';
 import { signOut } from '@/features/session/sign-in';
 import { listTags } from '@/features/stores/store-repo';
+import { TAG_GROUPS, tagsByGroup } from '@/features/stores/tag-groups';
 import { useAsync } from '@/hooks/use-async';
 
 export default function SettingsScreen() {
@@ -108,11 +108,18 @@ function TagList({ householdId }: { householdId: string }) {
   if (state.data.length === 0) {
     return <ThemedText themeColor="textSecondary">No tags yet.</ThemedText>;
   }
+  // One line per group keeps Settings short.
+  const byGroup = tagsByGroup(state.data);
   return (
-    <View style={styles.tags}>
-      {state.data.map((tag) => (
-        <Chip key={tag.id} label={tag.name} />
-      ))}
+    <View style={styles.tagLines}>
+      {TAG_GROUPS.map((group) =>
+        byGroup[group.id].length === 0 ? null : (
+          <ThemedText key={group.id} type="small">
+            <ThemedText type="smallBold">{group.name}: </ThemedText>
+            {byGroup[group.id].map((t) => t.name).join(', ')}
+          </ThemedText>
+        )
+      )}
     </View>
   );
 }
@@ -121,9 +128,7 @@ const styles = StyleSheet.create({
   section: {
     gap: Spacing.two,
   },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
+  tagLines: {
+    gap: Spacing.one,
   },
 });

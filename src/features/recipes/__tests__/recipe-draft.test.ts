@@ -180,9 +180,22 @@ describe('filterRecipes', () => {
     expect(filterRecipes([tacos, curry, salad], 'beef', []).map((r) => r.id)).toEqual(['t']);
   });
 
-  it('keeps recipes with any selected tag', () => {
-    expect(
-      filterRecipes([tacos, curry, salad], '', ['beef', 'vegetarian']).map((r) => r.id)
-    ).toEqual(['s', 't']);
+  it('keeps recipes with any selected tag within a group', () => {
+    const selected = [
+      { id: 'beef', group: 'type' as const },
+      { id: 'vegetarian', group: 'type' as const },
+    ];
+    expect(filterRecipes([tacos, curry, salad], '', selected).map((r) => r.id)).toEqual(['s', 't']);
+  });
+
+  it('requires a match in every group that has a selection', () => {
+    const dinnerTacos = { ...tacos, tagIds: ['beef', 'dinner'] };
+    const lunchSalad = { ...salad, tagIds: ['vegetarian', 'lunch'] };
+    const selected = [
+      { id: 'beef', group: 'type' as const },
+      { id: 'vegetarian', group: 'type' as const },
+      { id: 'dinner', group: 'meal' as const },
+    ];
+    expect(filterRecipes([dinnerTacos, lunchSalad], '', selected).map((r) => r.id)).toEqual(['t']);
   });
 });

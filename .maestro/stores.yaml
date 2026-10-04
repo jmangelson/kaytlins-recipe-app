@@ -12,12 +12,10 @@ tags:
       FIXTURE: none
 - tapOn: 'Settings'
 - scrollUntilVisible:
-    element: 'Chicken/Poultry'
+    element: 'Recipe tags'
     centerElement: true
-- assertVisible: 'Vegetarian'
-- assertVisible: 'Fish/Seafood'
-- assertVisible: 'Beef'
-- assertVisible: 'Pork'
+- assertVisible: 'Type: Vegetarian, Chicken/Poultry, Fish/Seafood, Beef, Pork'
+- assertVisible: 'Meal: Breakfast, Lunch, Dinner'
 - tapOn: 'Stores & aisles'
 - extendedWaitUntil:
     visible: "Macey's.*"

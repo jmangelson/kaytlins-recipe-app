@@ -52,9 +52,10 @@ service cloud.firestore {
     }
 
     function validTag(data) {
-      return data.keys().hasOnly(['name', 'order'])
+      return data.keys().hasOnly(['name', 'order', 'group'])
         && validName(data.name, 40)
-        && data.order is int;
+        && data.order is int
+        && data.group in ['type', 'course', 'meal'];
     }
 
     function validIngredient(data) {
@@ -87,6 +88,14 @@ service cloud.firestore {
       // Photos are resized on the phone to ~60 KB; cap well under the 1 MiB doc limit.
       return data.keys().hasOnly(['jpegBase64'])
         && data.jpegBase64 is string && data.jpegBase64.size() <= 700000;
+    }
+
+    function validMealPlan(data) {
+      return data.keys().hasOnly(['name', 'days', 'createdAt', 'updatedAt'])
+        && validName(data.name, 60)
+        && data.days is list && data.days.size() >= 1 && data.days.size() <= 60
+        && data.updatedAt == request.time
+        && (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     function validHouseholdName(name) {
@@ -171,12 +180,17 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validRecipePhoto(request.resource.data);
       }
 
+      match /mealPlans/{planId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validMealPlan(request.resource.data);
+      }
+
       // Everything else in the household: members only. `{collection}`
       // forces at least one segment: in rules v2 a bare `{document=**}` also
       // matches the household doc itself and would bypass the rules above.
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
-          && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos']);
+          && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans']);
       }
     }
   }

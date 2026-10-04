@@ -1,0 +1,9 @@
+# Accepts the "isn't set — Save anyway?" prompt if it appears (recipes saved
+# without a Course or Meal tag).
+appId: com.jmangelson.kaytlinsrecipes
+---
+- runFlow:
+    when:
+      visible: 'Save anyway|SAVE ANYWAY'
+    commands:
+      - tapOn: 'Save anyway|SAVE ANYWAY'

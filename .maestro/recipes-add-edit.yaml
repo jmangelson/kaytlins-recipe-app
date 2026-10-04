@@ -49,6 +49,21 @@ tags:
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
+# Course and Meal aren't set yet: she's asked, and can go back to set them.
+- extendedWaitUntil:
+    visible: 'Course and Meal aren’t set.'
+    timeout: 10000
+- tapOn: 'Go back|GO BACK'
+- scrollUntilVisible:
+    element: 'Main dish'
+    direction: UP
+- tapOn: 'Main dish'
+- scrollUntilVisible:
+    element: 'Dinner'
+- tapOn: 'Dinner'
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
 - extendedWaitUntil:
     visible: 'Serves 6'
     timeout: 15000
@@ -79,6 +94,7 @@ tags:
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
+- runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Street Tacos'
     timeout: 15000

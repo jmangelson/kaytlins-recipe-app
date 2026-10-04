@@ -4,6 +4,7 @@ import { Alert, StyleSheet, TextInput, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { Chip } from '@/components/chip';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
@@ -14,6 +15,7 @@ import { useHousehold } from '@/features/session/session-provider';
 import { nameProblem } from '@/features/stores/store-edit';
 import { deleteTag, listTags, newId, saveTag } from '@/features/stores/store-repo';
 import type { Tag } from '@/features/stores/store-types';
+import { TAG_GROUPS, tagsByGroup, type TagGroupId } from '@/features/stores/tag-groups';
 import { useAsync } from '@/hooks/use-async';
 import { useAutosave } from '@/hooks/use-autosave';
 import { useTheme } from '@/hooks/use-theme';
@@ -24,6 +26,7 @@ export default function TagsScreen() {
   const { household } = useHousehold();
   const tags = useAsync(() => listTags(household.id), [household.id]);
   const [newName, setNewName] = useState('');
+  const [newGroup, setNewGroup] = useState<TagGroupId>('type');
   const [addError, setAddError] = useState<string | null>(null);
 
   const refresh = tags.refresh;
@@ -40,6 +43,7 @@ export default function TagsScreen() {
     );
   }
   const all = tags.state.data;
+  const byGroup = tagsByGroup(all);
 
   async function add() {
     const problem = nameProblem(
@@ -50,8 +54,9 @@ export default function TagsScreen() {
     );
     setAddError(problem);
     if (problem) return;
-    const order = all.reduce((max, t) => Math.max(max, t.order), -1) + 1;
-    await saveTag(household.id, { id: newId('tag'), name: newName, order });
+    const order =
+      all.filter((t) => t.group === newGroup).reduce((max, t) => Math.max(max, t.order), -1) + 1;
+    await saveTag(household.id, { id: newId('tag'), name: newName, order, group: newGroup });
     setNewName('');
     refresh();
   }
@@ -77,26 +82,51 @@ export default function TagsScreen() {
   return (
     <Screen edges={HEADER_EDGES}>
       <ThemedText themeColor="textSecondary">
-        Tags help filter recipes, like Vegetarian or Beef. Tap a name to rename it.
+        Tags help filter recipes and build meal plans. Tap a name to rename it.
       </ThemedText>
-      {all.length === 0 ? (
-        <ThemedText themeColor="textSecondary">No tags yet.</ThemedText>
-      ) : (
-        <View>
-          {all.map((tag) => (
-            <TagRow
-              key={tag.id}
-              tag={tag}
-              otherNames={all.filter((t) => t.id !== tag.id).map((t) => t.name)}
-              onRename={(name) => saveTag(household.id, { ...tag, name }).then(refresh)}
-              onDelete={() => confirmDelete(tag)}
+      {TAG_GROUPS.map((group) => (
+        <View key={group.id} style={styles.group}>
+          <ThemedText type="smallBold" accessibilityRole="header">
+            {group.name}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {group.hint}
+          </ThemedText>
+          {byGroup[group.id].length === 0 ? (
+            <ThemedText themeColor="textSecondary">
+              No {group.name.toLowerCase()} tags yet.
+            </ThemedText>
+          ) : (
+            <View>
+              {byGroup[group.id].map((tag) => (
+                <TagRow
+                  key={tag.id}
+                  tag={tag}
+                  otherNames={all.filter((t) => t.id !== tag.id).map((t) => t.name)}
+                  onRename={(name) => saveTag(household.id, { ...tag, name }).then(refresh)}
+                  onDelete={() => confirmDelete(tag)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      ))}
+      <View style={styles.group}>
+        <ThemedText type="smallBold" accessibilityRole="header">
+          Add a tag to
+        </ThemedText>
+        <View style={styles.chips}>
+          {TAG_GROUPS.map((group) => (
+            <Chip
+              key={group.id}
+              label={group.name}
+              selected={newGroup === group.id}
+              onPress={() => setNewGroup(group.id)}
             />
           ))}
         </View>
-      )}
-      <View style={styles.group}>
         <TextField
-          label="Add a tag"
+          label="Tag name"
           testID="new-tag-name"
           value={newName}
           onChangeText={(v) => {
@@ -166,6 +196,11 @@ function TagRow({
 
 const styles = StyleSheet.create({
   group: {
+    gap: Spacing.two,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.two,
   },
   block: {

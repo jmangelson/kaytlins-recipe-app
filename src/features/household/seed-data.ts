@@ -4,13 +4,17 @@
  * Bump SEED_VERSION when adding seed content.
  */
 import type { CategoryId } from '@/features/ingredients/categories';
+import type { TagGroupId } from '@/features/stores/tag-groups';
 
-/** 1: stores, areas, tags. 2: areas list the grocery categories they hold. */
-export const SEED_VERSION = 2;
+/**
+ * 1: stores, areas, tags. 2: areas list the grocery categories they hold.
+ * 3: tags have groups; Course and Meal tags added.
+ */
+export const SEED_VERSION = 3;
 
 export type SeedSection = { id: string; name: string; categoryIds: CategoryId[] };
 export type SeedStore = { id: string; name: string; sections: SeedSection[] };
-export type SeedTag = { id: string; name: string };
+export type SeedTag = { id: string; name: string; group: TagGroupId };
 
 const GROCERY_SECTIONS: SeedSection[] = [
   { id: 'produce', name: 'Produce', categoryIds: ['produce'] },
@@ -47,9 +51,24 @@ export const SEED_STORES: SeedStore[] = [
 ];
 
 export const SEED_TAGS: SeedTag[] = [
-  { id: 'vegetarian', name: 'Vegetarian' },
-  { id: 'chicken-poultry', name: 'Chicken/Poultry' },
-  { id: 'fish-seafood', name: 'Fish/Seafood' },
-  { id: 'beef', name: 'Beef' },
-  { id: 'pork', name: 'Pork' },
+  { id: 'vegetarian', name: 'Vegetarian', group: 'type' },
+  { id: 'chicken-poultry', name: 'Chicken/Poultry', group: 'type' },
+  { id: 'fish-seafood', name: 'Fish/Seafood', group: 'type' },
+  { id: 'beef', name: 'Beef', group: 'type' },
+  { id: 'pork', name: 'Pork', group: 'type' },
+  { id: 'main-dish', name: 'Main dish', group: 'course' },
+  { id: 'side-dish', name: 'Side dish', group: 'course' },
+  { id: 'salad', name: 'Salad', group: 'course' },
+  { id: 'soup', name: 'Soup', group: 'course' },
+  { id: 'bread', name: 'Bread', group: 'course' },
+  { id: 'dessert', name: 'Dessert', group: 'course' },
+  { id: 'appetizer', name: 'Appetizer', group: 'course' },
+  { id: 'breakfast', name: 'Breakfast', group: 'meal' },
+  { id: 'lunch', name: 'Lunch', group: 'meal' },
+  { id: 'dinner', name: 'Dinner', group: 'meal' },
 ];
+
+/** Order of each starter tag within its group. */
+export function seedTagOrder(tag: SeedTag): number {
+  return SEED_TAGS.filter((t) => t.group === tag.group).indexOf(tag);
+}

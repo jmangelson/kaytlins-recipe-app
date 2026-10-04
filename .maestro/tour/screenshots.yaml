@@ -40,7 +40,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Settings'
 - assertVisible: 'Our Kitchen'
 - scrollUntilVisible:
-    element: 'Chicken/Poultry'
+    element: 'Recipe tags'
     centerElement: true
 - takeScreenshot: build/screenshots/08-settings
 - scrollUntilVisible:
@@ -75,6 +75,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
+- runFlow: ../subflows/accept-save-anyway.yaml
 - takeScreenshot: build/screenshots/14-recipe-form-save-error
 - scrollUntilVisible:
     element:
@@ -124,6 +125,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
+- runFlow: ../subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Edit recipe'
     timeout: 15000
@@ -147,9 +149,12 @@ appId: com.jmangelson.kaytlinsrecipes
     visible: '2 recipes'
     timeout: 15000
 - takeScreenshot: build/screenshots/19-recipes-list
+- tapOn: 'Show filters'
 - tapOn: 'Vegetarian'
-- takeScreenshot: build/screenshots/20-recipes-filtered
-- tapOn: 'Vegetarian'
+- takeScreenshot: build/screenshots/20-recipes-filters-open
+- tapOn: 'Hide filters'
+- takeScreenshot: build/screenshots/20b-recipes-filtered
+- tapOn: 'Remove filter Vegetarian'
 - tapOn:
     id: 'recipe-search'
 - inputText: 'zzz'

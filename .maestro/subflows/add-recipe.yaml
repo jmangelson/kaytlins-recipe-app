@@ -27,6 +27,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'
+- runFlow: accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Edit recipe'
     timeout: 15000

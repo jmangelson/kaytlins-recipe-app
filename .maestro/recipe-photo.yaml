@@ -22,6 +22,7 @@ tags:
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
+- runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Photo of Veggie Pasta'
     timeout: 15000
@@ -36,6 +37,7 @@ tags:
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
+- runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
     visible: 'Edit recipe'
     timeout: 15000

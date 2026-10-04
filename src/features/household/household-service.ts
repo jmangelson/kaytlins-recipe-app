@@ -11,7 +11,7 @@ import {
 } from '@react-native-firebase/firestore';
 import { getRandomBytes } from 'expo-crypto';
 
-import { SEED_STORES, SEED_TAGS, SEED_VERSION } from '@/features/household/seed-data';
+import { SEED_STORES, SEED_TAGS, SEED_VERSION, seedTagOrder } from '@/features/household/seed-data';
 import {
   generateInviteCode,
   isValidInviteCode,
@@ -140,8 +140,12 @@ export async function seedHousehold(householdId: string): Promise<void> {
       })),
     });
   });
-  SEED_TAGS.forEach((tag, order) => {
-    batch.set(doc(db, 'households', householdId, 'tags', tag.id), { name: tag.name, order });
+  SEED_TAGS.forEach((tag) => {
+    batch.set(doc(db, 'households', householdId, 'tags', tag.id), {
+      name: tag.name,
+      order: seedTagOrder(tag),
+      group: tag.group,
+    });
   });
   batch.update(doc(db, 'households', householdId), { seedVersion: SEED_VERSION });
   await batch.commit();
@@ -165,17 +169,37 @@ export async function seedHouseholdIfNeeded(householdId: string): Promise<void> 
     return;
   }
   if (serverSeedVersion === 0) await seedHousehold(householdId);
-  else if (serverSeedVersion < SEED_VERSION) await upgradeSeed(householdId);
+  else if (serverSeedVersion < SEED_VERSION) await upgradeSeed(householdId, serverSeedVersion);
 }
 
 /**
- * Version 1 → 2: gives the starter areas their grocery categories. Only areas
- * that still have their starter id and no categories are touched, so names,
- * order, hidden stores, and her own areas stay as she left them.
+ * Brings an older household up to the current starter data without undoing
+ * her edits:
+ * - to 2: starter areas (still with their starter id and no categories) get
+ *   their grocery categories;
+ * - to 3: her existing tags become Type tags, and the Course and Meal starter
+ *   tags she doesn't have yet are added.
  */
-async function upgradeSeed(householdId: string): Promise<void> {
-  const stores = await getDocs(collection(db, 'households', householdId, 'stores'));
+async function upgradeSeed(householdId: string, fromVersion: number): Promise<void> {
   const batch = writeBatch(db);
+  if (fromVersion < 3) {
+    const tags = await getDocs(collection(db, 'households', householdId, 'tags'));
+    const existing = new Set(tags.docs.map((t) => t.id));
+    for (const tag of tags.docs) {
+      if (!tag.data().group) batch.update(tag.ref, { group: 'type' });
+    }
+    for (const tag of SEED_TAGS.filter((t) => t.group !== 'type' && !existing.has(t.id))) {
+      batch.set(doc(db, 'households', householdId, 'tags', tag.id), {
+        name: tag.name,
+        order: seedTagOrder(tag),
+        group: tag.group,
+      });
+    }
+  }
+  const stores =
+    fromVersion < 2
+      ? await getDocs(collection(db, 'households', householdId, 'stores'))
+      : { docs: [] };
   for (const store of stores.docs) {
     const seed = SEED_STORES.find((s) => s.id === store.id);
     if (!seed) continue;

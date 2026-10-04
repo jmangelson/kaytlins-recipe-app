@@ -1,4 +1,5 @@
 import type { CategoryId } from '@/features/ingredients/categories';
+import type { TagGroupId } from '@/features/stores/tag-groups';
 
 export type StoreSection = {
   id: string;
@@ -19,7 +20,9 @@ export type Store = {
 export type Tag = {
   id: string;
   name: string;
+  /** Position within its group. */
   order: number;
+  group: TagGroupId;
 };
 
 export type { Ingredient } from '@/features/ingredients/ingredient-model';

@@ -31,16 +31,18 @@ tags:
     id: 'new-tag-name'
 - inputText: 'Quick'
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Add tag'
 - tapOn: 'Add tag'
-- extendedWaitUntil:
-    visible: 'Quick tag name'
-    timeout: 10000
+- scrollUntilVisible:
+    element: 'Quick tag name'
+    direction: UP
 - back
 - scrollUntilVisible:
     element: 'Recipe tags'
-- assertVisible: 'Pork & Ham'
-- assertVisible: 'Quick'
-- assertNotVisible: 'Fish/Seafood'
+    direction: UP
+- assertVisible: 'Type: .*Pork & Ham.*Quick'
+- assertNotVisible: '.*Fish/Seafood.*'
 
 # Household settings
 - scrollUntilVisible:

@@ -13,9 +13,11 @@ tags:
     visible: '4 recipes'
     timeout: 15000
 
-# Tag filter
+# Tag filter (filters open from the Filters chip)
+- tapOn: 'Show filters'
 - tapOn: 'Vegetarian'
-- assertVisible: '3 of 4 recipes'
+- scrollUntilVisible:
+    element: '3 of 4 recipes'
 - scrollUntilVisible:
     element: 'Veggie Pasta'
 - assertNotVisible: 'Chicken Enchiladas'
@@ -23,6 +25,10 @@ tags:
     element: 'Vegetarian'
     direction: UP
 - tapOn: 'Vegetarian'
+- scrollUntilVisible:
+    element: 'Hide filters'
+    direction: UP
+- tapOn: 'Hide filters'
 - assertVisible: '4 recipes'
 
 # Search by ingredient
