@@ -48,6 +48,14 @@ function RootNavigator() {
       <Stack.Protected guard={session.status === 'ready'}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="stores" options={{ headerShown: true, title: 'Stores & aisles' }} />
+        <Stack.Screen name="store/[id]" options={{ headerShown: true, title: 'Store' }} />
+        <Stack.Screen name="ingredients" options={{ headerShown: true, title: 'Ingredients' }} />
+        <Stack.Screen name="ingredient/[id]" options={{ headerShown: true, title: 'Ingredient' }} />
+        <Stack.Screen name="tags" options={{ headerShown: true, title: 'Recipe tags' }} />
+        <Stack.Screen
+          name="household"
+          options={{ headerShown: true, title: 'Household settings' }}
+        />
         <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
         <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
         <Stack.Screen

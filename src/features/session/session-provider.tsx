@@ -12,7 +12,7 @@ import {
 import {
   loadUserHousehold,
   needsSeeding,
-  seedHousehold,
+  seedHouseholdIfNeeded,
   type Household,
 } from '@/features/household/household-service';
 import { auth } from '@/lib/firebase';
@@ -37,9 +37,8 @@ async function resolveSession(user: User | null): Promise<SessionState> {
   try {
     const household = await loadUserHousehold(user.uid);
     if (household && needsSeeding(household)) {
-      // Not awaited: offline, the commit only resolves once the server sees it,
-      // but the writes are visible locally immediately.
-      seedHousehold(household.id).catch((error) => console.warn('Seeding failed', error));
+      // Not awaited: seeding checks the server first and must not block launch.
+      seedHouseholdIfNeeded(household.id).catch((error) => console.warn('Seeding failed', error));
     }
     return household ? { status: 'ready', user, household } : { status: 'needsHousehold', user };
   } catch (error) {

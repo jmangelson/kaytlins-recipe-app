@@ -11,25 +11,30 @@ appId: com.jmangelson.kaytlinsrecipes
       EMAIL: ${output.email}
 - runFlow: subflows/create-household.yaml
 - tapOn: 'Settings'
-- extendedWaitUntil:
-    visible: 'Chicken/Poultry'
-    timeout: 15000
+- scrollUntilVisible:
+    element: 'Chicken/Poultry'
+    centerElement: true
 - assertVisible: 'Vegetarian'
 - assertVisible: 'Fish/Seafood'
 - assertVisible: 'Beef'
 - assertVisible: 'Pork'
 - tapOn: 'Stores & aisles'
 - extendedWaitUntil:
-    visible: "Macey's"
+    visible: "Macey's.*"
+    timeout: 15000
+- assertVisible: "Macey's, 11 areas"
+- assertVisible: 'Costco, 8 areas'
+- assertVisible: "Sam's Club, 8 areas"
+- assertVisible: 'Walmart, 11 areas'
+- assertVisible: "Smith's, 11 areas"
+# Areas are listed in walking order on the store's own screen.
+- tapOn: "Macey's.*"
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
     timeout: 15000
 - assertVisible: 'Produce'
-- scrollUntilVisible:
-    element: 'Costco'
-- scrollUntilVisible:
-    element: "Sam's Club"
-- scrollUntilVisible:
-    element: 'Walmart'
-- scrollUntilVisible:
-    element: "Smith's"
+- assertVisible: 'Bakery'
+- back
 - back
 - assertVisible: 'Recipe tags'

@@ -12,8 +12,8 @@ Update this file at the end of every milestone.
 | 1   | Firebase: Google sign-in, create/join household, rules + tests, offline    | Done        |
 | 2   | Seed data + data layer: stores/areas, tags, repositories, unit/line parser | Done        |
 | 3   | Recipes                                                                    | Done        |
-| 4   | Settings: stores & areas, ingredient defaults, tags                        | Next        |
-| 5   | Meal plans (N-day, B/L/D)                                                  | Not started |
+| 4   | Settings: stores & areas, ingredient defaults, tags                        | Done        |
+| 5   | Meal plans (N-day, B/L/D)                                                  | Next        |
 | 6   | Calendar: apply plans to dates                                             | Not started |
 | 7   | Shopping generation + pantry check                                         | Not started |
 | 8   | Checklist by store → area, share as text                                   | Not started |
@@ -78,9 +78,8 @@ reinstall it with `npx expo run:android` before Maestro work.
 - Maestro: new `stores` flow; tour adds Settings, Stores & aisles screens.
   Screenshot review: 2 issues found and fixed (below).
 
-Known limitation: if a phone with a stale offline copy (no `seedVersion`)
-seeds after someone has edited stores (M4), it would overwrite those edits.
-Revisit when store editing lands.
+Known limitation (fixed in M4): a phone with a stale offline copy could re-seed
+over edited stores.
 
 ### Milestone 3 — Recipes (2026-10-04)
 
@@ -102,6 +101,26 @@ Revisit when store editing lands.
   `recipe-photo`; `scripts/e2e-setup.sh` puts a test photo in the gallery.
   Screenshot review: 6 UI issues found and fixed (below).
 - Plan: scan result JSON contract defined (PLAN.md → "Scan result format").
+
+### Milestone 4 — Shopping setup and household settings (2026-10-04)
+
+- Stores & aisles: reorder stores, add a store, hidden stores listed
+  separately. Store screen: rename, "Use on shopping lists" switch, areas in
+  walking order (rename inline, move up/down, remove with confirmation, add).
+- Ingredients: searchable list with each ingredient's store › area, a "No store
+  yet (N)" filter, and an editor to rename and pick store and area (Save in
+  the header). Renames that would collide with another ingredient's matching
+  key are refused.
+- Recipe tags: add, rename inline, delete with confirmation.
+- Household settings: name, week start (Sunday default / Monday), plan
+  breakfast and lunch on/off; summarized on the Settings tab.
+- Renames save automatically after a short pause and when leaving the screen
+  (`useAutosave`), so Back never loses an edit; "Saved" confirms.
+- Seeding fix: new households are seeded during creation; older households are
+  seeded only after the server confirms there's no seed, so stale offline
+  copies can't overwrite edits.
+- Maestro: `stores-edit` (incl. rename-then-Back), `ingredient-store`,
+  `tags-household`; 10 flows total. Screenshot review: 7 issues fixed (below).
 
 ## Decisions
 
@@ -134,6 +153,13 @@ Revisit when store editing lands.
 | Save would hang offline                                           | A Firestore write's promise resolves only when the server confirms                                                                                                                                                                                 | `commitOrQueue`: wait up to 2.5 s, then continue with the write queued                                                                                           |
 | Save tap hit a toast in offline tests                             | Dev-only LogBox warning toast covered the bottom button                                                                                                                                                                                            | LogBox toasts off in emulator test mode (warnings still in Metro log)                                                                                            |
 | Typed-route errors for `/recipe/${id}`                            | expo-router typed routes reject template strings                                                                                                                                                                                                   | Use `{ pathname: '/recipe/[id]', params: { id } }`                                                                                                               |
+| Settings had no Ingredients button                                | A scripted edit didn't match because Prettier had reflowed the JSX; nothing checked the result                                                                                                                                                     | Fixed by hand; screenshot review and the flow caught it                                                                                                          |
+| Renames lost when tapping Back                                    | Store/area/tag names saved on blur; hiding the keyboard or Back doesn't blur on Android                                                                                                                                                            | `useAutosave`: save after a pause and on unmount                                                                                                                 |
+| Recipes tab showed no tags for a new household                    | Server-checked seeding finished after the tab loaded tags, and the tab never reloaded tags                                                                                                                                                         | Seed during household creation; Recipes tab reloads tags on focus                                                                                                |
+| Ingredient Save hidden below long chip lists                      | Save button at the bottom                                                                                                                                                                                                                          | Save in the header (shared `HeaderButton`)                                                                                                                       |
+| Area names truncated ("eat & Seafood")                            | Name input shared a row with three 44 dp buttons                                                                                                                                                                                                   | Two-line area rows: name full width, actions below                                                                                                               |
+| "No store yet" looked like an error                               | Shown in danger red                                                                                                                                                                                                                                | New amber `attention` color                                                                                                                                      |
+| Row dividers stopped short of the arrow buttons                   | Divider drawn by the inner row only                                                                                                                                                                                                                | `ListRow` `divider={false}`; outer row draws it                                                                                                                  |
 
 ## Lessons learned
 
@@ -180,5 +206,12 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Offline checks:** `adb shell cmd connectivity airplane-mode enable|disable`.
   Query the Firestore emulator directly with `Authorization: Bearer owner`.
   The dev build loses Metro in airplane mode; fill forms online first.
+- **Check scripted edits landed.** A replace that silently matches nothing
+  leaves the old code; grep for the new text after editing.
+- **Save on change, not on blur**, for inline edits on Android.
+- **Maestro:** `scrollUntilVisible` stops at the first visible match, and tab
+  labels count ("Settings"); scroll to an element unique to the screen.
+- **Test renderer quirk:** RNTL could not observe a save made in an unmount
+  cleanup; that behavior is verified on the device instead.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.

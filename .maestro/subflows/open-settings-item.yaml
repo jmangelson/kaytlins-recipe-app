@@ -1,0 +1,8 @@
+# Opens Settings and taps a button that may be below the fold. Params: ITEM
+appId: com.jmangelson.kaytlinsrecipes
+---
+- tapOn: 'Settings'
+- scrollUntilVisible:
+    element: ${ITEM}
+    centerElement: true
+- tapOn: ${ITEM}

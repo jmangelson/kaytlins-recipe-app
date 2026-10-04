@@ -39,9 +39,9 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/07-shopping
 - tapOn: 'Settings'
 - assertVisible: 'Our Kitchen'
-- extendedWaitUntil:
-    visible: 'Chicken/Poultry'
-    timeout: 15000
+- scrollUntilVisible:
+    element: 'Chicken/Poultry'
+    centerElement: true
 - takeScreenshot: build/screenshots/08-settings
 - scrollUntilVisible:
     element: 'Sign out'
@@ -143,3 +143,79 @@ appId: com.jmangelson.kaytlinsrecipes
 - inputText: 'zzz'
 - hideKeyboard
 - takeScreenshot: build/screenshots/21-recipes-no-match
+
+# Settings and shopping setup (Milestone 4)
+- tapOn: 'Settings'
+- scrollUntilVisible:
+    element: 'Household settings'
+    direction: UP
+- scrollUntilVisible:
+    element: 'Mangelson Kitchen|Our Kitchen'
+    direction: UP
+- takeScreenshot: build/screenshots/22-settings-top
+- tapOn: 'Household settings'
+- extendedWaitUntil:
+    visible:
+      id: 'household-name'
+    timeout: 15000
+- takeScreenshot: build/screenshots/23-household-settings
+- back
+- scrollUntilVisible:
+    element: 'Stores & aisles'
+    centerElement: true
+- tapOn: 'Stores & aisles'
+- extendedWaitUntil:
+    visible: "Macey's.*"
+    timeout: 15000
+- takeScreenshot: build/screenshots/24-stores
+- tapOn: "Macey's.*"
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- takeScreenshot: build/screenshots/25-store-edit
+- scrollUntilVisible:
+    element: 'Add area'
+- takeScreenshot: build/screenshots/26-store-edit-bottom
+- back
+- scrollUntilVisible:
+    element:
+      id: 'new-store-name'
+- tapOn:
+    id: 'new-store-name'
+- inputText: 'costco'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add store'
+- tapOn: 'Add store'
+- scrollUntilVisible:
+    element: 'There.s already a store.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/27-store-duplicate-name
+- back
+- scrollUntilVisible:
+    element: 'Ingredients'
+    centerElement: true
+- tapOn: 'Ingredients'
+- extendedWaitUntil:
+    visible: 'No store yet.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/28-ingredients
+- tapOn: 'chicken breasts.*'
+- tapOn: "Macey's"
+- tapOn: 'Meat & Seafood'
+- takeScreenshot: build/screenshots/29-ingredient-edit
+- tapOn: 'Save'
+- extendedWaitUntil:
+    visible: "Macey's › Meat & Seafood"
+    timeout: 15000
+- takeScreenshot: build/screenshots/30-ingredients-assigned
+- back
+- scrollUntilVisible:
+    element: 'Manage tags'
+    centerElement: true
+- tapOn: 'Manage tags'
+- extendedWaitUntil:
+    visible: 'Pork tag name'
+    timeout: 15000
+- takeScreenshot: build/screenshots/31-tags

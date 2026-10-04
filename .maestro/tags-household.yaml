@@ -1,0 +1,63 @@
+# Manage recipe tags and household settings from Settings.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'tags' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+
+# Tags: add, rename, delete
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Manage tags'
+- extendedWaitUntil:
+    visible: 'Pork tag name'
+    timeout: 15000
+- tapOn: 'Pork tag name'
+- eraseText: 10
+- inputText: 'Pork & Ham'
+- hideKeyboard
+- tapOn: 'Delete Fish/Seafood'
+- tapOn: 'DELETE|Delete'
+- scrollUntilVisible:
+    element:
+      id: 'new-tag-name'
+- tapOn:
+    id: 'new-tag-name'
+- inputText: 'Quick'
+- hideKeyboard
+- tapOn: 'Add tag'
+- extendedWaitUntil:
+    visible: 'Quick tag name'
+    timeout: 10000
+- back
+- scrollUntilVisible:
+    element: 'Recipe tags'
+- assertVisible: 'Pork & Ham'
+- assertVisible: 'Quick'
+- assertNotVisible: 'Fish/Seafood'
+
+# Household settings
+- scrollUntilVisible:
+    element: 'Household settings'
+    direction: UP
+- tapOn: 'Household settings'
+- tapOn:
+    id: 'household-name'
+- eraseText: 20
+- inputText: 'Mangelson Kitchen'
+- hideKeyboard
+- tapOn: 'Monday'
+- tapOn:
+    text: 'Plan breakfast and lunch'
+    index: 1
+- tapOn: 'Save'
+- scrollUntilVisible:
+    element: 'Mangelson Kitchen'
+    direction: UP
+- assertVisible: 'Week starts Monday · Dinners only'

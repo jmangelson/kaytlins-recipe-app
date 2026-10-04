@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
+import { HeaderButton } from '@/components/header-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -77,16 +78,13 @@ export default function RecipeDetailScreen() {
         options={{
           title: recipe.name,
           headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
+            <HeaderButton
+              label="Edit"
               accessibilityLabel="Edit recipe"
-              hitSlop={8}
               onPress={() =>
                 router.push({ pathname: '/recipe/[id]/edit', params: { id: recipe.id } })
               }
-              style={styles.headerButton}>
-              <ThemedText style={[styles.headerButtonText, { color: theme.tint }]}>Edit</ThemedText>
-            </Pressable>
+            />
           ),
         }}
       />
@@ -178,14 +176,5 @@ const styles = StyleSheet.create({
   },
   ingredientName: {
     flex: 1,
-  },
-  headerButton: {
-    minHeight: 44,
-    minWidth: 44,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  headerButtonText: {
-    fontWeight: 600,
   },
 });

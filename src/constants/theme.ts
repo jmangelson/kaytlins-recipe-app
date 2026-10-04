@@ -16,6 +16,7 @@ export const Colors = {
     onTint: '#ffffff',
     border: '#D9D9E0',
     danger: '#C62828',
+    attention: '#9A5B00',
   },
   dark: {
     text: '#ffffff',
@@ -27,6 +28,7 @@ export const Colors = {
     onTint: '#000000',
     border: '#3A3D42',
     danger: '#EF6B6B',
+    attention: '#F2B25C',
   },
 } as const;
 

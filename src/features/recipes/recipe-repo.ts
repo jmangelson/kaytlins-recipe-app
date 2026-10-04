@@ -9,7 +9,7 @@ import {
 
 import { linkIngredients, parseDraftIngredients } from '@/features/recipes/recipe-draft';
 import type { Recipe, RecipeDraft } from '@/features/recipes/recipe-types';
-import type { Ingredient } from '@/features/stores/store-types';
+import { listIngredients } from '@/features/stores/store-repo';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
@@ -50,11 +50,6 @@ export async function getRecipePhoto(
 ): Promise<string | null> {
   const snapshot = await getDoc(doc(db, 'households', householdId, 'recipePhotos', recipeId));
   return (snapshot.data()?.jpegBase64 as string | undefined) ?? null;
-}
-
-async function listIngredients(householdId: string): Promise<Ingredient[]> {
-  const snapshot = await getDocs(collection(db, 'households', householdId, 'ingredients'));
-  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Ingredient);
 }
 
 /**

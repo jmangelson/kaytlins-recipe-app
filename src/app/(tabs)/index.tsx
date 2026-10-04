@@ -24,12 +24,14 @@ export default function RecipesScreen() {
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Pick up recipes added or edited on other screens.
+  // Pick up recipes and tags changed on other screens.
   const refreshRecipes = recipes.refresh;
+  const refreshTags = tags.refresh;
   useFocusEffect(
     useCallback(() => {
       refreshRecipes();
-    }, [refreshRecipes])
+      refreshTags();
+    }, [refreshRecipes, refreshTags])
   );
 
   const tagList = useMemo(

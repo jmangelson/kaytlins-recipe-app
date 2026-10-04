@@ -3,6 +3,8 @@ import {
   collection,
   doc,
   getDoc,
+  getDocFromServer,
+  updateDoc,
   serverTimestamp,
   writeBatch,
 } from '@react-native-firebase/firestore';
@@ -15,6 +17,7 @@ import {
   normalizeInviteCode,
 } from '@/features/household/invite-code';
 import { db } from '@/lib/firebase';
+import { commitOrQueue } from '@/lib/firestore-write';
 
 export type HouseholdSettings = {
   /** 0 = Sunday … 6 = Saturday. */
@@ -68,6 +71,12 @@ export async function loadUserHousehold(uid: string): Promise<Household | null> 
  * and the user's profile, in one batch. Retries if the random code is taken.
  */
 export async function createHousehold(uid: string, name: string): Promise<void> {
+  const householdId = await createEmptyHousehold(uid, name);
+  // Seed before the app opens so every screen sees the starter stores and tags.
+  await seedHousehold(householdId);
+}
+
+async function createEmptyHousehold(uid: string, name: string): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
     const code = generateInviteCode(getRandomBytes);
@@ -88,7 +97,7 @@ export async function createHousehold(uid: string, name: string): Promise<void> 
     batch.set(doc(db, 'users', uid), { householdId: householdRef.id });
     try {
       await batch.commit();
-      return;
+      return householdRef.id;
     } catch (error) {
       // A taken invite code surfaces as permission-denied (invites can't be overwritten).
       if (attempt >= MAX_ATTEMPTS) throw error;
@@ -139,4 +148,33 @@ export async function seedHousehold(householdId: string): Promise<void> {
 
 export function needsSeeding(household: Household): boolean {
   return household.seedVersion < SEED_VERSION;
+}
+
+/**
+ * Seeds only after the server confirms the household hasn't been seeded, so a
+ * phone with a stale offline copy can't overwrite stores someone has since
+ * edited. Offline, this does nothing and tries again on a later launch.
+ */
+export async function seedHouseholdIfNeeded(householdId: string): Promise<void> {
+  let serverSeedVersion: number;
+  try {
+    const snapshot = await getDocFromServer(doc(db, 'households', householdId));
+    serverSeedVersion = (snapshot.data()?.seedVersion as number | undefined) ?? 0;
+  } catch {
+    return;
+  }
+  if (serverSeedVersion < SEED_VERSION) await seedHousehold(householdId);
+}
+
+/** Renames the household and/or changes its settings. */
+export async function updateHousehold(
+  householdId: string,
+  changes: { name: string; settings: HouseholdSettings }
+): Promise<void> {
+  await commitOrQueue(() =>
+    updateDoc(doc(db, 'households', householdId), {
+      name: changes.name.trim(),
+      settings: changes.settings,
+    })
+  );
 }

@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/button';
@@ -35,23 +36,38 @@ export default function SettingsScreen() {
         <ThemedText themeColor="textSecondary">
           {memberCount === 1 ? '1 member' : `${memberCount} members`}
         </ThemedText>
+        <ThemedText themeColor="textSecondary">
+          Week starts {household.settings.weekStart === 1 ? 'Monday' : 'Sunday'} ·{' '}
+          {household.settings.showBreakfastLunch ? 'Breakfast, lunch & dinner' : 'Dinners only'}
+        </ThemedText>
+        <Button
+          label="Household settings"
+          variant="secondary"
+          onPress={() => router.push('/household')}
+        />
       </View>
 
       <View style={styles.section}>
         <ThemedText type="smallBold">Shopping</ThemedText>
         <ThemedText themeColor="textSecondary">
-          Your stores and the order of their aisles.
+          Your stores, their aisles, and where you buy each ingredient.
         </ThemedText>
         <Button
           label="Stores & aisles"
           variant="secondary"
           onPress={() => router.push('/stores')}
         />
+        <Button
+          label="Ingredients"
+          variant="secondary"
+          onPress={() => router.push('/ingredients')}
+        />
       </View>
 
       <View style={styles.section}>
         <ThemedText type="smallBold">Recipe tags</ThemedText>
         <TagList householdId={household.id} />
+        <Button label="Manage tags" variant="secondary" onPress={() => router.push('/tags')} />
       </View>
 
       <View style={styles.section}>
@@ -75,7 +91,13 @@ export default function SettingsScreen() {
 }
 
 function TagList({ householdId }: { householdId: string }) {
-  const { state } = useAsync(() => listTags(householdId), [householdId]);
+  const { state, refresh } = useAsync(() => listTags(householdId), [householdId]);
+  // Show tag edits made on the Manage tags screen.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
 
   if (state.status === 'loading') {
     return <ThemedText themeColor="textSecondary">Loading tags…</ThemedText>;

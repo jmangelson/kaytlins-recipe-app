@@ -1,0 +1,102 @@
+# Edit a store (rename, add/reorder/remove areas, hide it) and add a new store.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.email = 'storesedit' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.email}
+- runFlow: subflows/create-household.yaml
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Stores & aisles'
+- tapOn: 'Costco.*'
+
+# Rename
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- tapOn:
+    id: 'store-name'
+- eraseText: 20
+- inputText: 'Costco Wholesale'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Saved'
+    timeout: 10000
+
+# Add an area, move it up, remove another
+- scrollUntilVisible:
+    element:
+      id: 'new-area-name'
+- tapOn:
+    id: 'new-area-name'
+- inputText: 'Bulk'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add area'
+- tapOn: 'Add area'
+- scrollUntilVisible:
+    element: 'Move Bulk up'
+- tapOn: 'Move Bulk up'
+- assertVisible: 'Move Bulk down'
+- scrollUntilVisible:
+    element: 'Remove Pantry'
+- tapOn: 'Remove Pantry'
+- tapOn: 'REMOVE|Remove'
+- assertNotVisible: 'Remove Pantry'
+
+# Rename an area and leave right away: the pending rename must still save.
+- scrollUntilVisible:
+    element: 'Area 2 name'
+    direction: UP
+- tapOn: 'Area 2 name'
+- eraseText: 10
+- inputText: 'Bakery & Bread'
+- hideKeyboard
+- back
+- tapOn: 'Costco Wholesale.*'
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Move Bakery & Bread up'
+
+# Hide it
+- scrollUntilVisible:
+    element: 'Use on shopping lists'
+    direction: UP
+- tapOn:
+    text: 'Use on shopping lists'
+    index: 1
+- extendedWaitUntil:
+    visible: 'Saved'
+    timeout: 10000
+- back
+- scrollUntilVisible:
+    element: 'Hidden stores'
+- assertVisible: 'Costco Wholesale.*'
+
+# Add a store
+- scrollUntilVisible:
+    element:
+      id: 'new-store-name'
+- tapOn:
+    id: 'new-store-name'
+- inputText: "Trader Joe's"
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add store'
+- tapOn: 'Add store'
+- extendedWaitUntil:
+    visible: 'No areas yet.*'
+    timeout: 15000
+- back
+- scrollUntilVisible:
+    element: "Trader Joe's.*"
+- assertVisible: 'Move Trader Joe.s up'
