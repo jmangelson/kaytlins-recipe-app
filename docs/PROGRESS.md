@@ -45,8 +45,11 @@ Update this file at the end of every milestone.
   `tour/screenshots` capture flow.
 - Screenshot review done; 3 UI issues found and fixed (see bugs below).
 
-Still open for M1: deploy rules to the real project (`firebase login` needed),
-and real Google sign-in on a physical phone.
+- 2026-10-04: Firestore rules deployed to `kaytlin-s-recipe-app`
+  (`npx firebase deploy --only firestore:rules`).
+
+Still open for M1: real Google sign-in on a physical phone (needs a
+standalone APK signed with the registered debug key).
 
 ## Decisions
 
@@ -88,6 +91,12 @@ and real Google sign-in on a physical phone.
 - **Shell in the agent environment:** `pkill -f pattern` can match its own
   shell — use the `[x]yz` bracket trick. Background long-lived processes with
   `run_in_background` or `setsid`, not a bare `&`.
+- **Firebase CLI login** in the container is two steps because `!` commands
+  can't take input: `! npx firebase login --no-localhost`, open the link,
+  then `! npx firebase login <code>`. The token lives in the container home
+  and is lost if the container is recreated.
+- **Rules changes** go live only via `npx firebase deploy --only
+firestore:rules`, after `npm run test:rules` passes.
 - **Firebase emulators** accept any Google credential, so Maestro uses an
   emulator-only email sign-in; real Google sign-in needs a manual check on a
   phone (needs the debug SHA-1 registered, which it is).
