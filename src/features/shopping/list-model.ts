@@ -1,5 +1,6 @@
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
-import type { Quantity } from '@/features/ingredients/quantity';
+import { parseIngredientLine } from '@/features/ingredients/parse-ingredient-line';
+import { formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import {
   groupForTrip,
   remainingAfterPantry,
@@ -29,6 +30,20 @@ export type ListLine = {
   usualStoreName: string | null;
   checked: boolean;
   manual: boolean;
+  /** Set for an item she added by hand: it stays on lists until checked off. */
+  extraId?: string | null;
+};
+
+/**
+ * Something she added by hand (paper towels, milk), linked to one of her
+ * ingredients for its store and area. It goes on every list she makes or
+ * opens until she checks it off in the store.
+ */
+export type ExtraItem = {
+  id: string;
+  name: string;
+  ingredientId: string;
+  quantity: Quantity;
 };
 
 /**
@@ -59,6 +74,7 @@ export function linesFromNeeds(needs: NeedLine[]): ListLine[] {
     usualStoreName: null,
     checked: false,
     manual: false,
+    extraId: null,
   }));
 }
 
@@ -149,4 +165,102 @@ export function groupReadyList(list: ShoppingList, storesInOrder: Store[]): List
     });
   }
   return groups;
+}
+
+/** Name and amount of an item she types ("2 gallons milk" → milk, 2 gal). */
+export function readItemText(text: string): { name: string; quantity: Quantity } | null {
+  const parsed = parseIngredientLine(text);
+  const name = parsed.name || text.trim();
+  if (!name) return null;
+  return { name, quantity: { amount: parsed.quantityMax ?? parsed.quantity, unit: parsed.unit } };
+}
+
+export function extraItemFor(text: string, ingredient: Ingredient, id: string): ExtraItem | null {
+  const item = readItemText(text);
+  return item
+    ? { id, name: ingredient.name, ingredientId: ingredient.id, quantity: item.quantity }
+    : null;
+}
+
+/** A list line for a hand-added item. */
+export function lineForExtra(item: ExtraItem): ListLine {
+  return {
+    key: `extra-${item.id}`,
+    ingredientId: item.ingredientId,
+    name: item.name,
+    needed: [item.quantity],
+    have: [null],
+    haveIt: false,
+    recipeNames: [],
+    storeId: null,
+    sectionId: null,
+    usualStoreName: null,
+    checked: false,
+    manual: true,
+    extraId: item.id,
+  };
+}
+
+/** The item a hand-added line came from, to put it back if she unchecks it. */
+export function extraItemFromLine(line: ListLine): ExtraItem | null {
+  return line.extraId && line.ingredientId
+    ? {
+        id: line.extraId,
+        name: line.name,
+        ingredientId: line.ingredientId,
+        quantity: line.needed[0] ?? { amount: null, unit: null },
+      }
+    : null;
+}
+
+/**
+ * Adds the hand-added items the list doesn't have yet. During the pantry
+ * check Make list places them with everything else; on a made list they're
+ * placed straight away.
+ */
+export function withExtras(
+  list: ShoppingList,
+  items: ExtraItem[],
+  ingredients: Map<string, Ingredient>,
+  storesInOrder: Store[]
+): ShoppingList {
+  const present = new Set(list.lines.map((l) => l.extraId).filter(Boolean));
+  const added = items.filter((i) => !present.has(i.id)).map(lineForExtra);
+  if (added.length === 0) return list;
+  const lines =
+    list.status === 'ready'
+      ? placeLines(added, ingredients, storesInOrder, list.tripStoreIds)
+      : added;
+  return { ...list, lines: [...list.lines, ...lines] };
+}
+
+export function removeLine(list: ShoppingList, key: string): ShoppingList {
+  return { ...list, lines: list.lines.filter((l) => l.key !== key) };
+}
+
+/**
+ * The items still to get, as plain text to send in a message: grouped by
+ * store and area, each with its amount. Checked items are left out.
+ */
+export function listAsText(list: ShoppingList, storesInOrder: Store[]): string {
+  const checked = new Set(list.lines.filter((l) => l.checked).map((l) => l.key));
+  const blocks = groupReadyList(list, storesInOrder)
+    .map((group) => {
+      const sections = group.sections
+        .map((section) => {
+          const items = section.items.filter((i) => !checked.has(i.ingredientId));
+          if (items.length === 0) return null;
+          const lines = items.map((i) => {
+            const amount = i.quantities.map(formatQuantity).filter(Boolean).join(' + ');
+            return amount ? `- ${i.name} (${amount})` : `- ${i.name}`;
+          });
+          return [section.name, ...lines].join('\n');
+        })
+        .filter((s): s is string => s !== null);
+      return sections.length ? [group.storeName.toUpperCase(), ...sections].join('\n') : null;
+    })
+    .filter((b): b is string => b !== null);
+  return blocks.length
+    ? [list.name, ...blocks].join('\n\n')
+    : `${list.name}\n\nEverything's in the cart.`;
 }

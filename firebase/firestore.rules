@@ -119,6 +119,16 @@ service cloud.firestore {
         && (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
+    // Something to buy on the next trips until it's checked off (paper towels).
+    function validExtraItem(data) {
+      return data.keys().hasOnly(['name', 'ingredientId', 'quantity', 'createdAt', 'updatedAt'])
+        && validName(data.name, 80)
+        && data.ingredientId is string
+        && data.quantity is map
+        && data.updatedAt == request.time
+        && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
     function validHouseholdName(name) {
       return name is string && name.size() > 0 && name.size() <= 60;
     }
@@ -216,13 +226,18 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validShoppingList(request.resource.data);
       }
 
+      match /extraItems/{itemId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validExtraItem(request.resource.data);
+      }
+
       // Everything else in the household: members only. `{collection}`
       // forces at least one segment: in rules v2 a bare `{document=**}` also
       // matches the household doc itself and would bypass the rules above.
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
           && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans',
-              'calendarDays', 'shoppingLists']);
+              'calendarDays', 'shoppingLists', 'extraItems']);
       }
     }
   }

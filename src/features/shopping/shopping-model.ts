@@ -3,6 +3,7 @@ import {
   storeForTrip,
   type Ingredient,
 } from '@/features/ingredients/ingredient-model';
+import { guessCategory } from '@/features/ingredients/categories';
 import { combineQuantities, type Quantity } from '@/features/ingredients/quantity';
 import { convert, unitDimension, type UnitKey } from '@/features/ingredients/units';
 import type { CalendarDay, DateKey } from '@/features/calendar/calendar-model';
@@ -129,7 +130,8 @@ export function groupForTrip(
       nameKey: line.name.toLowerCase(),
       aliases: [],
       aliasKeys: [],
-      category: 'other',
+      // Not in her list (an item she typed): place it by its likely category.
+      category: guessCategory(line.name),
       storePriority: [],
       areaOverrides: {},
       defaultUnit: null,

@@ -1,0 +1,57 @@
+# Other things to buy (Milestone 8). Expects to start on the Shopping tab
+# with a made list that has one item checked (after shopping-part.yaml).
+appId: com.jmangelson.kaytlinsrecipes
+---
+- runFlow:
+    file: ../subflows/add-item.yaml
+    env:
+      TEXT: 'paper towels'
+- scrollUntilVisible:
+    element: 'Add paper towels'
+    centerElement: true
+- takeScreenshot: build/screenshots/55-extra-new
+- tapOn: 'Usually from Costco'
+- tapOn: 'Add paper towels'
+- runFlow:
+    file: ../subflows/add-item.yaml
+    env:
+      TEXT: 'tomatoes'
+- runFlow:
+    when:
+      visible: 'Which .* do you mean.*'
+    commands:
+      - takeScreenshot: build/screenshots/56-extra-choose
+      - tapOn: 'Use .* for tomatoes'
+- runFlow:
+    when:
+      visible: '.*is new.*'
+    commands:
+      - scrollUntilVisible:
+          element: 'Add tomatoes'
+          centerElement: true
+      - tapOn: 'Add tomatoes'
+- scrollUntilVisible:
+    element: 'Other things to buy'
+    direction: UP
+    centerElement: true
+- takeScreenshot: build/screenshots/57-extras
+- scrollUntilVisible:
+    element: '.*in the cart'
+    direction: UP
+- tapOn: '.*in the cart'
+- extendedWaitUntil:
+    visible: '.*in the cart.'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Costco'
+- takeScreenshot: build/screenshots/58-list-with-extras
+- scrollUntilVisible:
+    element: 'Hide checked items'
+    direction: UP
+- tapOn: 'Hide checked items'
+- takeScreenshot: build/screenshots/59-list-hide-checked
+- scrollUntilVisible:
+    element:
+      id: 'add-item'
+- takeScreenshot: build/screenshots/60-list-add-item
+- back

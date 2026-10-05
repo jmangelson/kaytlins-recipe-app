@@ -25,7 +25,8 @@ import { listRecipes } from '@/features/recipes/recipe-repo';
 import type { Recipe } from '@/features/recipes/recipe-types';
 import { useHousehold } from '@/features/session/session-provider';
 import { CheckRow } from '@/features/shopping/check-row';
-import { linesFromNeeds, type ListSource } from '@/features/shopping/list-model';
+import { listExtraItems } from '@/features/shopping/extra-repo';
+import { lineForExtra, linesFromNeeds, type ListSource } from '@/features/shopping/list-model';
 import { createShoppingList } from '@/features/shopping/list-repo';
 import {
   gatherNeeds,
@@ -50,12 +51,13 @@ export default function NewShoppingListScreen() {
   const thisWeek = startOfWeek(today, household.settings.weekStart);
 
   const data = useAsync(async () => {
-    const [recipes, plans, stores] = await Promise.all([
+    const [recipes, plans, stores, extras] = await Promise.all([
       listRecipes(household.id),
       listPlans(household.id),
       listStores(household.id),
+      listExtraItems(household.id),
     ]);
-    return { recipes: new Map(recipes.map((r) => [r.id, r])), plans, stores };
+    return { recipes: new Map(recipes.map((r) => [r.id, r])), plans, stores, extras };
   }, [household.id]);
 
   const [kind, setKind] = useState<Kind>('dates');
@@ -77,7 +79,7 @@ export default function NewShoppingListScreen() {
       <ErrorScreen message={`Couldn't load meals. ${data.state.message}`} onRetry={data.reload} />
     );
   }
-  const { recipes, plans, stores } = data.state.data;
+  const { recipes, plans, stores, extras } = data.state.data;
   const plan = plans.find((p) => p.id === planId) ?? null;
 
   const dates: DateKey[] = Array.from({ length: dayCount }, (_, i) => addDays(start, i));
@@ -104,7 +106,7 @@ export default function NewShoppingListScreen() {
   }
 
   async function create() {
-    if (creating || needs.length === 0) return;
+    if (creating || needs.length + extras.length === 0) return;
     setCreating(true);
     const source: ListSource =
       kind === 'plan' && plan
@@ -115,7 +117,8 @@ export default function NewShoppingListScreen() {
       status: 'pantry',
       source,
       tripStoreIds: stores.filter((s) => !s.hidden).map((s) => s.id),
-      lines: linesFromNeeds(needs),
+      // Things she added by hand ride along until she checks them off.
+      lines: [...linesFromNeeds(needs), ...extras.map(lineForExtra)],
     });
     router.replace({ pathname: '/shopping/[id]', params: { id } });
   }
@@ -174,10 +177,15 @@ export default function NewShoppingListScreen() {
         />
       )}
 
-      {choices.length > 0 && (
+      {(choices.length > 0 || extras.length > 0) && (
         <View style={styles.group}>
+          {extras.length > 0 && (
+            <ThemedText type="small">
+              Also on the list: {extras.map((e) => e.name).join(', ')}.
+            </ThemedText>
+          )}
           <ThemedText type="small" themeColor="textSecondary">
-            {needs.length === 0
+            {needs.length === 0 && extras.length === 0
               ? 'Tick at least one meal with ingredients.'
               : `${selected.size} ${selected.size === 1 ? 'meal' : 'meals'} · ${needs.length} ${
                   needs.length === 1 ? 'ingredient' : 'ingredients'
@@ -187,7 +195,7 @@ export default function NewShoppingListScreen() {
             label="Check pantry"
             onPress={create}
             loading={creating}
-            disabled={needs.length === 0}
+            disabled={needs.length + extras.length === 0}
           />
         </View>
       )}

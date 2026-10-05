@@ -8,3 +8,4 @@ appId: com.jmangelson.kaytlinsrecipes
       EMAIL: ${output.email}
       FIXTURE: week
 - runFlow: shopping-part.yaml
+- runFlow: shopping-extras-part.yaml

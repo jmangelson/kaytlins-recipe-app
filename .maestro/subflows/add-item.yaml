@@ -1,0 +1,16 @@
+# Types an item into "Add an item" and taps Add to list, centering the
+# button first so a floating button can't cover it. Params: TEXT
+appId: com.jmangelson.kaytlinsrecipes
+---
+- scrollUntilVisible:
+    element:
+      id: 'add-item'
+    centerElement: true
+- tapOn:
+    id: 'add-item'
+- inputText: ${TEXT}
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to list'
+    centerElement: true
+- tapOn: 'Add to list'

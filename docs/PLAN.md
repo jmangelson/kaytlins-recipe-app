@@ -102,9 +102,13 @@ households/{hid}             name, memberIds[], inviteCode, settings{weekStart, 
   mealPlans/{id}             name, dayCount, days[{index, label?, meals{B[], L[], D[]}}]
                                meal = {recipeId, servings}
   calendarDays/{yyyy-mm-dd}  meals{B[], L[], D[]}, sourcePlanId?, sourceDayIndex?
-  shoppingLists/{id}         name, source{type: dates|plan, ...}, status: draft|final,
-                             createdAt, items[{ingredientId?, name, needed, have, buy,
-                             unit, storeId, sectionId, checked, isManual}]
+  shoppingLists/{id}         name, source{kind: dates|plan, ...}, status: pantry|ready,
+                             tripStoreIds[], createdAt, lines[{key, ingredientId, name,
+                             needed[], have[], haveIt, recipeNames, storeId, sectionId,
+                             usualStoreName, checked, manual, extraId?}]
+  extraItems/{id}            name, ingredientId, quantity{amount, unit}: something she
+                             added by hand (paper towels); goes on every list until
+                             checked off in the store, then deleted
 ```
 
 `google-services.json` and other Firebase config stay out of git.

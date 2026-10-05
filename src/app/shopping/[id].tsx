@@ -1,11 +1,12 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { HeaderButton } from '@/components/header-button';
+import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -16,13 +17,20 @@ import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import { formatAmount, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import { unitLabel } from '@/features/ingredients/units';
 import { useHousehold } from '@/features/session/session-provider';
+import { addExtraItem } from '@/features/shopping/add-extra';
+import { AddItem, type NewItem } from '@/features/shopping/add-item';
 import { CheckRow } from '@/features/shopping/check-row';
+import { deleteExtraItem, listExtraItems, saveExtraItem } from '@/features/shopping/extra-repo';
 import {
+  extraItemFromLine,
   groupReadyList,
+  listAsText,
   placeLines,
   remaining,
+  removeLine,
   toBuy,
   type ListLine,
+  withExtras,
   type ShoppingList,
 } from '@/features/shopping/list-model';
 import {
@@ -48,12 +56,17 @@ export default function ShoppingListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { household } = useHousehold();
   const data = useAsync(async () => {
-    const [list, stores, ingredients] = await Promise.all([
+    const [saved, stores, ingredientList, extras] = await Promise.all([
       getShoppingList(household.id, id),
       listStores(household.id),
       listIngredients(household.id),
+      listExtraItems(household.id),
     ]);
-    return { list, stores, ingredients: new Map(ingredients.map((i) => [i.id, i])) };
+    const ingredients = new Map(ingredientList.map((i) => [i.id, i]));
+    // Items added by hand since the list was made join it now.
+    const list = saved && withExtras(saved, extras, ingredients, stores);
+    if (list && list !== saved) saveShoppingList(household.id, list);
+    return { list, stores, ingredients };
   }, [household.id, id]);
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading list" />;
@@ -90,6 +103,7 @@ function ListEditor({
   ingredients: Map<string, Ingredient>;
 }) {
   const [list, setList] = useState(initial);
+  const [known, setKnown] = useState(ingredients);
   const [deleted, setDeleted] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   useAutosave(list, (value) => {
@@ -101,6 +115,42 @@ function ListEditor({
     setList(next);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
+
+  /**
+   * Every change goes through here. Hand-added items stay on future lists
+   * until checked off: checking one off (or removing it) clears it, and
+   * unchecking puts it back.
+   */
+  function update(next: ShoppingList) {
+    const after = new Map(next.lines.map((l) => [l.key, l]));
+    for (const line of list.lines) {
+      if (!line.extraId) continue;
+      const now = after.get(line.key);
+      if (!now || (now.checked && !line.checked)) {
+        deleteExtraItem(householdId, line.extraId);
+      } else if (!now.checked && line.checked) {
+        const item = extraItemFromLine(now);
+        if (item) saveExtraItem(householdId, item);
+      }
+    }
+    setList(next);
+  }
+
+  function addItem(text: string, item: Ingredient | NewItem) {
+    const added = addExtraItem(householdId, text, item);
+    if (!added) return;
+    const nextKnown = new Map(known).set(added.ingredient.id, added.ingredient);
+    setKnown(nextKnown);
+    setList(withExtras(list, [added.extra], nextKnown, stores));
+  }
+
+  const addItemField = (
+    <AddItem
+      ingredients={[...known.values()]}
+      stores={stores.filter((s) => !s.hidden)}
+      onAdd={addItem}
+    />
+  );
 
   function confirmDelete() {
     Alert.alert(`Delete ${list.name}?`, 'The list is removed from both phones.', [
@@ -131,12 +181,13 @@ function ListEditor({
         <PantryCheck
           list={list}
           stores={stores}
-          onChange={setList}
+          addItem={addItemField}
+          onChange={update}
           onDone={() =>
             switchTo({
               ...list,
               status: 'ready',
-              lines: placeLines(list.lines, ingredients, stores, list.tripStoreIds),
+              lines: placeLines(list.lines, known, stores, list.tripStoreIds),
             })
           }
         />
@@ -144,7 +195,8 @@ function ListEditor({
         <ReadyList
           list={list}
           stores={stores}
-          onChange={setList}
+          addItem={addItemField}
+          onChange={update}
           onBack={() => switchTo({ ...list, status: 'pantry' })}
         />
       )}
@@ -155,11 +207,13 @@ function ListEditor({
 function PantryCheck({
   list,
   stores,
+  addItem,
   onChange,
   onDone,
 }: {
   list: ShoppingList;
   stores: Store[];
+  addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
   onDone: () => void;
 }) {
@@ -193,9 +247,15 @@ function PantryCheck({
       </View>
       <View>
         {list.lines.map((line) => (
-          <PantryLine key={line.key} line={line} onChange={updateLine} />
+          <PantryLine
+            key={line.key}
+            line={line}
+            onChange={updateLine}
+            onRemove={() => onChange(removeLine(list, line.key))}
+          />
         ))}
       </View>
+      {addItem}
 
       <View style={styles.group}>
         <ThemedText type="smallBold" accessibilityRole="header">
@@ -233,7 +293,15 @@ function PantryCheck({
   );
 }
 
-function PantryLine({ line, onChange }: { line: ListLine; onChange: (line: ListLine) => void }) {
+function PantryLine({
+  line,
+  onChange,
+  onRemove,
+}: {
+  line: ListLine;
+  onChange: (line: ListLine) => void;
+  onRemove: () => void;
+}) {
   const theme = useTheme();
   const [open, setOpen] = useState(line.have.some((h) => h !== null));
   const measured = line.needed
@@ -246,7 +314,13 @@ function PantryLine({ line, onChange }: { line: ListLine; onChange: (line: ListL
     <View style={[styles.line, { borderBottomColor: theme.border }]}>
       <CheckRow
         title={line.name}
-        detail={`Need ${amountText(line.needed)} · ${line.recipeNames.join(', ')}`}
+        detail={[
+          `Need ${amountText(line.needed)}`,
+          line.manual ? 'added by you' : line.recipeNames.join(', '),
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        trailing={line.manual ? <RemoveButton name={line.name} onPress={onRemove} /> : null}
         accessibilityLabel={`Have ${line.name}`}
         checked={line.haveIt}
         onToggle={() => onChange({ ...line, haveIt: !line.haveIt })}
@@ -339,18 +413,22 @@ function HaveInput({
 function ReadyList({
   list,
   stores,
+  addItem,
   onChange,
   onBack,
 }: {
   list: ShoppingList;
   stores: Store[];
+  addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
   onBack: () => void;
 }) {
+  const [hideChecked, setHideChecked] = useState(false);
   const groups = groupReadyList(list, stores);
   const lines = new Map(list.lines.map((l) => [l.key, l]));
   const items = groups.flatMap((g) => g.sections.flatMap((s) => s.items));
   const checked = items.filter((i) => lines.get(i.ingredientId)?.checked).length;
+  const showing = (key: string) => !(hideChecked && lines.get(key)?.checked);
 
   function toggle(key: string) {
     onChange({
@@ -362,45 +440,96 @@ function ReadyList({
   return (
     <>
       <ThemedText type="small" themeColor="textSecondary">
-        {checked === 0
-          ? `${items.length} to buy at ${groups.map((g) => g.storeName).join(', ')}.`
-          : `${checked} of ${items.length} in the cart.`}
+        {items.length === 0
+          ? 'Nothing left to buy.'
+          : checked === 0
+            ? `${items.length} to buy at ${groups.map((g) => g.storeName).join(', ')}.`
+            : `${checked} of ${items.length} in the cart.`}
       </ThemedText>
-      {groups.map((group) => (
-        <View key={group.storeId} style={styles.group}>
-          <ThemedText type="subtitle" style={styles.storeName} accessibilityRole="header">
-            {group.storeName}
-          </ThemedText>
-          {group.sections.map((section) => (
-            <View key={section.sectionId ?? 'other'}>
-              <ThemedText type="smallBold" themeColor="textSecondary">
-                {section.name}
-              </ThemedText>
-              {section.items.map((item) => {
-                const line = lines.get(item.ingredientId);
-                const detail = [
-                  amountText(item.quantities),
-                  item.usualStoreName ? `usually from ${item.usualStoreName}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                return (
-                  <CheckRow
-                    key={item.ingredientId}
-                    title={item.name}
-                    detail={detail}
-                    checked={!!line?.checked}
-                    dimWhenChecked
-                    onToggle={() => toggle(item.ingredientId)}
-                  />
-                );
-              })}
-            </View>
-          ))}
-        </View>
-      ))}
+      <View style={styles.chips}>
+        <Chip
+          label="Share"
+          accessibilityLabel="Share list as text"
+          onPress={() => Share.share({ message: listAsText(list, stores) })}
+        />
+        {checked > 0 && (
+          <Chip
+            label={`Hide checked (${checked})`}
+            accessibilityLabel="Hide checked items"
+            selected={hideChecked}
+            onPress={() => setHideChecked(!hideChecked)}
+          />
+        )}
+      </View>
+      {groups.map((group) => {
+        const sections = group.sections
+          .map((section) => ({
+            ...section,
+            items: section.items.filter((i) => showing(i.ingredientId)),
+          }))
+          .filter((section) => section.items.length > 0);
+        if (sections.length === 0) return null;
+        return (
+          <View key={group.storeId} style={styles.group}>
+            <ThemedText type="subtitle" style={styles.storeName} accessibilityRole="header">
+              {group.storeName}
+            </ThemedText>
+            {sections.map((section) => (
+              <View key={section.sectionId ?? 'other'}>
+                <ThemedText type="smallBold" themeColor="textSecondary">
+                  {section.name}
+                </ThemedText>
+                {section.items.map((item) => {
+                  const line = lines.get(item.ingredientId);
+                  const amount = item.quantities.map(formatQuantity).filter(Boolean).join(' + ');
+                  const detail = [
+                    amount,
+                    item.usualStoreName ? `usually from ${item.usualStoreName}` : null,
+                    lines.get(item.ingredientId)?.extraId ? 'added by you' : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  return (
+                    <CheckRow
+                      key={item.ingredientId}
+                      title={item.name}
+                      detail={detail}
+                      checked={!!line?.checked}
+                      dimWhenChecked
+                      onToggle={() => toggle(item.ingredientId)}
+                      trailing={
+                        line?.manual ? (
+                          <RemoveButton
+                            name={item.name}
+                            onPress={() => onChange(removeLine(list, item.ingredientId))}
+                          />
+                        ) : null
+                      }
+                    />
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+        );
+      })}
+      {hideChecked && checked === items.length && items.length > 0 && (
+        <ThemedText themeColor="textSecondary">Everything&apos;s in the cart.</ThemedText>
+      )}
+
+      {addItem}
       <Button label="Back to pantry check" variant="secondary" onPress={onBack} />
     </>
+  );
+}
+
+function RemoveButton({ name, onPress }: { name: string; onPress: () => void }) {
+  return (
+    <IconButton
+      icon={{ android: 'close', ios: 'xmark' }}
+      label={`Remove ${name}`}
+      onPress={onPress}
+    />
   );
 }
 

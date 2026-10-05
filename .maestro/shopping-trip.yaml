@@ -1,0 +1,158 @@
+# Other things to buy: added any time on the Shopping tab (new ones join her
+# ingredients with a store), carried onto every list until checked off in the
+# store; adding on a list, vague names, hide checked, share, and offline.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - shopping
+# Never leave the emulator offline, even when a step fails.
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+- evalScript: ${output.email = 'trip' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: week
+- tapOn: 'Shopping'
+- assertVisible: 'Other things to buy'
+
+# Between trips: a new item from Costco, and one she removes again
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'paper towels'
+- assertVisible: '.*is new.*Where do you usually buy it.*'
+- tapOn: 'Usually from Costco'
+- scrollUntilVisible:
+    element: 'Add paper towels'
+    centerElement: true
+- tapOn: 'Add paper towels'
+- assertVisible: 'paper towels, Costco'
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: '1 gallon milk'
+- scrollUntilVisible:
+    element: 'Add milk'
+    centerElement: true
+- tapOn: 'Add milk'
+- assertVisible: 'milk, 1 gallon'
+- tapOn: 'Remove milk'
+- assertNotVisible: 'milk, 1 gallon'
+
+# A new list brings it along
+- tapOn: 'New list'
+- extendedWaitUntil:
+    visible: '.*Dinner, Veggie Pasta'
+    timeout: 15000
+- scrollUntilVisible:
+    element: '2 meals · 7 ingredients.*'
+- assertVisible: 'Also on the list: paper towels.'
+- scrollUntilVisible:
+    element: 'Check pantry'
+- tapOn: 'Check pantry'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- assertVisible: '8 of 8 to buy.'
+- scrollUntilVisible:
+    element: 'Have paper towels, Need some · added by you'
+
+# Added during the pantry check: an exact name links straight away
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: '2 limes'
+- assertVisible: 'Have lime, Need 2 · added by you'
+- scrollUntilVisible:
+    element: 'Make list'
+- tapOn: 'Make list'
+- extendedWaitUntil:
+    visible: '9 to buy at .*Costco.*'
+    timeout: 15000
+
+# Added on the made list: a vague name asks which one
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'tomatoes'
+- tapOn: 'Use plum tomatoes for tomatoes'
+
+# Checking it off in the store clears it; unchecking puts it back
+- scrollUntilVisible:
+    element:
+      text: 'paper towels, added by you'
+    direction: UP
+- tapOn:
+    text: 'paper towels, added by you'
+- back
+- assertVisible: 'lime, 2'
+- assertNotVisible: 'paper towels, Costco'
+- scrollUntilVisible:
+    element: '.*1 of 10 in the cart'
+    direction: UP
+- tapOn: '.*1 of 10 in the cart'
+- extendedWaitUntil:
+    visible: '1 of 10 in the cart.'
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      text: 'paper towels, added by you'
+- tapOn:
+    text: 'paper towels, added by you'
+- back
+- scrollUntilVisible:
+    element: 'paper towels, Costco'
+
+# Hide checked and share
+- scrollUntilVisible:
+    element: '.*10 to buy'
+    direction: UP
+- tapOn: '.*10 to buy'
+- extendedWaitUntil:
+    visible: '10 to buy at .*'
+    timeout: 15000
+- tapOn: 'chicken breasts.*'
+- assertVisible: '1 of 10 in the cart.'
+- tapOn: 'Hide checked items'
+- assertNotVisible: 'chicken breasts.*'
+- tapOn: 'Hide checked items'
+- assertVisible: 'chicken breasts.*'
+- tapOn: 'Share list as text'
+- back
+
+# Offline in the store
+- setAirplaneMode: enabled
+- scrollUntilVisible:
+    element:
+      text: 'paper towels, added by you'
+- tapOn:
+    text: 'paper towels, added by you'
+- scrollUntilVisible:
+    element: '2 of 10 in the cart.'
+    direction: UP
+- back
+- scrollUntilVisible:
+    element: '.*2 of 10 in the cart'
+    direction: UP
+- setAirplaneMode: disabled
+# Give the queued writes time to reach the server before wiping the app
+- extendedWaitUntil:
+    visible: 'never shown'
+    timeout: 10000
+    optional: true
+
+# A fresh install of the same account (like the other phone) sees it all
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- tapOn: 'Shopping'
+- extendedWaitUntil:
+    visible: '.*2 of 10 in the cart'
+    timeout: 20000
+- scrollUntilVisible:
+    element: 'lime, 2'
+- assertNotVisible: 'paper towels, Costco'

@@ -435,3 +435,28 @@ describe('shopping lists', () => {
     await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'shoppingLists', 'l1'), list));
   });
 });
+
+describe('extra items', () => {
+  beforeEach(seedHousehold);
+
+  const item = {
+    name: 'paper towels',
+    ingredientId: 'towels',
+    quantity: { amount: null, unit: null },
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  it('lets members add and remove items', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'extraItems', 'x1');
+    await assertSucceeds(setDoc(ref, item));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('rejects malformed items and non-members', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'extraItems', 'x1');
+    await assertFails(setDoc(ref, { ...item, name: '' }));
+    await assertFails(setDoc(ref, { ...item, storeId: 'costco' }));
+    await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'extraItems', 'x1'), item));
+  });
+});

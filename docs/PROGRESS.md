@@ -16,7 +16,7 @@ Update this file at the end of every milestone.
 | 5   | Meal plans (N-day, B/L/D)                                                  | Done        |
 | 6   | Calendar: apply plans to dates                                             | Done        |
 | 7   | Shopping generation + pantry check                                         | Done        |
-| 8   | Checklist by store → area, share as text                                   | Next        |
+| 8   | Checklist by store → area, share as text                                   | Done        |
 | 9   | Release: EAS APK on both phones                                            | Not started |
 | 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
 
@@ -220,8 +220,33 @@ over edited stores.
   (Week A on this week's calendar); quick screenshot run
   `.maestro/tour/shopping-only.yaml`.
 
+### Milestone 8 — In the store, and other things to buy (2026-10-05)
+
+- **Other things to buy** (Shopping tab): she adds paper towels, milk, etc.
+  any time. Each item is one of her ingredients: an exact name links, a vague
+  one asks which she means ("plum tomatoes", "roma tomatoes", New item), and
+  a new one joins her ingredient list with its guessed category and the store
+  she usually buys it at, so it's placed at that store and area like a recipe
+  ingredient. Amounts are read like recipe lines ("1 gallon milk").
+- Pending items go on every list she makes ("Also on the list: paper
+  towels") and join open lists when opened. Adding an item on a list (during
+  the pantry check or in the store) works the same way. Checking one off in
+  the store clears it everywhere; unchecking puts it back; × removes it.
+- In the store: Share (the unchecked items as text, by store and area), Hide
+  checked, hand-added rows marked "added by you".
+- Offline: checking off in airplane mode works and syncs on reconnect; a
+  fresh install of the same account sees the result (Maestro
+  `shopping-trip`, which also turns airplane mode back off if it fails).
+- Rules validate extra items (34 rules tests); 182 unit tests.
+- Not done: the Shopping tab's "N of M in the cart" counts a list's items as
+  of when it was last opened, so items added on the tab afterwards show up
+  in the count only after the list is opened.
+
 ## Decisions
 
+- 2026-10-05: hand-added items are canonical ingredients (with a store) and
+  stay pending until checked off in the store, per her request; adding from
+  the Shopping tab or from inside a list behaves the same.
 - 2026-10-04: one tag system with three groups (Type, Course, Meal); groups
   are encouraged on save, never required.
 - 2026-10-04: ingredient names keep her capitalization ("Monterey Jack");
@@ -275,6 +300,7 @@ over edited stores.
 | Week of empty plan days was very tall                                  | Each empty meal took three rows                                                                                                                                                                                                                    | Empty meals are one line ("Breakfast …… + Add")                                                                                                                  |
 | Firestore rules briefly failed to compile (live on the local emulator) | A scripted `String.replace` inserted text containing `$'`, which JavaScript expands to "the rest of the string"                                                                                                                                    | Restore from git; scripted edits use function replacers (`replace(a, () => b)`)                                                                                  |
 | Shopping list opened scrolled to the bottom after Make list            | The pantry check and the list share one scroll view, and the switch kept the scroll offset                                                                                                                                                         | Scroll to the top whenever the list switches between pantry check and list                                                                                       |
+| A failed offline test left the next run unable to start the app        | The flow enabled airplane mode and stopped at a failing step, so the emulator stayed offline (no Metro)                                                                                                                                            | `onFlowComplete` turns airplane mode off whatever happens                                                                                                        |
 
 ## Lessons learned
 
@@ -324,6 +350,14 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Maestro sees screens behind the current one.** A broad selector
   (`'.+, .+'`, `index: 0`) can hit a row on the screen underneath in the
   stack; anchor it with `below:` a label on the current screen.
+- **Maestro airplane mode:** `setAirplaneMode: enabled|disabled` works on the
+  emulator (the app reaches Firebase at 10.0.2.2, not through `adb reverse`,
+  so it really is offline). Always add `onFlowComplete: [setAirplaneMode:
+disabled]`: a failed run otherwise leaves the emulator offline and the next
+  flow can't load the app from Metro.
+- **Floating buttons cover taps.** `tapOn` hits whatever is on top; center
+  the target first (`scrollUntilVisible` with `centerElement: true`), as
+  `subflows/add-item.yaml` does.
 - **Check scripted edits landed.** A replace that silently matches nothing
   leaves the old code; grep for the new text after editing.
 - **Save on change, not on blur**, for inline edits on Android.

@@ -1,9 +1,14 @@
 import { newIngredient, type Ingredient } from '@/features/ingredients/ingredient-model';
 import {
+  extraItemFor,
+  extraItemFromLine,
   groupReadyList,
+  listAsText,
   linesFromNeeds,
   placeLines,
   remaining,
+  removeLine,
+  withExtras,
   type ShoppingList,
 } from '@/features/shopping/list-model';
 import type { Store } from '@/features/stores/store-types';
@@ -97,5 +102,80 @@ describe('pantry check and placement', () => {
       ],
       ['Costco', [['Meat & Seafood', ['ground beef']]]],
     ]);
+  });
+});
+
+describe('the list in the store', () => {
+  const ready = (): ShoppingList => ({
+    id: 'l',
+    name: 'Oct 4 – 10',
+    status: 'ready',
+    source: { kind: 'dates', from: '2026-10-04', to: '2026-10-10' },
+    tripStoreIds: ['maceys', 'costco'],
+    lines: placeLines(linesFromNeeds(needs), ingredients, stores, ['maceys', 'costco']),
+  });
+
+  const towels = { ...newIngredient('paper towels'), id: 'towels', storePriority: ['costco'] };
+  const known = new Map(ingredients).set('towels', towels);
+
+  it('adds hand-added items once, placed like the rest', () => {
+    const beef = extraItemFor('2 lb ground beef', ingredients.get('beef')!, 'x1')!;
+    const paper = extraItemFor('paper towels', towels, 'x2')!;
+    expect(paper).toEqual({
+      id: 'x2',
+      name: 'paper towels',
+      ingredientId: 'towels',
+      quantity: { amount: null, unit: null },
+    });
+    let list = withExtras(ready(), [beef, paper], known, stores);
+    list = withExtras(list, [beef, paper], known, stores);
+    const added = list.lines.filter((l) => l.manual);
+    expect(added.map((l) => [l.key, l.name, l.storeId, l.needed])).toEqual([
+      ['extra-x1', 'ground beef', 'costco', [{ amount: 2, unit: 'lb' }]],
+      ['extra-x2', 'paper towels', 'costco', [{ amount: null, unit: null }]],
+    ]);
+    expect(extraItemFromLine(added[0])).toEqual(beef);
+    expect(extraItemFor('   ', towels, 'x3')).toBeNull();
+    expect(removeLine(list, 'extra-x2').lines.map((l) => l.key)).not.toContain('extra-x2');
+  });
+
+  it('leaves items added during the pantry check for Make list to place', () => {
+    const limes = { ...newIngredient('limes'), id: 'limes' };
+    const pantry = { ...ready(), status: 'pantry' as const, lines: linesFromNeeds(needs) };
+    const list = withExtras(pantry, [extraItemFor('3 limes', limes, 'x1')!], ingredients, stores);
+    expect(list.lines.at(-1)).toMatchObject({ name: 'limes', storeId: null, extraId: 'x1' });
+    const placed = placeLines(
+      list.lines,
+      new Map(ingredients).set('limes', limes),
+      stores,
+      list.tripStoreIds
+    );
+    expect(placed.at(-1)).toMatchObject({ storeId: 'maceys', sectionId: 'produce' });
+  });
+
+  it('shares what is left as text, by store and area', () => {
+    const list = withExtras(
+      ready(),
+      [extraItemFor('paper towels', towels, 'x1')!],
+      ingredients,
+      stores
+    );
+    list.lines = list.lines.map((l) => (l.key === 'onion' ? { ...l, checked: true } : l));
+    expect(listAsText(list, stores)).toBe(
+      [
+        'Oct 4 – 10',
+        '',
+        "MACEY'S",
+        'Other',
+        '- paper towels',
+        '- salt',
+        '',
+        'COSTCO',
+        'Meat & Seafood',
+        '- ground beef (2 lb)',
+      ].join('\n')
+    );
+    list.lines = list.lines.map((l) => ({ ...l, checked: true }));
+    expect(listAsText(list, stores)).toBe("Oct 4 – 10\n\nEverything's in the cart.");
   });
 });

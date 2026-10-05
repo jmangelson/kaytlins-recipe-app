@@ -1,4 +1,5 @@
 import { SymbolView } from 'expo-symbols';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +15,8 @@ type CheckRowProps = {
   dimWhenChecked?: boolean;
   /** Spoken name when the title alone is ambiguous ("Day 1 Dinner"). */
   accessibilityLabel?: string;
+  /** A separate control at the end of the row (e.g. remove). */
+  trailing?: ReactNode;
 };
 
 /** Full-width row with a checkbox; the whole row toggles. */
@@ -24,11 +27,12 @@ export function CheckRow({
   onToggle,
   dimWhenChecked,
   accessibilityLabel,
+  trailing,
 }: CheckRowProps) {
   const name = accessibilityLabel ?? title;
   const theme = useTheme();
   const dim = dimWhenChecked && checked;
-  return (
+  const row = (
     <Pressable
       accessibilityRole="checkbox"
       accessibilityLabel={detail ? `${name}, ${detail}` : name}
@@ -36,6 +40,7 @@ export function CheckRow({
       onPress={onToggle}
       style={({ pressed }) => [
         styles.row,
+        trailing ? styles.fill : null,
         pressed && { backgroundColor: theme.backgroundElement },
       ]}>
       <SymbolView
@@ -60,6 +65,13 @@ export function CheckRow({
       </View>
     </Pressable>
   );
+  if (!trailing) return row;
+  return (
+    <View style={styles.withTrailing}>
+      {row}
+      {trailing}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -73,6 +85,13 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     gap: Spacing.half,
+  },
+  fill: {
+    flex: 1,
+  },
+  withTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   done: {
     textDecorationLine: 'line-through',
