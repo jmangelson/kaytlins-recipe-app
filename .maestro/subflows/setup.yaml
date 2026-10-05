@@ -1,6 +1,7 @@
 # Fast setup: fresh app, signed-in test user, household with starter stores
 # and tags, and (FIXTURE=recipes) sample recipes, via the test-only
-# dev-setup link. Params: EMAIL, FIXTURE ('none' or 'recipes')
+# dev-setup link. Params: EMAIL, FIXTURE ('none', 'recipes', or 'plan' =
+# recipes plus a two-day "Week A" plan)
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - launchApp:

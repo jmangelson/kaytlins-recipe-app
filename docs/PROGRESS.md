@@ -14,8 +14,8 @@ Update this file at the end of every milestone.
 | 3   | Recipes                                                                    | Done        |
 | 4   | Settings: stores & areas, ingredient defaults, tags                        | Done        |
 | 5   | Meal plans (N-day, B/L/D)                                                  | Done        |
-| 6   | Calendar: apply plans to dates                                             | Next        |
-| 7   | Shopping generation + pantry check                                         | Not started |
+| 6   | Calendar: apply plans to dates                                             | Done        |
+| 7   | Shopping generation + pantry check                                         | Next        |
 | 8   | Checklist by store → area, share as text                                   | Not started |
 | 9   | Release: EAS APK on both phones                                            | Not started |
 | 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
@@ -179,6 +179,23 @@ over edited stores.
   in; course chips and search.
 - Rules validate meal plans (27 rules tests); 159 unit tests; Maestro
   `meal-plans` (tagged plans, quick).
+
+### Milestone 6 — Calendar (2026-10-05)
+
+- Calendar tab: week view (respects Sunday/Monday week start), previous/next
+  week, "Back to this week", Today highlighted, each day's meals and "From
+  Week A · Day 2" when it came from a plan; tap a day to edit it.
+- Apply a plan: choose the plan, the start date (step by day, or this/next
+  week), and how many times to repeat it (up to 8); preview "Week A × 2 →
+  Oct 4 – 17 (14 days)". If dates already have meals: Keep them (default),
+  Add to them, or Replace them.
+- Each date stores its own copy of the meals; editing a date never changes
+  the plan, and editing a plan never rewrites the calendar.
+- Day editor shares the meal editor with plans (`DayMeals`); the recipe
+  picker now serves plan days and dates (`/pick?target=plan|date`).
+- Rules validate calendar days (id must be the date); 30 rules tests.
+- Maestro `calendar` flow (tags calendar, quick); `dev-setup` gained a
+  `plan` sample (recipes + a two-day Week A).
 
 ## Decisions
 

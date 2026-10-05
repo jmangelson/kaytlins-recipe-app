@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
-import { addFixtureRecipes } from '@/features/dev/fixtures';
+import { addFixturePlan, addFixtureRecipes } from '@/features/dev/fixtures';
 import { createHousehold, loadUserHousehold } from '@/features/household/household-service';
 import { useSession } from '@/features/session/session-provider';
 import { signInForTesting } from '@/features/session/sign-in';
@@ -12,7 +12,7 @@ import { auth, usingFirebaseEmulators } from '@/lib/firebase';
 
 /**
  * Test-only setup, opened by Maestro as
- *   kaytlinsrecipes://dev-setup?email=a@test.dev&fixture=recipes
+ *   kaytlinsrecipes://dev-setup?email=a@test.dev&fixture=recipes   (or fixture=plan)
  * Signs in a test user, creates their household (with starter stores and
  * tags), optionally adds sample recipes, then opens the app. Only works
  * against the Firebase emulators.
@@ -34,7 +34,10 @@ export default function DevSetupScreen() {
           await createHousehold(uid, 'Our Kitchen');
           household = await loadUserHousehold(uid);
         }
-        if (fixture === 'recipes' && household) await addFixtureRecipes(household.id);
+        if ((fixture === 'recipes' || fixture === 'plan') && household) {
+          await addFixtureRecipes(household.id);
+          if (fixture === 'plan') await addFixturePlan(household.id);
+        }
         await refreshHousehold();
         if (!cancelled) router.replace('/');
       } catch (error) {

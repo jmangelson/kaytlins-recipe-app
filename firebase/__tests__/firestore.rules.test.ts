@@ -171,9 +171,7 @@ describe('household data access', () => {
   it('lets members read and write household data', async () => {
     const db = dbAs('alice');
     await assertSucceeds(getDoc(doc(db, 'households', HID)));
-    await assertSucceeds(
-      setDoc(doc(db, 'households', HID, 'shoppingLists', 'l1'), { name: 'This week' })
-    );
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'notes', 'n1'), { text: 'hello' }));
   });
 
   it('blocks non-members from household data', async () => {
@@ -407,5 +405,33 @@ describe('calendar days', () => {
     await assertFails(
       setDoc(doc(dbAs('mallory'), 'households', HID, 'calendarDays', '2026-10-05'), day)
     );
+  });
+});
+
+describe('shopping lists', () => {
+  beforeEach(seedHousehold);
+
+  const list = {
+    name: 'Oct 4 – 10',
+    status: 'pantry',
+    source: { kind: 'dates', from: '2026-10-04', to: '2026-10-10' },
+    tripStoreIds: ['maceys'],
+    lines: [{ key: 'beef', name: 'ground beef', checked: false }],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  it('lets members create, update, and delete lists', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'shoppingLists', 'l1');
+    await assertSucceeds(setDoc(ref, list));
+    await assertSucceeds(updateDoc(ref, { status: 'ready', updatedAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('rejects malformed lists and non-members', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'shoppingLists', 'l1');
+    await assertFails(setDoc(ref, { ...list, status: 'done' }));
+    await assertFails(setDoc(ref, { ...list, extra: 1 }));
+    await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'shoppingLists', 'l1'), list));
   });
 });

@@ -4,7 +4,6 @@ import { Alert, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { Chip } from '@/components/chip';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
@@ -15,15 +14,14 @@ import {
   addDay,
   duplicateDay,
   MAX_PLAN_DAYS,
-  mealName,
   planSummary,
   removeDay,
   removeItem,
-  suggestedCourses,
   visibleMeals,
   type MealId,
   type MealPlan,
 } from '@/features/plans/meal-plan';
+import { DayMeals } from '@/features/plans/day-meals';
 import { createPlan, deletePlan, getPlan, savePlan } from '@/features/plans/plan-repo';
 import { listRecipes } from '@/features/recipes/recipe-repo';
 import type { Recipe } from '@/features/recipes/recipe-types';
@@ -113,8 +111,14 @@ function PlanEditor({
 
   function openPicker(dayIndex: number, meal: MealId, courses: string[]) {
     router.push({
-      pathname: '/plan/[id]/pick',
-      params: { id: plan.id, day: String(dayIndex), meal, courses: courses.join(',') },
+      pathname: '/pick',
+      params: {
+        target: 'plan',
+        id: plan.id,
+        day: String(dayIndex),
+        meal,
+        courses: courses.join(','),
+      },
     });
   }
 
@@ -240,61 +244,15 @@ function DayCard({
           tone="danger"
         />
       </View>
-      {meals.map((meal) => {
-        const items = day.meals[meal];
-        const itemRecipes = items
-          .map((i) => recipeById.get(i.recipeId))
-          .filter((r): r is Recipe => !!r);
-        const suggestion = suggestedCourses(itemRecipes);
-        const suggestionLabel = items.length
-          ? `+ ${courseName.get(suggestion[0]) ?? 'Side dish'}`
-          : null;
-        return (
-          <View key={meal} style={items.length ? styles.meal : styles.emptyMeal}>
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              style={!items.length && styles.flex}>
-              {mealName(meal)}
-            </ThemedText>
-            {items.map((item, itemIndex) => {
-              const recipe = recipeById.get(item.recipeId);
-              const course = recipe?.tagIds.map((t) => courseName.get(t)).find(Boolean);
-              return (
-                <View key={`${item.recipeId}-${itemIndex}`} style={styles.item}>
-                  <View style={styles.flex}>
-                    <ThemedText>{recipe?.name ?? 'Deleted recipe'}</ThemedText>
-                    {course ? (
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {course}
-                      </ThemedText>
-                    ) : null}
-                  </View>
-                  <IconButton
-                    icon={{ android: 'close', ios: 'xmark' }}
-                    label={`Remove ${recipe?.name ?? 'recipe'} from ${label} ${mealName(meal)}`}
-                    onPress={() => onRemoveItem(meal, itemIndex)}
-                  />
-                </View>
-              );
-            })}
-            <View style={styles.addRow}>
-              <Chip
-                label="+ Add"
-                accessibilityLabel={`Add to ${label} ${mealName(meal)}`}
-                onPress={() => onAdd(meal, items.length ? [] : ['main-dish'])}
-              />
-              {suggestionLabel && (
-                <Chip
-                  label={suggestionLabel}
-                  accessibilityLabel={`Add a side to ${label} ${mealName(meal)}`}
-                  onPress={() => onAdd(meal, suggestion)}
-                />
-              )}
-            </View>
-          </View>
-        );
-      })}
+      <DayMeals
+        label={label}
+        meals={meals}
+        day={day}
+        recipeById={recipeById}
+        courseName={courseName}
+        onAdd={onAdd}
+        onRemoveItem={onRemoveItem}
+      />
     </View>
   );
 }
@@ -313,26 +271,5 @@ const styles = StyleSheet.create({
   dayTitle: {
     flex: 1,
     fontSize: 17,
-  },
-  meal: {
-    gap: Spacing.one,
-  },
-  // An empty meal is one line: "Breakfast …… + Add".
-  emptyMeal: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-  },
-  flex: {
-    flex: 1,
-  },
-  addRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
   },
 });

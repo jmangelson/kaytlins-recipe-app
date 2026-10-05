@@ -1,0 +1,72 @@
+# Put a plan on the calendar (twice), edit one date without changing the plan,
+# reapply keeping days that already have meals, and move between weeks.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - calendar
+  - quick
+---
+- evalScript: ${output.email = 'calendar' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: plan
+- tapOn: 'Calendar'
+- assertVisible: 'Nothing planned'
+- assertNotVisible: 'Dinner: .*'
+
+# Week A (2 days) twice from the start of this week
+- tapOn: 'Apply a plan'
+- tapOn: 'Use Week A'
+- tapOn: 'More times'
+- assertVisible: 'Week A × 2 → .*\(4 days\)'
+- scrollUntilVisible:
+    element: 'Apply to calendar'
+- tapOn: 'Apply to calendar'
+- extendedWaitUntil:
+    visible: 'Dinner: Chicken Enchiladas, Pico'
+    timeout: 15000
+- assertVisible: 'From Week A · Day 1'
+- assertVisible: 'Dinner: Veggie Pasta'
+
+# Edit one date: only that date changes
+- tapOn:
+    text: 'Dinner: Chicken Enchiladas, Pico'
+    index: 0
+- extendedWaitUntil:
+    visible: 'Remove Pico from .*'
+    timeout: 15000
+- tapOn:
+    text: 'Remove Pico from .*'
+- back
+- extendedWaitUntil:
+    visible: 'Dinner: Chicken Enchiladas'
+    timeout: 15000
+- assertVisible: 'Dinner: Chicken Enchiladas, Pico'
+
+# Reapply: days with meals are kept by default
+- tapOn: 'Apply a plan'
+- tapOn: 'Use Week A'
+- extendedWaitUntil:
+    visible: '.* already ha.* meals.*'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Apply to calendar'
+- tapOn: 'Apply to calendar'
+- extendedWaitUntil:
+    visible: 'Dinner: Chicken Enchiladas'
+    timeout: 15000
+
+# The plan itself is unchanged
+- tapOn: 'Plans'
+- tapOn: 'Week A.*'
+- scrollUntilVisible:
+    element: 'Pico'
+- back
+- tapOn: 'Calendar'
+
+# Week navigation
+- tapOn: 'Next week'
+- assertVisible: 'Back to this week'
+- tapOn: 'Back to this week'
+- assertVisible: 'Dinner: Chicken Enchiladas'

@@ -1,6 +1,8 @@
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { emptyDraft, rowsFromText } from '@/features/recipes/recipe-draft';
-import { saveRecipe } from '@/features/recipes/recipe-repo';
+import { addItem, emptyPlanDays, type MealPlan } from '@/features/plans/meal-plan';
+import { createPlan } from '@/features/plans/plan-repo';
+import { listRecipes, saveRecipe } from '@/features/recipes/recipe-repo';
 
 /** Sample recipes for emulator tests (tag ids are the starter tags). */
 export const FIXTURE_RECIPES = [
@@ -39,4 +41,15 @@ export async function addFixtureRecipes(householdId: string): Promise<void> {
       false
     );
   }
+}
+
+/** A two-day "Week A" plan using the sample recipes (add those first). */
+export async function addFixturePlan(householdId: string): Promise<void> {
+  const recipes = await listRecipes(householdId);
+  const id = (name: string) => recipes.find((r) => r.name === name)!.id;
+  let plan: MealPlan = { id: '', name: 'Week A', days: emptyPlanDays(2) };
+  plan = addItem(plan, 0, 'dinner', id('Chicken Enchiladas'));
+  plan = addItem(plan, 0, 'dinner', id('Pico'));
+  plan = addItem(plan, 1, 'dinner', id('Veggie Pasta'));
+  await createPlan(householdId, plan.name, plan.days);
 }

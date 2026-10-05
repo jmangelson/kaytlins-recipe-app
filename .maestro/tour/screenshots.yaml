@@ -336,3 +336,38 @@ appId: com.jmangelson.kaytlinsrecipes
     visible: 'Week A.*'
     timeout: 15000
 - takeScreenshot: build/screenshots/39-plans-list
+
+# Calendar (Milestone 6)
+- tapOn: 'Calendar'
+- takeScreenshot: build/screenshots/40-calendar-empty
+- tapOn: 'Apply a plan'
+- takeScreenshot: build/screenshots/41-apply-choose
+- tapOn: 'Use Week A'
+- extendedWaitUntil:
+    visible: 'Week A → .*'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Apply to calendar'
+- takeScreenshot: build/screenshots/42-apply-preview
+- tapOn: 'Apply to calendar'
+- extendedWaitUntil:
+    visible: 'Dinner: Chicken Enchiladas, Veggie Pasta'
+    timeout: 15000
+- takeScreenshot: build/screenshots/43-calendar-week
+- tapOn:
+    text: 'Dinner: Chicken Enchiladas, Veggie Pasta'
+    index: 0
+- extendedWaitUntil:
+    visible: 'From Week A.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/44-calendar-day
+- back
+- tapOn: 'Apply a plan'
+- tapOn: 'Use Week A'
+- extendedWaitUntil:
+    visible: '.* already ha.* meals.*'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Apply to calendar'
+- takeScreenshot: build/screenshots/45-apply-conflict
+- back

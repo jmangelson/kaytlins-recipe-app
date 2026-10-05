@@ -58,9 +58,11 @@ function RootNavigator() {
         />
         <Stack.Screen name="plan/new" options={{ headerShown: true, title: 'New meal plan' }} />
         <Stack.Screen name="plan/[id]/index" options={{ headerShown: true, title: 'Meal plan' }} />
+        <Stack.Screen name="pick" options={{ headerShown: true, title: 'Add a recipe' }} />
+        <Stack.Screen name="day/[date]" options={{ headerShown: true, title: 'Day' }} />
         <Stack.Screen
-          name="plan/[id]/pick"
-          options={{ headerShown: true, title: 'Add a recipe' }}
+          name="calendar/apply"
+          options={{ headerShown: true, title: 'Apply a plan' }}
         />
         <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
         <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
