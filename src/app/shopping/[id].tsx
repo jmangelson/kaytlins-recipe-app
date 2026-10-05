@@ -9,6 +9,7 @@ import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
+import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
@@ -41,7 +42,7 @@ import {
 import { listStores } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
-import { useAutosave } from '@/hooks/use-autosave';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -102,38 +103,60 @@ function ListEditor({
   stores: Store[];
   ingredients: Map<string, Ingredient>;
 }) {
+  // The pantry check and the name are a draft until Save (Back asks first).
+  // In the store, checking items off and adding or removing items save
+  // right away (`commit`), so nothing ticked is ever lost.
   const [list, setList] = useState(initial);
+  const [saved, setSaved] = useState(initial);
   const [known, setKnown] = useState(ingredients);
-  const [deleted, setDeleted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  useAutosave(list, (value) => {
-    if (!deleted) saveShoppingList(householdId, value);
-  });
-
-  // Switching between the pantry check and the list starts at the top.
-  function switchTo(next: ShoppingList) {
-    setList(next);
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
-  }
+  const dirty = JSON.stringify(list) !== JSON.stringify(saved);
 
   /**
-   * Every change goes through here. Hand-added items stay on future lists
-   * until checked off: checking one off (or removing it) clears it, and
-   * unchecking puts it back.
+   * Hand-added items stay on future lists until checked off: checking one
+   * off (or removing it) clears it, and unchecking puts it back.
    */
-  function update(next: ShoppingList) {
-    const after = new Map(next.lines.map((l) => [l.key, l]));
-    for (const line of list.lines) {
-      if (!line.extraId) continue;
-      const now = after.get(line.key);
-      if (!now || (now.checked && !line.checked)) {
-        deleteExtraItem(householdId, line.extraId);
-      } else if (!now.checked && line.checked) {
-        const item = extraItemFromLine(now);
+  function syncExtras(before: ShoppingList, after: ShoppingList) {
+    const was = new Map(before.lines.filter((l) => l.extraId).map((l) => [l.key, l]));
+    const now = new Map(after.lines.filter((l) => l.extraId).map((l) => [l.key, l]));
+    for (const [key, line] of was) {
+      if (!now.has(key)) deleteExtraItem(householdId, line.extraId!);
+    }
+    for (const [key, line] of now) {
+      const before = was.get(key);
+      if (line.checked && before && !before.checked) {
+        deleteExtraItem(householdId, line.extraId!);
+      } else if (!line.checked && (!before || before.checked)) {
+        const item = extraItemFromLine(line);
         if (item) saveExtraItem(householdId, item);
       }
     }
+  }
+
+  async function commit(next: ShoppingList) {
+    syncExtras(saved, next);
     setList(next);
+    setSaved(next);
+    await saveShoppingList(householdId, next);
+  }
+
+  async function save(): Promise<boolean> {
+    if (!list.name.trim()) {
+      Alert.alert('Name the list', 'Give the list a name before saving.');
+      return false;
+    }
+    setSaving(true);
+    await commit({ ...list, name: list.name.trim() });
+    setSaving(false);
+    return true;
+  }
+  const leave = useUnsavedChanges(dirty, save);
+
+  // Switching between the pantry check and the list saves and starts at the top.
+  function switchTo(next: ShoppingList) {
+    commit(next);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   }
 
   function addItem(text: string, item: Ingredient | NewItem) {
@@ -141,7 +164,9 @@ function ListEditor({
     if (!added) return;
     const nextKnown = new Map(known).set(added.ingredient.id, added.ingredient);
     setKnown(nextKnown);
-    setList(withExtras(list, [added.extra], nextKnown, stores));
+    const next = withExtras(list, [added.extra], nextKnown, stores);
+    if (list.status === 'ready') commit(next);
+    else setList(next);
   }
 
   const addItemField = (
@@ -153,39 +178,62 @@ function ListEditor({
   );
 
   function confirmDelete() {
-    Alert.alert(`Delete ${list.name}?`, 'The list is removed from both phones.', [
+    Alert.alert(`Delete ${saved.name}?`, 'The list is removed from both phones.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          setDeleted(true);
           await deleteShoppingList(householdId, list.id);
-          router.back();
+          leave(() => router.back());
         },
       },
     ]);
   }
 
+  // At the top during the pantry check; out of the way at the bottom in the store.
+  const nameField = (
+    <TextField
+      label="List name"
+      testID="list-name"
+      value={list.name}
+      onChangeText={(name) => setList({ ...list, name })}
+      maxLength={80}
+    />
+  );
+
   return (
     <Screen edges={HEADER_EDGES} scrollRef={scrollRef}>
       <Stack.Screen
         options={{
-          title: list.name,
+          title: saved.name,
           headerRight: () => (
-            <HeaderButton label="Delete" accessibilityLabel="Delete list" onPress={confirmDelete} />
+            <HeaderButton
+              label={saving ? 'Saving…' : 'Save'}
+              accessibilityLabel="Save list"
+              disabled={!dirty || saving}
+              onPress={async () => {
+                if (await save()) leave(() => router.back());
+              }}
+            />
           ),
         }}
       />
+      {list.status === 'pantry' && nameField}
       {list.status === 'pantry' ? (
         <PantryCheck
           list={list}
           stores={stores}
           addItem={addItemField}
-          onChange={update}
+          dirty={dirty}
+          onChange={setList}
+          onSave={async () => {
+            if (await save()) leave(() => router.back());
+          }}
           onDone={() =>
             switchTo({
               ...list,
+              name: list.name.trim() || saved.name,
               status: 'ready',
               lines: placeLines(list.lines, known, stores, list.tripStoreIds),
             })
@@ -196,10 +244,12 @@ function ListEditor({
           list={list}
           stores={stores}
           addItem={addItemField}
-          onChange={update}
+          onChange={commit}
           onBack={() => switchTo({ ...list, status: 'pantry' })}
         />
       )}
+      {list.status === 'ready' && nameField}
+      <Button label="Delete list" variant="danger" onPress={confirmDelete} />
     </Screen>
   );
 }
@@ -208,12 +258,16 @@ function PantryCheck({
   list,
   stores,
   addItem,
+  dirty,
   onChange,
+  onSave,
   onDone,
 }: {
   list: ShoppingList;
   stores: Store[];
   addItem: ReactNode;
+  dirty: boolean;
+  onSave: () => void;
   onChange: (list: ShoppingList) => void;
   onDone: () => void;
 }) {
@@ -288,6 +342,11 @@ function PantryCheck({
           onPress={onDone}
           disabled={list.tripStoreIds.length === 0 || buying === 0}
         />
+        <Button label="Save list" variant="secondary" onPress={onSave} disabled={!dirty} />
+        <ThemedText type="small" themeColor="textSecondary">
+          Save list keeps your answers so you can finish the pantry check later. Make list saves
+          too.
+        </ThemedText>
       </View>
     </>
   );
@@ -444,7 +503,8 @@ function ReadyList({
           ? 'Nothing left to buy.'
           : checked === 0
             ? `${items.length} to buy at ${groups.map((g) => g.storeName).join(', ')}.`
-            : `${checked} of ${items.length} in the cart.`}
+            : `${checked} of ${items.length} in the cart.`}{' '}
+        Checked items save as you go.
       </ThemedText>
       <View style={styles.chips}>
         <Chip

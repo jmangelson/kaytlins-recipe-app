@@ -17,9 +17,13 @@ import {
   datesForPlan,
   formatDay,
   formatRange,
+  minRepeatWeeks,
+  planStarts,
+  repeatLabel,
   startOfWeek,
   toDateKey,
   type ConflictMode,
+  type Repeat,
 } from '@/features/calendar/calendar-model';
 import { listCalendarDays, saveCalendarDays } from '@/features/calendar/calendar-repo';
 import { planSummary, type MealPlan } from '@/features/plans/meal-plan';
@@ -28,7 +32,8 @@ import { useHousehold } from '@/features/session/session-provider';
 import { useAsync } from '@/hooks/use-async';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
-const MAX_REPEATS = 8;
+const EVERY_WEEKS = [1, 2, 3, 4];
+const MAX_WEEKS = 26;
 const CONFLICT_CHOICES: { mode: ConflictMode; label: string; hint: string }[] = [
   { mode: 'skip', label: 'Keep them', hint: 'Days that already have meals stay as they are.' },
   { mode: 'add', label: 'Add to them', hint: 'Plan meals are added alongside what’s there.' },
@@ -43,7 +48,9 @@ export default function ApplyPlanScreen() {
   const today = toDateKey(new Date());
   const [planId, setPlanId] = useState<string | null>(null);
   const [start, setStart] = useState(params.start ?? today);
-  const [times, setTimes] = useState(1);
+  // Null = no repeat; otherwise every N weeks over `forWeeks` weeks.
+  const [everyWeeks, setEveryWeeks] = useState<number | null>(null);
+  const [forWeeks, setForWeeks] = useState(4);
 
   if (plans.state.status === 'loading') return <LoadingScreen label="Loading plans" />;
   if (plans.state.status === 'error') {
@@ -62,6 +69,13 @@ export default function ApplyPlanScreen() {
     );
   }
   const plan = all.find((p) => p.id === planId) ?? null;
+  const minWeeks = plan ? minRepeatWeeks(plan) : 1;
+  const intervals = [...new Set([...EVERY_WEEKS.filter((w) => w >= minWeeks), minWeeks])].sort(
+    (a, b) => a - b
+  );
+  // A plan longer than the chosen interval moves it to the shortest that fits.
+  const every = everyWeeks === null ? null : Math.max(everyWeeks, minWeeks);
+  const repeat: Repeat = every === null ? null : { everyWeeks: every, forWeeks };
   const thisWeek = startOfWeek(today, household.settings.weekStart);
 
   return (
@@ -118,27 +132,48 @@ export default function ApplyPlanScreen() {
         <ThemedText type="smallBold" accessibilityRole="header">
           Repeat
         </ThemedText>
-        <View style={styles.stepper}>
-          <IconButton
-            icon={{ android: 'remove', ios: 'minus' }}
-            label="Fewer times"
-            onPress={() => setTimes(Math.max(1, times - 1))}
-            disabled={times <= 1}
+        <View style={styles.chips}>
+          <Chip
+            label="None"
+            accessibilityLabel="Don't repeat"
+            selected={every === null}
+            onPress={() => setEveryWeeks(null)}
           />
-          <ThemedText style={styles.stepperValue}>
-            {times === 1 ? 'Once' : `${times} times`}
-          </ThemedText>
-          <IconButton
-            icon={{ android: 'add', ios: 'plus' }}
-            label="More times"
-            onPress={() => setTimes(Math.min(MAX_REPEATS, times + 1))}
-            disabled={times >= MAX_REPEATS}
-          />
+          {intervals.map((weeks) => (
+            <Chip
+              key={weeks}
+              label={weeks === 1 ? 'Every week' : `Every ${weeks} weeks`}
+              selected={every === weeks}
+              onPress={() => {
+                setEveryWeeks(weeks);
+                setForWeeks((w) => Math.max(w, weeks));
+              }}
+            />
+          ))}
         </View>
+        {every !== null && (
+          <View style={styles.stepper}>
+            <IconButton
+              icon={{ android: 'remove', ios: 'minus' }}
+              label="Fewer weeks"
+              onPress={() => setForWeeks(Math.max(every, forWeeks - 1))}
+              disabled={forWeeks <= every}
+            />
+            <ThemedText style={styles.stepperValue}>
+              For {forWeeks} {forWeeks === 1 ? 'week' : 'weeks'}
+            </ThemedText>
+            <IconButton
+              icon={{ android: 'add', ios: 'plus' }}
+              label="More weeks"
+              onPress={() => setForWeeks(Math.min(MAX_WEEKS, forWeeks + 1))}
+              disabled={forWeeks >= MAX_WEEKS}
+            />
+          </View>
+        )}
       </View>
 
       {plan ? (
-        <ApplySummary householdId={household.id} plan={plan} start={start} times={times} />
+        <ApplySummary householdId={household.id} plan={plan} start={start} repeat={repeat} />
       ) : (
         <ThemedText themeColor="textSecondary">Choose a plan above.</ThemedText>
       )}
@@ -151,14 +186,15 @@ function ApplySummary({
   householdId,
   plan,
   start,
-  times,
+  repeat,
 }: {
   householdId: string;
   plan: MealPlan;
   start: string;
-  times: number;
+  repeat: Repeat;
 }) {
-  const dates = datesForPlan(plan, start, times);
+  const dates = datesForPlan(plan, start, repeat);
+  const starts = planStarts(start, repeat);
   const end = dates[dates.length - 1];
   const existing = useAsync(
     () => listCalendarDays(householdId, start, end),
@@ -171,23 +207,29 @@ function ApplySummary({
     return <ThemedText themeColor="textSecondary">Checking the calendar…</ThemedText>;
   }
   const days = existing.state.data;
-  const busy = conflicts(plan, start, times, days);
+  const busy = conflicts(plan, start, repeat, days);
 
   async function apply() {
     setApplying(true);
-    await saveCalendarDays(householdId, applyPlan(plan, start, times, days, mode));
+    await saveCalendarDays(householdId, applyPlan(plan, start, repeat, days, mode));
     router.back();
   }
 
   return (
     <View style={styles.group}>
       <ThemedText type="smallBold">
-        {plan.name}
-        {times > 1 ? ` × ${times}` : ''} → {formatRange(start, end)} ({dates.length}{' '}
-        {dates.length === 1 ? 'day' : 'days'})
+        {repeat
+          ? `${plan.name}, ${repeatLabel(repeat).toLowerCase()}: ${starts.length} times`
+          : `${plan.name} → ${formatRange(start, end)}`}{' '}
+        ({dates.length} {dates.length === 1 ? 'day' : 'days'})
       </ThemedText>
+      {repeat && (
+        <ThemedText type="small">
+          Starting {starts.map((d) => formatRange(d, addDays(d, plan.days.length - 1))).join(', ')}
+        </ThemedText>
+      )}
       <ThemedText type="small" themeColor="textSecondary">
-        {planSummary(plan)} per round. Each date gets its own copy you can change later.
+        {planSummary(plan)} each time. Each date gets its own copy you can change later.
       </ThemedText>
       {busy.length > 0 && (
         <View style={styles.group}>

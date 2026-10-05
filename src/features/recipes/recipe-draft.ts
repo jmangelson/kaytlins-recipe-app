@@ -61,6 +61,7 @@ export function linkFor(writtenName: string, ingredients: Ingredient[]): RowLink
     return {
       kind: 'choose',
       candidates: match.candidates.map((c) => ({ id: c.id, name: c.name })),
+      suggestions: match.suggestions,
     };
   }
   return { kind: 'new', name: canonicalName(writtenName) };

@@ -33,13 +33,15 @@ onFlowComplete:
     file: subflows/add-item.yaml
     env:
       TEXT: '1 gallon milk'
+# "Milk" is too general: she picks a kind
+- tapOn: 'Use new whole milk for milk'
 - scrollUntilVisible:
-    element: 'Add milk'
+    element: 'Add whole milk'
     centerElement: true
-- tapOn: 'Add milk'
-- assertVisible: 'milk, 1 gallon'
-- tapOn: 'Remove milk'
-- assertNotVisible: 'milk, 1 gallon'
+- tapOn: 'Add whole milk'
+- assertVisible: 'whole milk, 1 gallon'
+- tapOn: 'Remove whole milk'
+- assertNotVisible: 'whole milk, 1 gallon'
 
 # A new list brings it along
 - tapOn: 'New list'
@@ -50,8 +52,8 @@ onFlowComplete:
     element: '2 meals · 7 ingredients.*'
 - assertVisible: 'Also on the list: paper towels.'
 - scrollUntilVisible:
-    element: 'Check pantry'
-- tapOn: 'Check pantry'
+    element: 'Save list'
+- tapOn: 'Save list'
 - extendedWaitUntil:
     visible: 'Check the pantry'
     timeout: 15000
@@ -65,6 +67,10 @@ onFlowComplete:
     env:
       TEXT: '2 limes'
 - assertVisible: 'Have lime, Need 2 · added by you'
+- scrollUntilVisible:
+    element: 'Shop at Macey.s'
+- tapOn: 'Shop at Macey.s'
+- tapOn: 'Shop at Costco'
 - scrollUntilVisible:
     element: 'Make list'
 - tapOn: 'Make list'
@@ -94,7 +100,7 @@ onFlowComplete:
     direction: UP
 - tapOn: '.*1 of 10 in the cart'
 - extendedWaitUntil:
-    visible: '1 of 10 in the cart.'
+    visible: '1 of 10 in the cart\..*'
     timeout: 15000
 - scrollUntilVisible:
     element:
@@ -113,12 +119,23 @@ onFlowComplete:
 - extendedWaitUntil:
     visible: '10 to buy at .*'
     timeout: 15000
+- scrollUntilVisible:
+    element: 'chicken breasts.*'
 - tapOn: 'chicken breasts.*'
-- assertVisible: '1 of 10 in the cart.'
+- scrollUntilVisible:
+    element: '1 of 10 in the cart\..*'
+    direction: UP
+- scrollUntilVisible:
+    element: 'Hide checked items'
+    direction: UP
 - tapOn: 'Hide checked items'
 - assertNotVisible: 'chicken breasts.*'
 - tapOn: 'Hide checked items'
-- assertVisible: 'chicken breasts.*'
+- scrollUntilVisible:
+    element: 'chicken breasts.*'
+- scrollUntilVisible:
+    element: 'Share list as text'
+    direction: UP
 - tapOn: 'Share list as text'
 - back
 
@@ -130,7 +147,7 @@ onFlowComplete:
 - tapOn:
     text: 'paper towels, added by you'
 - scrollUntilVisible:
-    element: '2 of 10 in the cart.'
+    element: '2 of 10 in the cart\..*'
     direction: UP
 - back
 - scrollUntilVisible:

@@ -8,7 +8,7 @@ import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { formatQuantity } from '@/features/ingredients/quantity';
 import { addExtraItem } from '@/features/shopping/add-extra';
 import { AddItem, type NewItem } from '@/features/shopping/add-item';
-import { deleteExtraItem } from '@/features/shopping/extra-repo';
+import { deleteExtraItem, saveExtraItem } from '@/features/shopping/extra-repo';
 import type { ExtraItem } from '@/features/shopping/list-model';
 import type { Store } from '@/features/stores/store-types';
 import { useTheme } from '@/hooks/use-theme';
@@ -37,6 +37,7 @@ export function ExtrasSection({
   function add(text: string, item: Ingredient | NewItem) {
     const added = addExtraItem(householdId, text, item);
     if (!added) return;
+    saveExtraItem(householdId, added.extra);
     if (!('id' in item)) setKnown([...known, added.ingredient]);
     setItems([...items, added.extra]);
   }

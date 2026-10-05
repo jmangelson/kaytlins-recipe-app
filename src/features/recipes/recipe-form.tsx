@@ -22,6 +22,7 @@ import {
   TAG_GROUPS,
   tagsByGroup,
 } from '@/features/stores/tag-groups';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
@@ -111,6 +112,17 @@ export function RecipeForm({
       setSaving(false);
     }
   }
+
+  // Back asks before dropping changes. Its Save runs the normal save (which
+  // may stop for errors or the tag question) instead of leaving right away.
+  // While saving, onSave navigates away itself.
+  const dirty =
+    !saving &&
+    (JSON.stringify(draft) !== JSON.stringify(initialDraft) || photo.kind !== 'unchanged');
+  useUnsavedChanges(dirty, async () => {
+    save();
+    return false;
+  });
 
   return (
     <Screen

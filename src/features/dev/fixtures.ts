@@ -63,6 +63,6 @@ export async function addFixturePlan(
   plan = { ...plan, id: await createPlan(householdId, plan.name, plan.days) };
   if (onCalendar) {
     const start = startOfWeek(toDateKey(new Date()), weekStart);
-    await saveCalendarDays(householdId, applyPlan(plan, start, 1, new Map(), 'skip'));
+    await saveCalendarDays(householdId, applyPlan(plan, start, null, new Map(), 'skip'));
   }
 }

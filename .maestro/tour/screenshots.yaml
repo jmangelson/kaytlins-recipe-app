@@ -127,6 +127,12 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/15d-row-editor-bottom
 - tapOn: 'Done'
 - takeScreenshot: build/screenshots/15e-row-closed
+# "Onion" is too general: common kinds are offered
+- scrollUntilVisible:
+    element: 'Use new yellow onion for onion'
+    centerElement: true
+- takeScreenshot: build/screenshots/15f-generic-choice
+- tapOn: 'Use new yellow onion for onion'
 - runFlow: ../subflows/choose-recipe-photo.yaml
 - takeScreenshot: build/screenshots/16-recipe-form-photo
 - scrollUntilVisible:
@@ -331,7 +337,13 @@ appId: com.jmangelson.kaytlinsrecipes
     timeout: 15000
 - takeScreenshot: build/screenshots/38-plan-picker-all
 - tapOn: 'Add Veggie Pasta'
+# Back with unsaved changes asks first
 - back
+- extendedWaitUntil:
+    visible: 'Save your changes?'
+    timeout: 5000
+- takeScreenshot: build/screenshots/38b-save-prompt
+- tapOn: 'SAVE|Save'
 - extendedWaitUntil:
     visible: 'Week A.*'
     timeout: 15000
@@ -349,6 +361,21 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Apply to calendar'
 - takeScreenshot: build/screenshots/42-apply-preview
+- scrollUntilVisible:
+    element: 'Every 3 weeks'
+    direction: UP
+- tapOn: 'Every 3 weeks'
+- tapOn: 'More weeks'
+- tapOn: 'More weeks'
+- scrollUntilVisible:
+    element: 'Apply to calendar'
+- takeScreenshot: build/screenshots/42b-apply-repeat
+- scrollUntilVisible:
+    element: 'Don.t repeat'
+    direction: UP
+- tapOn: 'Don.t repeat'
+- scrollUntilVisible:
+    element: 'Apply to calendar'
 - tapOn: 'Apply to calendar'
 - extendedWaitUntil:
     visible: 'Dinner: Chicken Enchiladas, Veggie Pasta'

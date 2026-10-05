@@ -1,4 +1,5 @@
 import { guessCategory, isCategoryId, type CategoryId } from '@/features/ingredients/categories';
+import { specificOptions } from '@/features/ingredients/generic-ingredients';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import type { Store, StoreSection } from '@/features/stores/store-types';
 
@@ -90,8 +91,12 @@ export function newIngredient(name: string): Omit<Ingredient, 'id'> {
 export type IngredientMatch =
   /** Same name or one of its aliases: linked automatically. */
   | { kind: 'exact'; ingredient: Ingredient }
-  /** Shares words ("onion" vs "Yellow onion"): she chooses every time. */
-  | { kind: 'partial'; candidates: Ingredient[] }
+  /**
+   * Shares words ("onion" vs "Yellow onion"), or too general to shop for
+   * ("rice"): she chooses every time, from her own ingredients or, for a
+   * general name, common specific kinds she doesn't have yet.
+   */
+  | { kind: 'partial'; candidates: Ingredient[]; suggestions: string[] }
   | { kind: 'none' };
 
 /** Every word of `a` appears in `b` (words compared singular). */
@@ -110,13 +115,22 @@ export function matchIngredient(name: string, ingredients: Ingredient[]): Ingred
   const key = ingredientNameKey(name);
   if (!key) return { kind: 'none' };
   const exact = ingredients.find((i) => i.nameKey === key || i.aliasKeys.includes(key));
-  if (exact) return { kind: 'exact', ingredient: exact };
+  const options = specificOptions(name);
+  if (exact && !options) return { kind: 'exact', ingredient: exact };
   const candidates = ingredients
     .filter((i) =>
       [i.nameKey, ...i.aliasKeys].some((k) => wordsWithin(key, k) || wordsWithin(k, key))
     )
-    .sort((a, b) => a.name.localeCompare(b.name));
-  return candidates.length ? { kind: 'partial', candidates } : { kind: 'none' };
+    .sort((a, b) => {
+      // The general one itself (if she has it) goes last.
+      if ((a === exact) !== (b === exact)) return a === exact ? 1 : -1;
+      return a.name.localeCompare(b.name);
+    });
+  const theirs = new Set(ingredients.flatMap((i) => [i.nameKey, ...i.aliasKeys]));
+  const suggestions = (options ?? []).filter((o) => !theirs.has(ingredientNameKey(o)));
+  return candidates.length || options
+    ? { kind: 'partial', candidates, suggestions }
+    : { kind: 'none' };
 }
 
 /** Ingredients whose name or alias contains the search text, best first. */

@@ -254,8 +254,39 @@ over edited stores.
   drawer, themed home-screen icon, splash. The app's blue accent is
   unchanged.
 
+### Review fixes after Milestone 8 (2026-10-05)
+
+From the full check on her phone:
+
+- **Back never saves.** Every edit screen has an explicit Save (plan,
+  calendar day, store, ingredient, tag names, household, recipe, shopping
+  list). Back with unsaved changes asks: Keep editing, Discard, or Save
+  (`useUnsavedChanges`, on React Navigation's `beforeRemove`). The recipe
+  picker hands its choice back to the open editor's draft
+  (`editing/recipe-pick.ts`) instead of saving it.
+- Exceptions, on purpose: in the store, checking items off and adding or
+  removing items save right away ("Checked items save as you go"); adding
+  or deleting a tag, adding a store, and reordering stores are one-tap
+  actions.
+- **Shopping lists:** the new-list screen has a name (defaults to the dates
+  or plan, editable) and **Save list**, which opens the pantry check. The
+  list has a name field, Save, and Save list; Make list saves too. Trip
+  stores start unselected.
+- **Repeat:** None, Every week, Every 2/3/4 weeks (never shorter than the
+  plan), for N weeks; the preview lists each start. Each repeat starts on
+  the same weekday.
+- **Calendar day:** "Apply a plan from this day".
+- **Recipes tab:** Add recipe stays visible while filters are open.
+- **General ingredient names** (onion, rice, beans, cheese, chicken, pasta,
+  milk, oil, … ~40) always ask for a specific kind, even when she has the
+  general one: her more specific ingredients first, then common kinds
+  ("Use new yellow onion"), then "New: onion" to keep it general.
+
 ## Decisions
 
+- 2026-10-05: Back never saves; explicit Save everywhere, with a
+  Save/Discard prompt on Back. The in-store checklist still saves as she
+  goes, so nothing ticked is lost.
 - 2026-10-05: hand-added items are canonical ingredients (with a store) and
   stay pending until checked off in the store, per her request; adding from
   the Shopping tab or from inside a list behaves the same.
@@ -313,6 +344,7 @@ over edited stores.
 | Firestore rules briefly failed to compile (live on the local emulator) | A scripted `String.replace` inserted text containing `$'`, which JavaScript expands to "the rest of the string"                                                                                                                                    | Restore from git; scripted edits use function replacers (`replace(a, () => b)`)                                                                                  |
 | Shopping list opened scrolled to the bottom after Make list            | The pantry check and the list share one scroll view, and the switch kept the scroll offset                                                                                                                                                         | Scroll to the top whenever the list switches between pantry check and list                                                                                       |
 | A failed offline test left the next run unable to start the app        | The flow enabled airplane mode and stopped at a failing step, so the emulator stayed offline (no Metro)                                                                                                                                            | `onFlowComplete` turns airplane mode off whatever happens                                                                                                        |
+| Disk full (916 GB); the second emulator died                           | The emulator network simulator (`netsimd`) looped on "Error in packet stream" after an emulator exited, writing 193 GB of stderr log in /tmp at ~70 MB/s                                                                                           | Truncated the log and restarted the emulators; `start-emulator.sh` now links `netsim_stderr.log` to /dev/null                                                    |
 
 ## Lessons learned
 
@@ -370,6 +402,11 @@ disabled]`: a failed run otherwise leaves the emulator offline and the next
 - **Floating buttons cover taps.** `tapOn` hits whatever is on top; center
   the target first (`scrollUntilVisible` with `centerElement: true`), as
   `subflows/add-item.yaml` does.
+- **Watch disk space.** `df -h /` when anything behaves oddly; the container
+  shares the host disk. `du -sh /tmp/*` found the runaway emulator log.
+- **React Compiler lint** rejects writing refs during render and calling a
+  function before it's declared; split a screen into a loader and a form
+  component so hooks can use what the form defines.
 - **Check scripted edits landed.** A replace that silently matches nothing
   leaves the old code; grep for the new text after editing.
 - **Save on change, not on blur**, for inline edits on Android.

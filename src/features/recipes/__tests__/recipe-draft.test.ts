@@ -45,6 +45,7 @@ describe('rowsFromText', () => {
           { id: 'sweet', name: 'Sweet onion' },
           { id: 'yellow', name: 'Yellow onion' },
         ],
+        suggestions: ['red onion', 'white onion', 'green onions', 'shallots'],
       },
       { kind: 'new', name: 'garlic' },
     ]);

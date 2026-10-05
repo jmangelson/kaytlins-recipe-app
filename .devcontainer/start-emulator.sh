@@ -9,6 +9,7 @@
 # - Gives each AVD 4 GB of RAM. avdmanager's default (2 GB), booted from a
 #   snapshot, repeatedly dropped its adb connection during Maestro runs.
 # - Cold boots (-no-snapshot) so every session starts from a clean boot.
+# - Sends netsimd's error log to /dev/null (see below).
 #
 # Usage: bash .devcontainer/start-emulator.sh
 #        EMULATOR_COUNT=2 bash .devcontainer/start-emulator.sh
@@ -21,6 +22,16 @@ EMULATOR_COUNT="${EMULATOR_COUNT:-1}"
 AVD_NAME="${AVD_NAME:-devpod-api35}"
 AVD_SYSTEM_IMAGE="${AVD_SYSTEM_IMAGE:-system-images;android-35;google_apis;x86_64}"
 EMULATOR_RAM_MB="${EMULATOR_RAM_MB:-4096}"
+
+# The emulator's network simulator (netsimd) can loop on "Error in packet
+# stream" after an emulator exits, writing ~70 MB/s to its stderr log; it once
+# filled a 916 GB disk. Point that log at /dev/null so it can't.
+netsim_dir="${TMPDIR:-/tmp}/android-$(id -un)/netsimd"
+mkdir -p "$netsim_dir"
+if [ ! -L "$netsim_dir/netsim_stderr.log" ]; then
+    rm -f "$netsim_dir/netsim_stderr.log"
+    ln -s /dev/null "$netsim_dir/netsim_stderr.log"
+fi
 
 running_avds() {
     for serial in $(adb devices | awk '/^emulator-/{print $1}'); do

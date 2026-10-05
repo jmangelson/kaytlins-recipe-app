@@ -32,6 +32,7 @@ import { moveItem } from '@/features/stores/store-edit';
 import { listStores } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -139,7 +140,9 @@ function IngredientEditor({
     setEditingAreaFor(null);
   }
 
-  async function save() {
+  const dirty = JSON.stringify(ingredient) !== JSON.stringify(initial);
+
+  async function save(): Promise<boolean> {
     const owner = nameOwner(ingredient.name, others);
     const problem = !ingredient.name.trim()
       ? 'Enter a name.'
@@ -147,11 +150,13 @@ function IngredientEditor({
         ? `“${owner.name}” already uses this name. Merge them instead.`
         : null;
     setNameError(problem);
-    if (problem) return;
+    if (problem) return false;
     setSaving(true);
     await saveIngredient(householdId, ingredient);
-    router.back();
+    setSaving(false);
+    return true;
   }
+  const leave = useUnsavedChanges(dirty, save);
 
   function confirmMerge(target: Ingredient) {
     Alert.alert(
@@ -164,7 +169,7 @@ function IngredientEditor({
           onPress: async () => {
             setSaving(true);
             await mergeIngredients(householdId, initial, target);
-            router.back();
+            leave(() => router.back());
           },
         },
       ]
@@ -180,8 +185,10 @@ function IngredientEditor({
             <HeaderButton
               label={saving ? 'Saving…' : 'Save'}
               accessibilityLabel="Save"
-              onPress={save}
-              disabled={saving}
+              onPress={async () => {
+                if (await save()) leave(() => router.back());
+              }}
+              disabled={!dirty || saving}
             />
           ),
         }}

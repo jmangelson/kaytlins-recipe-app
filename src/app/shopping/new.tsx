@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -8,6 +8,7 @@ import { Chip } from '@/components/chip';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
+import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import {
@@ -19,14 +20,19 @@ import {
   type DateKey,
 } from '@/features/calendar/calendar-model';
 import { listCalendarDays } from '@/features/calendar/calendar-repo';
-import { mealName, visibleMeals, type MealPlan } from '@/features/plans/meal-plan';
+import { mealName, visibleMeals, type MealId, type MealPlan } from '@/features/plans/meal-plan';
 import { listPlans } from '@/features/plans/plan-repo';
 import { listRecipes } from '@/features/recipes/recipe-repo';
 import type { Recipe } from '@/features/recipes/recipe-types';
 import { useHousehold } from '@/features/session/session-provider';
 import { CheckRow } from '@/features/shopping/check-row';
 import { listExtraItems } from '@/features/shopping/extra-repo';
-import { lineForExtra, linesFromNeeds, type ListSource } from '@/features/shopping/list-model';
+import {
+  lineForExtra,
+  linesFromNeeds,
+  type ExtraItem,
+  type ListSource,
+} from '@/features/shopping/list-model';
 import { createShoppingList } from '@/features/shopping/list-repo';
 import {
   gatherNeeds,
@@ -36,7 +42,9 @@ import {
   type MealChoice,
 } from '@/features/shopping/shopping-model';
 import { listStores } from '@/features/stores/store-repo';
+import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 const MAX_DAYS = 14;
@@ -60,6 +68,31 @@ export default function NewShoppingListScreen() {
     return { recipes: new Map(recipes.map((r) => [r.id, r])), plans, stores, extras };
   }, [household.id]);
 
+  if (data.state.status === 'loading') return <LoadingScreen label="Loading meals" />;
+  if (data.state.status === 'error') {
+    return (
+      <ErrorScreen message={`Couldn't load meals. ${data.state.message}`} onRetry={data.reload} />
+    );
+  }
+  return <NewListForm {...data.state.data} meals={meals} thisWeek={thisWeek} />;
+}
+
+function NewListForm({
+  recipes,
+  plans,
+  stores,
+  extras,
+  meals,
+  thisWeek,
+}: {
+  recipes: Map<string, Recipe>;
+  plans: MealPlan[];
+  stores: Store[];
+  extras: ExtraItem[];
+  meals: MealId[];
+  thisWeek: DateKey;
+}) {
+  const { household } = useHousehold();
   const [kind, setKind] = useState<Kind>('dates');
   const [start, setStart] = useState(thisWeek);
   const [dayCount, setDayCount] = useState(7);
@@ -72,14 +105,16 @@ export default function NewShoppingListScreen() {
   // Meals she unticked; everything else is included, so new choices start ticked.
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [creating, setCreating] = useState(false);
+  // Null while she hasn't typed one: the name follows the dates or plan.
+  const [name, setName] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+  const touch =
+    <T,>(set: (value: T) => void) =>
+    (value: T) => {
+      setTouched(true);
+      set(value);
+    };
 
-  if (data.state.status === 'loading') return <LoadingScreen label="Loading meals" />;
-  if (data.state.status === 'error') {
-    return (
-      <ErrorScreen message={`Couldn't load meals. ${data.state.message}`} onRetry={data.reload} />
-    );
-  }
-  const { recipes, plans, stores, extras } = data.state.data;
   const plan = plans.find((p) => p.id === planId) ?? null;
 
   const dates: DateKey[] = Array.from({ length: dayCount }, (_, i) => addDays(start, i));
@@ -96,7 +131,11 @@ export default function NewShoppingListScreen() {
   const selected = new Set(choices.map((c) => c.key).filter((k) => !excluded.has(k)));
   const needs = gatherNeeds(itemsFor(choices, selected), recipes);
 
+  const autoName = kind === 'plan' ? (plan?.name ?? '') : formatRange(start, end);
+  const listName = (name ?? autoName).trim();
+
   function toggle(key: string) {
+    setTouched(true);
     setExcluded((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -107,21 +146,33 @@ export default function NewShoppingListScreen() {
 
   async function create() {
     if (creating || needs.length + extras.length === 0) return;
+    if (!listName) {
+      Alert.alert('Name the list', 'Give the list a name before saving.');
+      return;
+    }
     setCreating(true);
     const source: ListSource =
       kind === 'plan' && plan
         ? { kind: 'plan', planId: plan.id, planName: plan.name }
         : { kind: 'dates', from: start, to: end };
     const id = await createShoppingList(household.id, {
-      name: source.kind === 'plan' ? source.planName : formatRange(start, end),
+      name: listName,
       status: 'pantry',
       source,
-      tripStoreIds: stores.filter((s) => !s.hidden).map((s) => s.id),
+      // She picks the stores for each trip during the pantry check.
+      tripStoreIds: [],
       // Things she added by hand ride along until she checks them off.
       lines: [...linesFromNeeds(needs), ...extras.map(lineForExtra)],
     });
+    // Not dirty while creating, so this doesn't ask about leaving.
     router.replace({ pathname: '/shopping/[id]', params: { id } });
   }
+
+  // Leaving after choosing anything asks first; its Save makes the list.
+  useUnsavedChanges(touched && !creating, async () => {
+    await create();
+    return false;
+  });
 
   return (
     <Screen edges={HEADER_EDGES}>
@@ -133,9 +184,13 @@ export default function NewShoppingListScreen() {
           <Chip
             label="Calendar days"
             selected={kind === 'dates'}
-            onPress={() => setKind('dates')}
+            onPress={() => touch(setKind)('dates')}
           />
-          <Chip label="A meal plan" selected={kind === 'plan'} onPress={() => setKind('plan')} />
+          <Chip
+            label="A meal plan"
+            selected={kind === 'plan'}
+            onPress={() => touch(setKind)('plan')}
+          />
         </View>
       </View>
 
@@ -145,8 +200,8 @@ export default function NewShoppingListScreen() {
             start={start}
             dayCount={dayCount}
             thisWeek={thisWeek}
-            onStart={setStart}
-            onDayCount={setDayCount}
+            onStart={touch(setStart)}
+            onDayCount={touch(setDayCount)}
           />
           {calendar.state.status === 'loading' ? (
             <ThemedText themeColor="textSecondary">Checking the calendar…</ThemedText>
@@ -172,7 +227,7 @@ export default function NewShoppingListScreen() {
           choices={choices}
           selected={selected}
           recipes={recipes}
-          onPlan={setPlanId}
+          onPlan={touch(setPlanId)}
           onToggle={toggle}
         />
       )}
@@ -189,14 +244,24 @@ export default function NewShoppingListScreen() {
               ? 'Tick at least one meal with ingredients.'
               : `${selected.size} ${selected.size === 1 ? 'meal' : 'meals'} · ${needs.length} ${
                   needs.length === 1 ? 'ingredient' : 'ingredients'
-                }. Next, check what you already have.`}
+                }.`}
           </ThemedText>
+          <TextField
+            label="List name"
+            testID="new-list-name"
+            value={name ?? autoName}
+            onChangeText={touch(setName)}
+            maxLength={80}
+          />
           <Button
-            label="Check pantry"
+            label="Save list"
             onPress={create}
             loading={creating}
             disabled={needs.length + extras.length === 0}
           />
+          <ThemedText type="small" themeColor="textSecondary">
+            Saving opens the pantry check, where you mark what you already have.
+          </ThemedText>
         </View>
       )}
     </Screen>

@@ -21,9 +21,9 @@ export type NewItem = Omit<Ingredient, 'id'>;
 type Step =
   | { kind: 'typing' }
   /** The name shares words with some of hers ("onion"): she picks one or a new item. */
-  | { kind: 'choose'; candidates: Ingredient[] }
-  /** Not one of hers yet: where does she usually buy it? */
-  | { kind: 'new'; storeId: string | null };
+  | { kind: 'choose'; candidates: Ingredient[]; suggestions: string[] }
+  /** Not one of hers yet (named as typed, or a suggested kind): which store? */
+  | { kind: 'new'; name: string; storeId: string | null };
 
 /**
  * "Add an item" on a shopping list. The item is one of her ingredients: an
@@ -45,6 +45,7 @@ export function AddItem({
   const item = readItemText(text);
 
   function add(ingredient: Ingredient | NewItem) {
+    // Keep her amount ("2 lb"); the item is the chosen ingredient.
     onAdd(text, ingredient);
     setText('');
     setStep({ kind: 'typing' });
@@ -54,16 +55,19 @@ export function AddItem({
     if (!item) return;
     const match = matchIngredient(item.name, ingredients);
     if (match.kind === 'exact') add(match.ingredient);
-    else if (match.kind === 'partial') setStep({ kind: 'choose', candidates: match.candidates });
-    else setStep({ kind: 'new', storeId: null });
+    else if (match.kind === 'partial') {
+      setStep({ kind: 'choose', candidates: match.candidates, suggestions: match.suggestions });
+    } else setStep({ kind: 'new', name: item.name, storeId: null });
   }
 
-  function addNew(storeId: string | null) {
-    if (!item) return;
-    add({ ...newIngredient(item.name), storePriority: storeId ? [storeId] : [] });
+  function addNew(name: string, storeId: string | null) {
+    add({ ...newIngredient(name), storePriority: storeId ? [storeId] : [] });
   }
 
-  const category = item ? CATEGORIES.find((c) => c.id === newIngredient(item.name).category) : null;
+  const newName = step.kind === 'new' ? step.name : null;
+  const category = newName
+    ? CATEGORIES.find((c) => c.id === newIngredient(newName).category)
+    : null;
 
   return (
     <View style={styles.group}>
@@ -97,19 +101,27 @@ export function AddItem({
                 onPress={() => add(c)}
               />
             ))}
+            {step.suggestions.map((name) => (
+              <Chip
+                key={name}
+                label={name}
+                accessibilityLabel={`Use new ${name} for ${item.name}`}
+                onPress={() => setStep({ kind: 'new', name, storeId: null })}
+              />
+            ))}
             <Chip
-              label="New item"
+              label={`New: ${item.name}`}
               accessibilityLabel={`${item.name} is a new item`}
-              onPress={() => setStep({ kind: 'new', storeId: null })}
+              onPress={() => setStep({ kind: 'new', name: item.name, storeId: null })}
             />
           </View>
         </View>
       )}
 
-      {step.kind === 'new' && item && (
+      {step.kind === 'new' && (
         <View style={styles.group}>
           <ThemedText type="small">
-            “{item.name}” is new{category ? ` (${category.name})` : ''}. Where do you usually buy
+            “{step.name}” is new{category ? ` (${category.name})` : ''}. Where do you usually buy
             it?
           </ThemedText>
           <View style={styles.chips}>
@@ -119,14 +131,14 @@ export function AddItem({
                 label={store.name}
                 accessibilityLabel={`Usually from ${store.name}`}
                 selected={step.storeId === store.id}
-                onPress={() => setStep({ kind: 'new', storeId: store.id })}
+                onPress={() => setStep({ ...step, storeId: store.id })}
               />
             ))}
           </View>
           <ThemedText type="small" themeColor="textSecondary">
             Optional. It&apos;s added to your ingredients, where you can change it later.
           </ThemedText>
-          <Button label={`Add ${item.name}`} onPress={() => addNew(step.storeId)} />
+          <Button label={`Add ${step.name}`} onPress={() => addNew(step.name, step.storeId)} />
         </View>
       )}
     </View>

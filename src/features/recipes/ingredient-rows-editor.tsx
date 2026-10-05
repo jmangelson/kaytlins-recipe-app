@@ -212,6 +212,14 @@ function RowSummary({
               onPress={() => onLink({ kind: 'existing', ingredientId: c.id, name: c.name })}
             />
           ))}
+          {row.link.suggestions.map((name) => (
+            <Chip
+              key={name}
+              label={name}
+              accessibilityLabel={`Use new ${name} for ${row.writtenName}`}
+              onPress={() => onLink({ kind: 'new', name })}
+            />
+          ))}
           <Chip
             label={`New: ${row.writtenName}`}
             onPress={() => onLink({ kind: 'new', name: row.writtenName })}

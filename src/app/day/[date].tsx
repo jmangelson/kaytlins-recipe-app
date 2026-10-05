@@ -1,9 +1,10 @@
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { HeaderButton } from '@/components/header-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -15,6 +16,7 @@ import {
   type CalendarDay,
 } from '@/features/calendar/calendar-model';
 import { listCalendarDays, saveCalendarDays } from '@/features/calendar/calendar-repo';
+import { requestRecipe } from '@/features/editing/recipe-pick';
 import { DayMeals } from '@/features/plans/day-meals';
 import { emptyDay, visibleMeals, type MealId } from '@/features/plans/meal-plan';
 import { listRecipes } from '@/features/recipes/recipe-repo';
@@ -22,6 +24,7 @@ import type { Recipe } from '@/features/recipes/recipe-types';
 import { useHousehold } from '@/features/session/session-provider';
 import { listTags } from '@/features/stores/store-repo';
 import { useAsync } from '@/hooks/use-async';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
@@ -38,7 +41,8 @@ export default function CalendarDayScreen() {
     return { day: days.get(date) ?? emptyCalendarDay(date), recipes, tags };
   }, [household.id, date]);
 
-  // The picker saves additions itself; reload when returning.
+  // Applying a plan from here changes the day; reload when returning. (An
+  // unchanged day keeps the same editor, so an unsaved draft survives.)
   const refresh = data.refresh;
   useFocusEffect(
     useCallback(() => {
@@ -78,14 +82,31 @@ function DayEditor({
   courseName: Map<string, string>;
   meals: MealId[];
 }) {
+  // A draft until Save; Back asks before dropping changes.
   const [day, setDay] = useState(initial);
-  const latest = useRef(initial);
+  const [saving, setSaving] = useState(false);
+  const dirty = JSON.stringify(day) !== JSON.stringify(initial);
   const label = formatDay(day.date);
 
-  function persist(next: CalendarDay) {
-    latest.current = next;
-    setDay(next);
-    saveCalendarDays(householdId, [next]);
+  async function save(): Promise<boolean> {
+    setSaving(true);
+    await saveCalendarDays(householdId, [day]);
+    setSaving(false);
+    return true;
+  }
+  const leave = useUnsavedChanges(dirty, save);
+
+  function openPicker(meal: MealId, courses: string[]) {
+    const token = requestRecipe((recipeId) =>
+      setDay((d) => ({
+        ...d,
+        meals: { ...d.meals, [meal]: [...d.meals[meal], { recipeId, servings: null }] },
+      }))
+    );
+    router.push({
+      pathname: '/pick',
+      params: { token, title: label, meal, courses: courses.join(',') },
+    });
   }
 
   function confirmClear() {
@@ -94,14 +115,28 @@ function DayEditor({
       {
         text: 'Clear',
         style: 'destructive',
-        onPress: () => persist({ ...latest.current, ...emptyDay(), source: null }),
+        onPress: () => setDay((d) => ({ ...d, ...emptyDay(), source: null })),
       },
     ]);
   }
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={{ title: label }} />
+      <Stack.Screen
+        options={{
+          title: label,
+          headerRight: () => (
+            <HeaderButton
+              label={saving ? 'Saving…' : 'Save'}
+              accessibilityLabel="Save day"
+              disabled={!dirty || saving}
+              onPress={async () => {
+                if (await save()) leave(() => router.back());
+              }}
+            />
+          ),
+        }}
+      />
       {day.source ? (
         <ThemedText type="small" themeColor="textSecondary">
           From {day.source.planName} · Day {day.source.dayIndex + 1}. Changes here only affect this
@@ -115,23 +150,26 @@ function DayEditor({
           day={day}
           recipeById={recipeById}
           courseName={courseName}
-          onAdd={(meal, courses) =>
-            router.push({
-              pathname: '/pick',
-              params: { target: 'date', id: day.date, meal, courses: courses.join(',') },
-            })
-          }
+          onAdd={openPicker}
           onRemoveItem={(meal, itemIndex) =>
-            persist({
-              ...latest.current,
-              meals: {
-                ...latest.current.meals,
-                [meal]: latest.current.meals[meal].filter((_, i) => i !== itemIndex),
-              },
-            })
+            setDay((d) => ({
+              ...d,
+              meals: { ...d.meals, [meal]: d.meals[meal].filter((_, i) => i !== itemIndex) },
+            }))
           }
         />
       </View>
+      <Button
+        label="Apply a plan from this day"
+        variant="secondary"
+        disabled={dirty}
+        onPress={() => router.push({ pathname: '/calendar/apply', params: { start: day.date } })}
+      />
+      {dirty && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Save your changes to apply a plan from this day.
+        </ThemedText>
+      )}
       {hasMeals(day) && <Button label="Clear day" variant="danger" onPress={confirmClear} />}
     </Screen>
   );

@@ -24,8 +24,8 @@ tags:
 - tapOn: '.*Dinner, Veggie Pasta'
 - assertVisible: '1 meal · 5 ingredients.*'
 - scrollUntilVisible:
-    element: 'Check pantry'
-- tapOn: 'Check pantry'
+    element: 'Save list'
+- tapOn: 'Save list'
 
 # Pantry check
 - extendedWaitUntil:
@@ -41,6 +41,10 @@ tags:
 - assertVisible: 'Buy 1 ½ lb'
 - hideKeyboard
 - scrollUntilVisible:
+    element: 'Shop at Macey.s'
+- tapOn: 'Shop at Macey.s'
+- tapOn: 'Shop at Costco'
+- scrollUntilVisible:
     element: 'Make list'
 - assertVisible: 'Shop at Costco'
 - tapOn: 'Make list'
@@ -52,7 +56,7 @@ tags:
 - assertVisible: 'chicken breasts.*1 ½ lb.*'
 - assertNotVisible: 'lime.*'
 - tapOn: 'chicken breasts.*'
-- assertVisible: '1 of 4 in the cart.'
+- assertVisible: '1 of 4 in the cart\..*'
 - back
 - extendedWaitUntil:
     visible: '1 of 4 in the cart'
@@ -79,13 +83,19 @@ tags:
 - extendedWaitUntil:
     visible: '2 meals · 7 ingredients.*'
     timeout: 15000
+- assertVisible:
+    id: 'new-list-name'
+# Leaving a list she set up asks first
 - back
+- tapOn: 'DISCARD|Discard'
 
 # Delete the list
 - tapOn: '.*Checking pantry.*'
 - extendedWaitUntil:
     visible: 'Check the pantry'
     timeout: 15000
+- scrollUntilVisible:
+    element: 'Delete list'
 - tapOn: 'Delete list'
 - tapOn: 'DELETE|Delete'
 - extendedWaitUntil:

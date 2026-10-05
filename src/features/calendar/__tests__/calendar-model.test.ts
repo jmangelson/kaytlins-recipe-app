@@ -3,6 +3,9 @@ import {
   applyPlan,
   conflicts,
   datesForPlan,
+  minRepeatWeeks,
+  planStarts,
+  repeatLabel,
   emptyCalendarDay,
   formatDay,
   formatRange,
@@ -45,20 +48,44 @@ describe('dates', () => {
 });
 
 describe('applyPlan', () => {
-  it('repeats the plan across consecutive dates', () => {
-    expect(datesForPlan(weekA(), '2026-10-04', 2)).toEqual([
+  it('repeats the plan every week from the same weekday', () => {
+    const weekly = { everyWeeks: 1, forWeeks: 2 };
+    expect(datesForPlan(weekA(), '2026-10-04', weekly)).toEqual([
       '2026-10-04',
       '2026-10-05',
-      '2026-10-06',
-      '2026-10-07',
+      '2026-10-11',
+      '2026-10-12',
     ]);
-    const writes = applyPlan(weekA(), '2026-10-04', 2, new Map(), 'replace');
+    const writes = applyPlan(weekA(), '2026-10-04', weekly, new Map(), 'replace');
     expect(writes.map((w) => [w.date, w.meals.dinner[0].recipeId, w.source?.dayIndex])).toEqual([
       ['2026-10-04', 'tacos', 0],
       ['2026-10-05', 'curry', 1],
-      ['2026-10-06', 'tacos', 0],
-      ['2026-10-07', 'curry', 1],
+      ['2026-10-11', 'tacos', 0],
+      ['2026-10-12', 'curry', 1],
     ]);
+  });
+
+  it('repeats every few weeks over a number of weeks, or not at all', () => {
+    expect(planStarts('2026-10-04', { everyWeeks: 3, forWeeks: 12 })).toEqual([
+      '2026-10-04',
+      '2026-10-25',
+      '2026-11-15',
+      '2026-12-06',
+    ]);
+    expect(planStarts('2026-10-04', { everyWeeks: 2, forWeeks: 3 })).toEqual([
+      '2026-10-04',
+      '2026-10-18',
+    ]);
+    expect(planStarts('2026-10-04', null)).toEqual(['2026-10-04']);
+    expect(repeatLabel({ everyWeeks: 3, forWeeks: 12 })).toBe('Every 3 weeks for 12 weeks');
+    expect(repeatLabel({ everyWeeks: 1, forWeeks: 1 })).toBe('Every week for 1 week');
+    expect(repeatLabel(null)).toBe('Once');
+  });
+
+  it('never repeats a plan sooner than its length', () => {
+    expect(minRepeatWeeks({ days: Array(7).fill(null) })).toBe(1);
+    expect(minRepeatWeeks({ days: Array(10).fill(null) })).toBe(2);
+    expect(minRepeatWeeks({ days: Array(2).fill(null) })).toBe(1);
   });
 
   const existing = new Map<string, CalendarDay>([
@@ -73,12 +100,12 @@ describe('applyPlan', () => {
   ]);
 
   it('reports dates that already have meals', () => {
-    expect(conflicts(weekA(), '2026-10-04', 1, existing)).toEqual(['2026-10-05']);
+    expect(conflicts(weekA(), '2026-10-04', null, existing)).toEqual(['2026-10-05']);
   });
 
   it('replaces, adds to, or skips days that already have meals', () => {
     const dinner = (mode: 'replace' | 'add' | 'skip') =>
-      applyPlan(weekA(), '2026-10-04', 1, existing, mode).map((w) => [
+      applyPlan(weekA(), '2026-10-04', null, existing, mode).map((w) => [
         w.date,
         w.meals.dinner.map((i) => i.recipeId),
       ]);
@@ -95,7 +122,7 @@ describe('applyPlan', () => {
 
   it('copies meals so later edits to a date do not touch the plan', () => {
     const plan = weekA();
-    const [first] = applyPlan(plan, '2026-10-04', 1, new Map(), 'replace');
+    const [first] = applyPlan(plan, '2026-10-04', null, new Map(), 'replace');
     first.meals.dinner.push({ recipeId: 'rice', servings: null });
     expect(plan.days[0].meals.dinner).toHaveLength(1);
   });

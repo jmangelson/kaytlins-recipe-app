@@ -12,6 +12,7 @@ import { ThemedSwitch } from '@/components/themed-switch';
 import { Spacing } from '@/constants/theme';
 import { updateHousehold } from '@/features/household/household-service';
 import { useHousehold, useSession } from '@/features/session/session-provider';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { nameProblem } from '@/features/stores/store-edit';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -31,18 +32,25 @@ export default function HouseholdSettingsScreen() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  async function save() {
+  const dirty =
+    name !== household.name ||
+    weekStart !== household.settings.weekStart ||
+    showBreakfastLunch !== household.settings.showBreakfastLunch;
+
+  async function save(): Promise<boolean> {
     const problem = nameProblem(name, [], 'household', 60);
     setNameError(problem);
-    if (problem) return;
+    if (problem) return false;
     setSaving(true);
     await updateHousehold(household.id, {
-      name,
+      name: name.trim(),
       settings: { ...household.settings, weekStart, showBreakfastLunch },
     });
     await refreshHousehold();
-    router.back();
+    setSaving(false);
+    return true;
   }
+  const leave = useUnsavedChanges(dirty, save);
 
   return (
     <Screen edges={HEADER_EDGES}>
@@ -88,7 +96,13 @@ export default function HouseholdSettingsScreen() {
         />
       </View>
 
-      <Button label="Save" onPress={save} loading={saving} />
+      <Button
+        label="Save"
+        onPress={async () => {
+          if (await save()) leave(() => router.back());
+        }}
+        loading={saving}
+      />
     </Screen>
   );
 }

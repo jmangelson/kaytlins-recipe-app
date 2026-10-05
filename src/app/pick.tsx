@@ -10,16 +10,8 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { emptyCalendarDay, formatDay, type CalendarDay } from '@/features/calendar/calendar-model';
-import { listCalendarDays, saveCalendarDays } from '@/features/calendar/calendar-repo';
-import {
-  addItem,
-  mealName,
-  recipesForSlot,
-  type MealId,
-  type MealPlan,
-} from '@/features/plans/meal-plan';
-import { getPlan, savePlan } from '@/features/plans/plan-repo';
+import { deliverRecipe } from '@/features/editing/recipe-pick';
+import { mealName, recipesForSlot, type MealId } from '@/features/plans/meal-plan';
 import { filterRecipes } from '@/features/recipes/recipe-draft';
 import { listRecipes } from '@/features/recipes/recipe-repo';
 import type { Recipe } from '@/features/recipes/recipe-types';
@@ -31,20 +23,16 @@ import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
-type AddRecipe = (meal: MealId, recipeId: string) => Promise<void>;
-
 /**
- * Pick a recipe for one meal, either of a plan day
- *   /pick?target=plan&id=<planId>&day=<index>&meal=dinner
- * or of a calendar date
- *   /pick?target=date&id=2026-10-05&meal=dinner
+ * Pick a recipe for one meal of the plan day or calendar date being edited:
+ *   /pick?token=<from requestRecipe>&title=Day 2&meal=dinner
+ * The choice goes back to that editor's draft; nothing is saved here.
  * Optional courses=main-dish,side-dish preselects course filters.
  */
 export default function PickRecipeScreen() {
   const params = useLocalSearchParams<{
-    target: 'plan' | 'date';
-    id: string;
-    day?: string;
+    token: string;
+    title: string;
     meal: MealId;
     courses?: string;
   }>();
@@ -52,30 +40,12 @@ export default function PickRecipeScreen() {
   const { household } = useHousehold();
   const data = useAsync(async () => {
     const [recipes, tags] = await Promise.all([listRecipes(household.id), listTags(household.id)]);
-    if (params.target === 'date') {
-      const days = await listCalendarDays(household.id, params.id, params.id);
-      const day = days.get(params.id) ?? emptyCalendarDay(params.id);
-      return {
-        recipes,
-        tags,
-        title: formatDay(params.id),
-        add: addToDate(household.id, day) as AddRecipe | null,
-      };
-    }
-    const plan = await getPlan(household.id, params.id);
-    const dayIndex = Number(params.day);
-    return {
-      recipes,
-      tags,
-      title: `Day ${dayIndex + 1}`,
-      add: plan ? addToPlan(household.id, plan, dayIndex) : null,
-    };
-  }, [household.id, params.target, params.id, params.day]);
+    return { recipes, tags };
+  }, [household.id]);
   const [courses, setCourses] = useState<string[]>(
     params.courses ? params.courses.split(',').filter(Boolean) : []
   );
   const [search, setSearch] = useState('');
-  const [adding, setAdding] = useState(false);
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading recipes" />;
   if (data.state.status === 'error') {
@@ -83,17 +53,14 @@ export default function PickRecipeScreen() {
       <ErrorScreen message={`Couldn't load recipes. ${data.state.message}`} onRetry={data.reload} />
     );
   }
-  const { recipes, tags, title, add } = data.state.data;
-  if (!add) return <ErrorScreen message="This plan was deleted." />;
+  const { recipes, tags } = data.state.data;
 
   const courseTags = tagsByGroup(tags).course;
   const searched = filterRecipes(recipes, search, []);
   const { fitting, others } = recipesForSlot(searched, meal, courses);
 
-  async function pick(recipe: Recipe) {
-    if (adding || !add) return;
-    setAdding(true);
-    await add(meal, recipe.id);
+  function pick(recipe: Recipe) {
+    deliverRecipe(params.token, recipe.id);
     router.back();
   }
 
@@ -103,7 +70,7 @@ export default function PickRecipeScreen() {
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={{ title: `${title} · ${mealName(meal)}` }} />
+      <Stack.Screen options={{ title: `${params.title} · ${mealName(meal)}` }} />
       <TextField
         label="Search"
         testID="pick-search"
@@ -160,20 +127,6 @@ export default function PickRecipeScreen() {
       )}
     </Screen>
   );
-}
-
-function addToPlan(householdId: string, plan: MealPlan, dayIndex: number): AddRecipe {
-  return (meal, recipeId) => savePlan(householdId, addItem(plan, dayIndex, meal, recipeId));
-}
-
-function addToDate(householdId: string, day: CalendarDay): AddRecipe {
-  return (meal, recipeId) =>
-    saveCalendarDays(householdId, [
-      {
-        ...day,
-        meals: { ...day.meals, [meal]: [...day.meals[meal], { recipeId, servings: null }] },
-      },
-    ]);
 }
 
 function RecipeSection({

@@ -75,41 +75,81 @@ export function hasMeals(day: PlanDay | undefined): boolean {
 
 export type ConflictMode = 'replace' | 'add' | 'skip';
 
-/** The dates a plan covers when started on `start` and repeated `times`. */
+/**
+ * How a plan repeats on the calendar: null for once, or every `everyWeeks`
+ * weeks over `forWeeks` weeks ("every 3 weeks for 12 weeks" puts it on
+ * weeks 1, 4, 7, and 10).
+ */
+export type Repeat = { everyWeeks: number; forWeeks: number } | null;
+
+/** The fewest weeks between repeats so a plan never overlaps itself. */
+export function minRepeatWeeks(plan: Pick<MealPlan, 'days'>): number {
+  return Math.max(1, Math.ceil(plan.days.length / 7));
+}
+
+/** The date each copy of the plan starts on. */
+export function planStarts(start: DateKey, repeat: Repeat): DateKey[] {
+  if (!repeat) return [start];
+  const count = Math.ceil(repeat.forWeeks / repeat.everyWeeks);
+  return Array.from({ length: count }, (_, i) => addDays(start, i * repeat.everyWeeks * 7));
+}
+
+/** "Every 3 weeks for 12 weeks" or "Once". */
+export function repeatLabel(repeat: Repeat): string {
+  if (!repeat) return 'Once';
+  const every = repeat.everyWeeks === 1 ? 'Every week' : `Every ${repeat.everyWeeks} weeks`;
+  return `${every} for ${repeat.forWeeks} ${repeat.forWeeks === 1 ? 'week' : 'weeks'}`;
+}
+
+/** Each date the plan covers, with the plan day that lands there, in order. */
+function placements(
+  plan: Pick<MealPlan, 'days'>,
+  start: DateKey,
+  repeat: Repeat
+): { date: DateKey; dayIndex: number }[] {
+  const byDate = new Map<DateKey, number>();
+  for (const first of planStarts(start, repeat)) {
+    plan.days.forEach((_, dayIndex) => byDate.set(addDays(first, dayIndex), dayIndex));
+  }
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, dayIndex]) => ({ date, dayIndex }));
+}
+
+/** The dates a plan covers when started on `start` and repeated. */
 export function datesForPlan(
   plan: Pick<MealPlan, 'days'>,
   start: DateKey,
-  times: number
+  repeat: Repeat
 ): DateKey[] {
-  return Array.from({ length: plan.days.length * times }, (_, i) => addDays(start, i));
+  return placements(plan, start, repeat).map((p) => p.date);
 }
 
 /** Dates in the range that already have meals. */
 export function conflicts(
   plan: Pick<MealPlan, 'days'>,
   start: DateKey,
-  times: number,
+  repeat: Repeat,
   existing: Map<DateKey, CalendarDay>
 ): DateKey[] {
-  return datesForPlan(plan, start, times).filter((d) => hasMeals(existing.get(d)));
+  return datesForPlan(plan, start, repeat).filter((d) => hasMeals(existing.get(d)));
 }
 
 /**
  * Days to write when putting a plan on the calendar: plan day i lands on
- * start + i, cycling through the plan `times` times. Dates that already have
+ * start + i, and again from each repeat's start. Dates that already have
  * meals are replaced, added to, or skipped. Each written day is a copy that
  * remembers its plan day, so editing it later doesn't change the plan.
  */
 export function applyPlan(
   plan: MealPlan,
   start: DateKey,
-  times: number,
+  repeat: Repeat,
   existing: Map<DateKey, CalendarDay>,
   mode: ConflictMode
 ): CalendarDay[] {
   const writes: CalendarDay[] = [];
-  datesForPlan(plan, start, times).forEach((date, i) => {
-    const dayIndex = i % plan.days.length;
+  placements(plan, start, repeat).forEach(({ date, dayIndex }) => {
     const planDay = plan.days[dayIndex];
     const current = existing.get(date);
     const source = { planId: plan.id, planName: plan.name, dayIndex };

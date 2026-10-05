@@ -42,10 +42,14 @@ tags:
 - scrollUntilVisible:
     element: 'Add to recipe'
 - tapOn: 'Add to recipe'
+# "Tortillas" is too general: she picks a specific kind.
+- scrollUntilVisible:
+    element: 'Use new flour tortillas for tortillas'
+- tapOn: 'Use new flour tortillas for tortillas'
 - scrollUntilVisible:
     element: 'Edit 1 ½ cups shredded cheddar'
 - assertVisible: 'Edit 1 lb ground beef'
-- assertVisible: 'Edit 8 tortillas.*'
+- assertVisible: 'Edit 8 .*tortillas.*'
 - scrollUntilVisible:
     element: 'Save recipe'
 - tapOn: 'Save recipe'

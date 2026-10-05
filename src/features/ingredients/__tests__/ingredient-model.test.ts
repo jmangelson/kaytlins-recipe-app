@@ -83,11 +83,32 @@ describe('matchIngredient', () => {
   });
 
   it('offers every ingredient that shares the words, for her to choose', () => {
-    expect(matchIngredient('onion', all)).toEqual({ kind: 'partial', candidates: [sweet, yellow] });
+    expect(matchIngredient('onion', all)).toMatchObject({
+      kind: 'partial',
+      candidates: [sweet, yellow],
+    });
     expect(matchIngredient('fresh parsley', all)).toEqual({
       kind: 'partial',
       candidates: [parsley],
+      suggestions: [],
     });
+  });
+
+  it('asks for a specific kind when the name is too general, even if she has it', () => {
+    const rice = ingredient('r', 'Rice');
+    const jasmine = ingredient('j', 'Jasmine rice');
+    expect(matchIngredient('rice', [rice, jasmine, parsley])).toEqual({
+      kind: 'partial',
+      candidates: [jasmine, rice],
+      suggestions: ['long-grain white rice', 'basmati rice', 'brown rice', 'Calrose rice'],
+    });
+    expect(matchIngredient('Onions', all)).toEqual({
+      kind: 'partial',
+      candidates: [sweet, yellow],
+      // Her yellow onion's alias covers "white onion"; her sweet onion is one already.
+      suggestions: ['red onion', 'green onions', 'shallots'],
+    });
+    expect(matchIngredient('black beans', [])).toEqual({ kind: 'none' });
   });
 
   it('reports no match for new ingredients', () => {

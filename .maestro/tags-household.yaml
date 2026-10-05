@@ -37,7 +37,8 @@ tags:
 - scrollUntilVisible:
     element: 'Quick tag name'
     direction: UP
-- back
+# Adding and deleting happen right away; the rename waits for Save.
+- tapOn: 'Save tag names'
 - scrollUntilVisible:
     element: 'Recipe tags'
     direction: UP

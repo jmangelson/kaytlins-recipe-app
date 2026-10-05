@@ -1,5 +1,6 @@
 # Build a reusable meal plan: add a main and a suggested side to a dinner,
-# duplicate a day, remove a recipe, rename, and confirm it persists.
+# duplicate a day, remove a recipe, rename, Save (Back asks; Discard drops
+# changes), and confirm it persists.
 appId: com.jmangelson.kaytlinsrecipes
 tags:
   - plans
@@ -68,7 +69,7 @@ tags:
     element: '4 days · 3 recipes'
     direction: UP
 
-# Rename; survives a restart
+# Rename; Back asks before leaving with changes, Save keeps them
 - tapOn:
     id: 'plan-name'
 - eraseText: 10
@@ -76,8 +77,26 @@ tags:
 - hideKeyboard
 - back
 - extendedWaitUntil:
+    visible: 'Save your changes?'
+    timeout: 5000
+- tapOn: 'KEEP EDITING|Keep editing'
+- tapOn: 'Save plan'
+- extendedWaitUntil:
     visible: 'Week B, 4 days · 3 recipes'
     timeout: 15000
+
+# Discard drops unsaved changes
+- tapOn: 'Week B.*'
+- scrollUntilVisible:
+    element: 'Remove Pico from Day 1 Dinner'
+- tapOn: 'Remove Pico from Day 1 Dinner'
+- back
+- tapOn: 'DISCARD|Discard'
+- extendedWaitUntil:
+    visible: 'Week B, 4 days · 3 recipes'
+    timeout: 15000
+
+# Survives a restart
 - launchApp
 - tapOn: 'Plans'
 - extendedWaitUntil:

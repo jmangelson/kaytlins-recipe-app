@@ -15,11 +15,15 @@ tags:
 - assertVisible: 'Nothing planned'
 - assertNotVisible: 'Dinner: .*'
 
-# Week A (2 days) twice from the start of this week
+# Week A (2 days) every week for 2 weeks from the start of this week
 - tapOn: 'Apply a plan'
 - tapOn: 'Use Week A'
-- tapOn: 'More times'
-- assertVisible: 'Week A × 2 → .*\(4 days\)'
+- assertVisible: 'Week A → .*\(2 days\)'
+- tapOn: 'Every week'
+- assertVisible: 'For 4 weeks'
+- tapOn: 'Fewer weeks'
+- tapOn: 'Fewer weeks'
+- assertVisible: 'Week A, every week for 2 weeks: 2 times \(4 days\)'
 - scrollUntilVisible:
     element: 'Apply to calendar'
 - tapOn: 'Apply to calendar'
@@ -38,11 +42,13 @@ tags:
     timeout: 15000
 - tapOn:
     text: 'Remove Pico from .*'
-- back
+- assertVisible: 'Apply a plan from this day'
+- tapOn: 'Save day'
 - extendedWaitUntil:
     visible: 'Dinner: Chicken Enchiladas'
     timeout: 15000
-- assertVisible: 'Dinner: Chicken Enchiladas, Pico'
+# Only that date changed (next week's copy still has Pico; checked below)
+- assertNotVisible: 'Dinner: Chicken Enchiladas, Pico'
 
 # Reapply: days with meals are kept by default
 - tapOn: 'Apply a plan'
@@ -65,8 +71,9 @@ tags:
 - back
 - tapOn: 'Calendar'
 
-# Week navigation
+# Week navigation: the repeat put Week A on next week too
 - tapOn: 'Next week'
 - assertVisible: 'Back to this week'
+- assertVisible: 'Dinner: Chicken Enchiladas, Pico'
 - tapOn: 'Back to this week'
 - assertVisible: 'Dinner: Chicken Enchiladas'

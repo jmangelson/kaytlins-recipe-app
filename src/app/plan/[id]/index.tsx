@@ -1,17 +1,20 @@
-import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { requestRecipe } from '@/features/editing/recipe-pick';
 import {
   addDay,
+  addItem,
   duplicateDay,
   MAX_PLAN_DAYS,
   planSummary,
@@ -29,7 +32,7 @@ import { useHousehold } from '@/features/session/session-provider';
 import { listTags } from '@/features/stores/store-repo';
 import type { Tag } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
-import { useAutosave } from '@/hooks/use-autosave';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -46,14 +49,6 @@ export default function PlanScreen() {
     return { plan, recipes, tags };
   }, [household.id, id]);
 
-  // Recipes added from the picker are saved there; reload when returning.
-  const refresh = data.refresh;
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
-  );
-
   if (data.state.status === 'loading') return <LoadingScreen label="Loading plan" />;
   if (data.state.status === 'error') {
     return (
@@ -67,8 +62,7 @@ export default function PlanScreen() {
   if (!plan) return <ErrorScreen message="This plan was deleted." />;
   return (
     <PlanEditor
-      // The picker saves additions itself; a changed plan gets a fresh editor.
-      key={JSON.stringify(plan)}
+      key={plan.id}
       householdId={household.id}
       initial={plan}
       recipes={recipes}
@@ -91,34 +85,33 @@ function PlanEditor({
   tags: Tag[];
   meals: MealId[];
 }) {
+  // Everything is a draft until Save; Back asks before dropping changes.
   const [plan, setPlan] = useState(initial);
-  const [name, setName] = useState(initial.name);
-  const latest = useRef(initial);
+  const [saved, setSaved] = useState(JSON.stringify(initial));
+  const [saving, setSaving] = useState(false);
+  const draft = { ...plan, name: plan.name.trim() };
+  const dirty = JSON.stringify(draft) !== saved;
   const recipeById = new Map(recipes.map((r) => [r.id, r]));
   const courseName = new Map(tags.filter((t) => t.group === 'course').map((t) => [t.id, t.name]));
 
-  function persist(next: MealPlan) {
-    latest.current = next;
-    setPlan(next);
-    savePlan(householdId, next);
-  }
-
-  useAutosave(name, (value) => {
-    if (value.trim() && value.trim() !== latest.current.name) {
-      persist({ ...latest.current, name: value.trim() });
+  async function save(): Promise<boolean> {
+    if (!draft.name) {
+      Alert.alert('Name the plan', 'Give the plan a name before saving.');
+      return false;
     }
-  });
+    setSaving(true);
+    await savePlan(householdId, draft);
+    setSaved(JSON.stringify(draft));
+    setSaving(false);
+    return true;
+  }
+  const leave = useUnsavedChanges(dirty, save);
 
   function openPicker(dayIndex: number, meal: MealId, courses: string[]) {
+    const token = requestRecipe((recipeId) => setPlan((p) => addItem(p, dayIndex, meal, recipeId)));
     router.push({
       pathname: '/pick',
-      params: {
-        target: 'plan',
-        id: plan.id,
-        day: String(dayIndex),
-        meal,
-        courses: courses.join(','),
-      },
+      params: { token, title: `Day ${dayIndex + 1}`, meal, courses: courses.join(',') },
     });
   }
 
@@ -128,7 +121,7 @@ function PlanEditor({
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => persist(removeDay(latest.current, dayIndex)),
+        onPress: () => setPlan((p) => removeDay(p, dayIndex)),
       },
     ]);
   }
@@ -146,7 +139,7 @@ function PlanEditor({
         style: 'destructive',
         onPress: async () => {
           await deletePlan(householdId, plan.id);
-          router.back();
+          leave(() => router.back());
         },
       },
     ]);
@@ -154,12 +147,26 @@ function PlanEditor({
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={{ title: plan.name }} />
+      <Stack.Screen
+        options={{
+          title: saved && JSON.parse(saved).name,
+          headerRight: () => (
+            <HeaderButton
+              label={saving ? 'Saving…' : 'Save'}
+              accessibilityLabel="Save plan"
+              disabled={!dirty || saving}
+              onPress={async () => {
+                if (await save()) leave(() => router.back());
+              }}
+            />
+          ),
+        }}
+      />
       <TextField
         label="Plan name"
         testID="plan-name"
-        value={name}
-        onChangeText={setName}
+        value={plan.name}
+        onChangeText={(name) => setPlan((p) => ({ ...p, name }))}
         maxLength={60}
       />
       <ThemedText type="small" themeColor="textSecondary">
@@ -178,9 +185,9 @@ function PlanEditor({
           canDuplicate={plan.days.length < MAX_PLAN_DAYS}
           onAdd={(meal, courses) => openPicker(dayIndex, meal, courses)}
           onRemoveItem={(meal, itemIndex) =>
-            persist(removeItem(latest.current, dayIndex, meal, itemIndex))
+            setPlan((p) => removeItem(p, dayIndex, meal, itemIndex))
           }
-          onDuplicate={() => persist(duplicateDay(latest.current, dayIndex))}
+          onDuplicate={() => setPlan((p) => duplicateDay(p, dayIndex))}
           onRemoveDay={() => confirmRemoveDay(dayIndex)}
         />
       ))}
@@ -188,10 +195,15 @@ function PlanEditor({
       <Button
         label="Add a day"
         variant="secondary"
-        onPress={() => persist(addDay(latest.current))}
+        onPress={() => setPlan((p) => addDay(p))}
         disabled={plan.days.length >= MAX_PLAN_DAYS}
       />
-      <Button label="Duplicate plan" variant="secondary" onPress={duplicatePlan} />
+      <Button label="Duplicate plan" variant="secondary" onPress={duplicatePlan} disabled={dirty} />
+      {dirty && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Save your changes to duplicate this plan.
+        </ThemedText>
+      )}
       <Button label="Delete plan" variant="danger" onPress={confirmDelete} />
     </Screen>
   );

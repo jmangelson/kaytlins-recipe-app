@@ -28,8 +28,11 @@ export type RowLink =
   | { kind: 'existing'; ingredientId: string; name: string }
   /** Create a new canonical ingredient with this name on save. */
   | { kind: 'new'; name: string }
-  /** Vague match ("onion"): she must pick one of these, or make a new one. */
-  | { kind: 'choose'; candidates: { id: string; name: string }[] };
+  /**
+   * Vague or too general ("onion", "rice"): she must pick one of her
+   * ingredients, a suggested specific kind (made new), or make a new one.
+   */
+  | { kind: 'choose'; candidates: { id: string; name: string }[]; suggestions: string[] };
 
 /** One ingredient line in the add/edit form. */
 export type DraftRow = {

@@ -40,7 +40,7 @@ appId: com.jmangelson.kaytlinsrecipes
     direction: UP
 - tapOn: '.*in the cart'
 - extendedWaitUntil:
-    visible: '.*in the cart.'
+    visible: '.*in the cart\..*'
     timeout: 15000
 - scrollUntilVisible:
     element: 'Costco'

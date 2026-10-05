@@ -1,10 +1,11 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
+import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
@@ -19,13 +20,12 @@ import {
   moveItem,
   nameProblem,
   removeSection,
-  renameSection,
   toggleSectionCategory,
 } from '@/features/stores/store-edit';
 import { listStores, newId, saveStore } from '@/features/stores/store-repo';
 import type { Store, StoreSection } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
-import { useAutosave } from '@/hooks/use-autosave';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -59,35 +59,44 @@ function StoreEditor({
   otherNames: string[];
   householdId: string;
 }) {
+  // Every change is a draft until Save; Back asks before dropping changes.
   const [store, setStore] = useState(initial);
-  // Latest store for saves that fire after a delay (renames).
   const latest = useRef(initial);
-  const [name, setName] = useState(initial.name);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [areaErrors, setAreaErrors] = useState<Record<string, string>>({});
   const [newArea, setNewArea] = useState('');
   const [areaError, setAreaError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const dirty = JSON.stringify(store) !== JSON.stringify(initial);
 
-  // Every change saves immediately; "Saved" confirms it.
-  async function persist(next: Store) {
+  function persist(next: Store) {
     latest.current = next;
     setStore(next);
-    await saveStore(householdId, next);
-    setSaved(true);
   }
-  useEffect(() => {
-    if (!saved) return;
-    const timer = setTimeout(() => setSaved(false), 2000);
-    return () => clearTimeout(timer);
-  }, [saved]);
 
-  useAutosave(name, (value) => {
-    const problem = nameProblem(value, otherNames, 'store', 60);
-    setNameError(problem);
-    if (!problem && value.trim() !== latest.current.name) {
-      persist({ ...latest.current, name: value.trim() });
+  /** Checks the names, then saves. Returns false (showing why) if a name needs fixing. */
+  async function save(): Promise<boolean> {
+    const current = latest.current;
+    const problem = nameProblem(current.name, otherNames, 'store', 60);
+    const errors: Record<string, string> = {};
+    for (const section of current.sections) {
+      const others = current.sections.filter((s) => s.id !== section.id).map((s) => s.name);
+      const areaProblem = nameProblem(section.name, others, 'area', 60);
+      if (areaProblem) errors[section.id] = areaProblem;
     }
-  });
+    setNameError(problem);
+    setAreaErrors(errors);
+    if (problem || Object.keys(errors).length) return false;
+    setSaving(true);
+    await saveStore(householdId, {
+      ...current,
+      name: current.name.trim(),
+      sections: current.sections.map((s) => ({ ...s, name: s.name.trim() })),
+    });
+    setSaving(false);
+    return true;
+  }
+  const leave = useUnsavedChanges(dirty, save);
 
   function addArea() {
     const problem = nameProblem(
@@ -126,20 +135,29 @@ function StoreEditor({
 
   return (
     <Screen edges={HEADER_EDGES}>
-      <Stack.Screen options={{ title: store.name }} />
-      {saved && (
-        <ThemedText type="small" themeColor="textSecondary" accessibilityLiveRegion="polite">
-          Saved
-        </ThemedText>
-      )}
+      <Stack.Screen
+        options={{
+          title: initial.name,
+          headerRight: () => (
+            <HeaderButton
+              label={saving ? 'Saving…' : 'Save'}
+              accessibilityLabel="Save store"
+              disabled={!dirty || saving}
+              onPress={async () => {
+                if (await save()) leave(() => router.back());
+              }}
+            />
+          ),
+        }}
+      />
 
       <View style={styles.group}>
         <TextField
           label="Store name"
           testID="store-name"
-          value={name}
+          value={store.name}
           onChangeText={(v) => {
-            setName(v);
+            persist({ ...latest.current, name: v });
             setNameError(null);
           }}
           returnKeyType="done"
@@ -176,23 +194,15 @@ function StoreEditor({
               key={section.id}
               section={section}
               position={index + 1}
+              error={areaErrors[section.id] ?? null}
               onRename={(newName) => {
-                const current = latest.current;
-                const problem = nameProblem(
-                  newName,
-                  current.sections.filter((s) => s.id !== section.id).map((s) => s.name),
-                  'area',
-                  60
-                );
-                if (problem) return problem;
-                const existing = current.sections.find((s) => s.id === section.id);
-                if (existing && newName.trim() !== existing.name) {
-                  persist({
-                    ...current,
-                    sections: renameSection(current.sections, section.id, newName),
-                  });
-                }
-                return null;
+                persist({
+                  ...latest.current,
+                  sections: latest.current.sections.map((s) =>
+                    s.id === section.id ? { ...s, name: newName } : s
+                  ),
+                });
+                setAreaErrors(({ [section.id]: _, ...rest }) => rest);
               }}
               onUp={
                 index > 0
@@ -247,6 +257,7 @@ function AreaRow({
   section,
   position,
   onRename,
+  error,
   onUp,
   onDown,
   onRemove,
@@ -255,17 +266,15 @@ function AreaRow({
   section: StoreSection;
   position: number;
   onToggleCategory: (categoryId: CategoryId) => void;
-  /** Returns an error message, or null when the rename is accepted. */
-  onRename: (name: string) => string | null;
+  onRename: (name: string) => void;
+  /** Shown after Save when the name needs fixing. */
+  error: string | null;
   onUp?: () => void;
   onDown?: () => void;
   onRemove: () => void;
 }) {
   const theme = useTheme();
-  const [name, setName] = useState(section.name);
-  const [error, setError] = useState<string | null>(null);
   const [showCategories, setShowCategories] = useState(false);
-  useAutosave(name, (value) => setError(onRename(value)));
   const holds = section.categoryIds.map(categoryName).join(', ');
 
   return (
@@ -276,11 +285,8 @@ function AreaRow({
         </ThemedText>
         <TextInput
           accessibilityLabel={`Area ${position} name`}
-          value={name}
-          onChangeText={(v) => {
-            setName(v);
-            setError(null);
-          }}
+          value={section.name}
+          onChangeText={onRename}
           maxLength={60}
           style={[
             styles.areaInput,

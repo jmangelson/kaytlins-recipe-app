@@ -10,9 +10,9 @@ appId: com.jmangelson.kaytlinsrecipes
     timeout: 15000
 - takeScreenshot: build/screenshots/47-new-list
 - scrollUntilVisible:
-    element: 'Check pantry'
+    element: 'Save list'
 - takeScreenshot: build/screenshots/47b-new-list-bottom
-- tapOn: 'Check pantry'
+- tapOn: 'Save list'
 - extendedWaitUntil:
     visible: 'Check the pantry'
     timeout: 15000
@@ -29,6 +29,10 @@ appId: com.jmangelson.kaytlinsrecipes
     text: 'Have .*, Need .*'
     index: 2
 - takeScreenshot: build/screenshots/49-pantry-partial
+- scrollUntilVisible:
+    element: 'Shop at Macey.s'
+- tapOn: 'Shop at Macey.s'
+- tapOn: 'Shop at Costco'
 - scrollUntilVisible:
     element: 'Make list'
 - takeScreenshot: build/screenshots/50-pantry-stores
