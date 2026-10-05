@@ -16,10 +16,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.jmangelson.kaytlinsrecipes",
-      "googleServicesFile": "./google-services.json",
-      "runtimeVersion": {
-        "policy": "fingerprint"
-      }
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -57,6 +54,9 @@
     },
     "updates": {
       "url": "https://u.expo.dev/b034550e-1a25-4d86-b5c9-12cbc88dc632"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

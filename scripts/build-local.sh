@@ -3,10 +3,9 @@
 # cloud build) instead of waiting in the free cloud queue.
 # Usage: bash scripts/build-local.sh [output.apk]
 #
-# Needs a clean git tree (the build works from a clean checkout) and moves the
-# generated android/ folder aside while it runs: when android/ exists, the
-# runtime fingerprint counts it as hand-written native code, so the
-# fingerprint here wouldn't match the one in the clean checkout.
+# Needs a clean git tree (the build works from a clean checkout). Moves the
+# generated android/ folder aside while it runs so the build sees the project
+# exactly as a cloud build would; it's put back afterwards.
 set -e
 cd "$(dirname "$0")/.."
 OUT="${1:-build/kaytlins-recipes-release.apk}"

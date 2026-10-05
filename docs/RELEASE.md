@@ -24,9 +24,10 @@ npm run update:preview -- "Short description of the change"
 ```
 
 **Native changes: a new APK.** Needed for a new or upgraded native library,
-permissions, the icon or app name, or an Expo SDK upgrade. The runtime
-version follows the native fingerprint, so an over-the-air update never
-reaches an APK it isn't compatible with.
+permissions, the icon or app name, or an Expo SDK upgrade. **Bump `version` in
+app.json first** (1.0.0 → 1.0.1 or 1.1.0): over-the-air updates only reach
+installed builds with the same version, so an older APK never gets code
+that needs native parts it lacks.
 
 ```bash
 npm run build:preview                      # builds on Expo's servers (~10–20 min)
