@@ -88,6 +88,13 @@ appId: com.jmangelson.kaytlinsrecipes
 - hideKeyboard
 - tapOn: 'Chicken/Poultry'
 - scrollUntilVisible:
+    element: 'Main dish'
+- tapOn: 'Main dish'
+- scrollUntilVisible:
+    element: 'Dinner'
+- tapOn: 'Dinner'
+- takeScreenshot: build/screenshots/14c-recipe-form-tag-groups
+- scrollUntilVisible:
     element:
       id: 'recipe-add-ingredients'
 - tapOn:
@@ -289,3 +296,43 @@ appId: com.jmangelson.kaytlinsrecipes
     visible: 'Pork tag name'
     timeout: 15000
 - takeScreenshot: build/screenshots/31-tags
+
+# Meal plans (Milestone 5)
+- back
+- tapOn: 'Plans'
+- takeScreenshot: build/screenshots/32-plans-empty
+- tapOn: 'New plan'
+- tapOn:
+    id: 'plan-name'
+- inputText: 'Week A'
+- hideKeyboard
+- takeScreenshot: build/screenshots/33-plan-new
+- tapOn: 'Create plan'
+- extendedWaitUntil:
+    visible: '7 days · 0 recipes'
+    timeout: 15000
+- takeScreenshot: build/screenshots/34-plan-editor-empty
+- scrollUntilVisible:
+    element: 'Add to Day 1 Dinner'
+- tapOn: 'Add to Day 1 Dinner'
+- extendedWaitUntil:
+    visible: 'Add Chicken Enchiladas'
+    timeout: 15000
+- takeScreenshot: build/screenshots/35-plan-picker-main
+- tapOn: 'Add Chicken Enchiladas'
+- scrollUntilVisible:
+    element: 'Add a side to Day 1 Dinner'
+- takeScreenshot: build/screenshots/36-plan-day-with-main
+- tapOn: 'Add a side to Day 1 Dinner'
+- takeScreenshot: build/screenshots/37-plan-picker-sides
+- tapOn: 'All'
+- extendedWaitUntil:
+    visible: 'Add Veggie Pasta'
+    timeout: 15000
+- takeScreenshot: build/screenshots/38-plan-picker-all
+- tapOn: 'Add Veggie Pasta'
+- back
+- extendedWaitUntil:
+    visible: 'Week A.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/39-plans-list

@@ -1,0 +1,85 @@
+# Build a reusable meal plan: add a main and a suggested side to a dinner,
+# duplicate a day, remove a recipe, rename, and confirm it persists.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - plans
+  - quick
+---
+- evalScript: ${output.email = 'plans' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: recipes
+- tapOn: 'Plans'
+- assertVisible: 'No meal plans yet.'
+
+# New 3-day plan
+- tapOn: 'New plan'
+- tapOn:
+    id: 'plan-name'
+- inputText: 'Week A'
+- hideKeyboard
+- tapOn: '3 days'
+- tapOn: 'Create plan'
+- extendedWaitUntil:
+    visible: '3 days · 0 recipes'
+    timeout: 15000
+
+# Dinner on Day 1: a main (picker opens on Main dish, dinner recipes first)
+- scrollUntilVisible:
+    element: 'Add to Day 1 Dinner'
+- tapOn: 'Add to Day 1 Dinner'
+- extendedWaitUntil:
+    visible: 'For dinner'
+    timeout: 15000
+- assertVisible: 'Add Chicken Enchiladas'
+- assertNotVisible: 'Add Pico'
+- tapOn: 'Add Chicken Enchiladas'
+- extendedWaitUntil:
+    visible: '3 days · 1 recipe'
+    timeout: 15000
+
+# …then the suggested side
+- scrollUntilVisible:
+    element: 'Add a side to Day 1 Dinner'
+- tapOn: 'Add a side to Day 1 Dinner'
+- extendedWaitUntil:
+    visible: 'Add Pico'
+    timeout: 15000
+- assertNotVisible: 'Add Chicken Enchiladas'
+- tapOn: 'Add Pico'
+- extendedWaitUntil:
+    visible: '3 days · 2 recipes'
+    timeout: 15000
+
+# Duplicate Day 1, then remove the side from the copy
+- scrollUntilVisible:
+    element: 'Duplicate Day 1'
+    direction: UP
+- tapOn: 'Duplicate Day 1'
+- scrollUntilVisible:
+    element: '4 days · 4 recipes'
+    direction: UP
+- scrollUntilVisible:
+    element: 'Remove Pico from Day 2 Dinner'
+- tapOn: 'Remove Pico from Day 2 Dinner'
+- scrollUntilVisible:
+    element: '4 days · 3 recipes'
+    direction: UP
+
+# Rename; survives a restart
+- tapOn:
+    id: 'plan-name'
+- eraseText: 10
+- inputText: 'Week B'
+- hideKeyboard
+- back
+- extendedWaitUntil:
+    visible: 'Week B, 4 days · 3 recipes'
+    timeout: 15000
+- launchApp
+- tapOn: 'Plans'
+- extendedWaitUntil:
+    visible: 'Week B, 4 days · 3 recipes'
+    timeout: 30000

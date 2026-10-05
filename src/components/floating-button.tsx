@@ -2,7 +2,7 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type FloatingButtonProps = {
@@ -24,7 +24,11 @@ export function FloatingButton({ label, onPress }: FloatingButtonProps) {
         pressed && styles.pressed,
       ]}>
       <SymbolView name={{ android: 'add', ios: 'plus' }} tintColor={theme.onTint} size={22} />
-      <ThemedText style={[styles.label, { color: theme.onTint }]}>{label}</ThemedText>
+      {/* One weight only: Android under-measures a bold weight layered over the
+          default and clips the label ("Add recipe" → "Add"). */}
+      <ThemedText type="smallBold" style={[styles.label, { color: theme.onTint }]}>
+        {label}
+      </ThemedText>
     </Pressable>
   );
 }
@@ -33,7 +37,8 @@ const styles = StyleSheet.create({
   button: {
     position: 'absolute',
     right: Spacing.four,
-    bottom: BottomTabInset + Spacing.three,
+    // Tab screens end above the tab bar, so no tab inset here.
+    bottom: Spacing.three,
     minHeight: 56,
     borderRadius: 16,
     paddingHorizontal: Spacing.four,
@@ -47,7 +52,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
   },
   label: {
-    fontWeight: 600,
+    fontSize: 16,
   },
   pressed: {
     opacity: 0.85,

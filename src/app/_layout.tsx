@@ -56,6 +56,12 @@ function RootNavigator() {
           name="household"
           options={{ headerShown: true, title: 'Household settings' }}
         />
+        <Stack.Screen name="plan/new" options={{ headerShown: true, title: 'New meal plan' }} />
+        <Stack.Screen name="plan/[id]/index" options={{ headerShown: true, title: 'Meal plan' }} />
+        <Stack.Screen
+          name="plan/[id]/pick"
+          options={{ headerShown: true, title: 'Add a recipe' }}
+        />
         <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
         <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
         <Stack.Screen

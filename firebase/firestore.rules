@@ -98,6 +98,15 @@ service cloud.firestore {
         && (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
+    function validCalendarDay(data, dateId) {
+      return data.keys().hasOnly(['date', 'meals', 'source', 'updatedAt'])
+        && data.date == dateId
+        && dateId.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.meals is map && data.meals.keys().hasOnly(['breakfast', 'lunch', 'dinner'])
+        && (data.source == null || data.source is map)
+        && data.updatedAt == request.time;
+    }
+
     function validHouseholdName(name) {
       return name is string && name.size() > 0 && name.size() <= 60;
     }
@@ -185,12 +194,18 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validMealPlan(request.resource.data);
       }
 
+      match /calendarDays/{dateId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validCalendarDay(request.resource.data, dateId);
+      }
+
       // Everything else in the household: members only. `{collection}`
       // forces at least one segment: in rules v2 a bare `{document=**}` also
       // matches the household doc itself and would bypass the rules above.
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
-          && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans']);
+          && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans',
+              'calendarDays']);
       }
     }
   }

@@ -194,7 +194,7 @@ export default function RecipesScreen() {
           </View>
         )}
       </Screen>
-      {addButton}
+      {!filtersOpen && addButton}
     </View>
   );
 }

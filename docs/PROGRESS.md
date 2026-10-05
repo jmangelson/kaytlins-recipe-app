@@ -13,8 +13,8 @@ Update this file at the end of every milestone.
 | 2   | Seed data + data layer: stores/areas, tags, repositories, unit/line parser | Done        |
 | 3   | Recipes                                                                    | Done        |
 | 4   | Settings: stores & areas, ingredient defaults, tags                        | Done        |
-| 5   | Meal plans (N-day, B/L/D)                                                  | Next        |
-| 6   | Calendar: apply plans to dates                                             | Not started |
+| 5   | Meal plans (N-day, B/L/D)                                                  | Done        |
+| 6   | Calendar: apply plans to dates                                             | Next        |
 | 7   | Shopping generation + pantry check                                         | Not started |
 | 8   | Checklist by store → area, share as text                                   | Not started |
 | 9   | Release: EAS APK on both phones                                            | Not started |
@@ -157,8 +157,33 @@ over edited stores.
   the suite across two emulators (start-emulator.sh now supports
   `EMULATOR_COUNT=2`; e2e-setup.sh prepares every connected emulator).
 
+### Recipe tag groups (2026-10-04)
+
+- Tags belong to Type, Course, or Meal (seed v3 adds Main dish, Side dish,
+  Salad, Soup, Bread, Dessert, Appetizer and Breakfast, Lunch, Dinner; her
+  existing tags become Type). The recipe form shows the three groups, marks
+  unset ones, and asks "… isn't set. Save anyway?" (encouraged, not required).
+- Filters: any tag within a group, all groups with a selection. The Recipes
+  tab hides filters behind a Filters chip (active filters shown as removable
+  chips) and uses a floating Add recipe button, so the list stays visible.
+- Manage tags is grouped; Settings shows one line per group.
+
+### Milestone 5 — Meal plans (2026-10-05)
+
+- Plans tab (floating New plan), new plan (name + 3/5/7/14 or any number of
+  days, up to 60), plan editor: day cards with Breakfast/Lunch (when on) and
+  Dinner, several recipes per meal, remove, duplicate/remove day, add a day,
+  rename (autosave), duplicate plan, delete plan.
+- Picker per slot: recipes tagged for that meal first; opens on Main dish for
+  an empty slot, and "+ Side dish" (sides, salads, bread, soup) once a main is
+  in; course chips and search.
+- Rules validate meal plans (27 rules tests); 159 unit tests; Maestro
+  `meal-plans` (tagged plans, quick).
+
 ## Decisions
 
+- 2026-10-04: one tag system with three groups (Type, Course, Meal); groups
+  are encouraged on save, never required.
 - 2026-10-04: ingredient names keep her capitalization ("Monterey Jack");
   matching ignores case. (Briefly switched to all-lowercase, then reverted at
   her request.)
@@ -204,6 +229,11 @@ over edited stores.
 | Maestro tapped a recipe row instead of the "yellow onions" choice chip | Same visible text on both; rows' labels also omitted the note                                                                                                                                                                                      | Choice chips say "Use yellow onions for onion"; row labels include the note                                                                                      |
 | Edited row ended up above the screen after Done                        | The tall inline editor collapsed and the scroll position stayed put                                                                                                                                                                                | On Done, measure the row against the scroll content (`innerViewRef`) and scroll to it                                                                            |
 | App opened on the test setup screen at launch                          | The root stack opens on the first screen it may show; the always-available `dev-setup` was listed first                                                                                                                                            | List it last, after the guarded groups                                                                                                                           |
+| Recipe list pushed off screen by 15 filter chips                       | Three tag groups of wrapped chips above the list                                                                                                                                                                                                   | Filters behind a Filters chip; floating Add button                                                                                                               |
+| Plan editor copied reloaded data into state in an effect (lint)        | Syncing props to state                                                                                                                                                                                                                             | Key the editor on the plan's contents instead                                                                                                                    |
+| Floating Add button clipped ("Add") and floating over the list         | A bold weight over the default under-measures on Android; offset added the tab bar height although tab content ends above it                                                                                                                       | One font weight; offset from the content bottom; hidden while filters are open                                                                                   |
+| Week of empty plan days was very tall                                  | Each empty meal took three rows                                                                                                                                                                                                                    | Empty meals are one line ("Breakfast …… + Add")                                                                                                                  |
+| Firestore rules briefly failed to compile (live on the local emulator) | A scripted `String.replace` inserted text containing `$'`, which JavaScript expands to "the rest of the string"                                                                                                                                    | Restore from git; scripted edits use function replacers (`replace(a, () => b)`)                                                                                  |
 
 ## Lessons learned
 
@@ -264,5 +294,7 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Installing the release APK over the dev build keeps its data** (same debug
   signing key), including an Auth-emulator sign-in the real backend rejects.
   Uninstall first (and check it succeeded) or `pm clear` before testing.
+- **`String.replace(a, b)` treats `$&`, `$'`, `$\`` in `b` specially.** Regexes in
+rules (`…$'`) triggered it. Use `replace(a, () => b)` for literal text.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.

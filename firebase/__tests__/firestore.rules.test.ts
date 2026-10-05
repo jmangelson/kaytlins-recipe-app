@@ -375,3 +375,37 @@ describe('meal plans', () => {
     await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'mealPlans', 'p1'), plan));
   });
 });
+
+describe('calendar days', () => {
+  beforeEach(seedHousehold);
+
+  const day = {
+    date: '2026-10-05',
+    meals: { breakfast: [], lunch: [], dinner: [{ recipeId: 'r1', servings: null }] },
+    source: { planId: 'p1', planName: 'Week A', dayIndex: 0 },
+    updatedAt: serverTimestamp(),
+  };
+
+  it('lets members write and delete days', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'calendarDays', '2026-10-05');
+    await assertSucceeds(setDoc(ref, day));
+    await assertSucceeds(setDoc(ref, { ...day, source: null }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('requires the document id to be the date', async () => {
+    const db = dbAs('alice');
+    await assertFails(setDoc(doc(db, 'households', HID, 'calendarDays', '2026-10-06'), day));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'calendarDays', 'tuesday'), { ...day, date: 'tuesday' })
+    );
+  });
+
+  it('rejects unknown meals and blocks non-members', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'calendarDays', '2026-10-05');
+    await assertFails(setDoc(ref, { ...day, meals: { ...day.meals, brunch: [] } }));
+    await assertFails(
+      setDoc(doc(dbAs('mallory'), 'households', HID, 'calendarDays', '2026-10-05'), day)
+    );
+  });
+});
