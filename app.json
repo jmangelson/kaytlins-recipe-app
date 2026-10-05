@@ -15,7 +15,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.jmangelson.kaytlinsrecipes"
+      "package": "com.jmangelson.kaytlinsrecipes",
+      "googleServicesFile": "./google-services.json",
+      "runtimeVersion": {
+        "policy": "fingerprint"
+      }
     },
     "plugins": [
       "expo-router",
@@ -50,6 +54,9 @@
       "eas": {
         "projectId": "b034550e-1a25-4d86-b5c9-12cbc88dc632"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b034550e-1a25-4d86-b5c9-12cbc88dc632"
     }
   }
 }
