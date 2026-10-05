@@ -106,10 +106,53 @@ function wordsWithin(a: string, b: string): boolean {
 }
 
 /**
+ * Edit distance between two words: letters added, removed, changed, or two
+ * neighbors swapped ("onoin" → "onion" is 1, "hortel" → "rotel" is 2).
+ */
+export function editDistance(a: string, b: string): number {
+  const d = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return d[a.length][b.length];
+}
+
+/** Words shorter than this must match exactly ("salt" never suggests "malt"). */
+const MIN_FUZZY_LENGTH = 5;
+/** How much of a word must match to count as a likely typo ("hortel" vs "rotel" is 0.67). */
+const MIN_SIMILARITY = 0.66;
+
+function wordsClose(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.min(a.length, b.length) < MIN_FUZZY_LENGTH) return false;
+  const longest = Math.max(a.length, b.length);
+  return 1 - editDistance(a, b) / longest >= MIN_SIMILARITY;
+}
+
+/** Every word of `a` is in `b`, allowing for a typo or two in longer words. */
+function wordsNearlyWithin(a: string, b: string): boolean {
+  const bWords = b.split(' ').map(ingredientNameKey);
+  return a
+    .split(' ')
+    .map(ingredientNameKey)
+    .every((word) => bWords.some((other) => wordsClose(word, other)));
+}
+
+/**
  * Matches a recipe line's ingredient name against the canonical list.
- * Exact name/alias matches link automatically; names where one is contained
- * in the other ("onion" ⊂ "yellow onion", "fresh parsley" ⊃ "parsley") are
- * offered as choices.
+ * Exact name/alias matches link automatically (abbreviations like "w/" count
+ * as the full word). Names where one is contained in the other ("onion" ⊂
+ * "yellow onion", "fresh parsley" ⊃ "parsley") are offered as choices, then
+ * near-misses with a typo ("rotel" vs "Hortels tomatoes w/ chile"). Choices
+ * are never linked without asking.
  */
 export function matchIngredient(name: string, ingredients: Ingredient[]): IngredientMatch {
   const key = ingredientNameKey(name);
@@ -117,15 +160,22 @@ export function matchIngredient(name: string, ingredients: Ingredient[]): Ingred
   const exact = ingredients.find((i) => i.nameKey === key || i.aliasKeys.includes(key));
   const options = specificOptions(name);
   if (exact && !options) return { kind: 'exact', ingredient: exact };
-  const candidates = ingredients
-    .filter((i) =>
-      [i.nameKey, ...i.aliasKeys].some((k) => wordsWithin(key, k) || wordsWithin(k, key))
-    )
+  const keys = (i: Ingredient) => [i.nameKey, ...i.aliasKeys];
+  const containing = ingredients
+    .filter((i) => keys(i).some((k) => wordsWithin(key, k) || wordsWithin(k, key)))
     .sort((a, b) => {
       // The general one itself (if she has it) goes last.
       if ((a === exact) !== (b === exact)) return a === exact ? 1 : -1;
       return a.name.localeCompare(b.name);
     });
+  const nearMisses = ingredients
+    .filter(
+      (i) =>
+        !containing.includes(i) &&
+        keys(i).some((k) => wordsNearlyWithin(key, k) || wordsNearlyWithin(k, key))
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const candidates = [...containing, ...nearMisses].slice(0, 8);
   const theirs = new Set(ingredients.flatMap((i) => [i.nameKey, ...i.aliasKeys]));
   const suggestions = (options ?? []).filter((o) => !theirs.has(ingredientNameKey(o)));
   return candidates.length || options
@@ -146,7 +196,12 @@ export function searchIngredients(text: string, ingredients: Ingredient[]): Ingr
           ? 1
           : names.some((n) => n.includes(needle))
             ? 2
-            : -1;
+            : // A typo or two ("hortel" for "rotel"), listed last.
+              [i.nameKey, ...i.aliasKeys].some((k) =>
+                  wordsNearlyWithin(ingredientNameKey(needle), k)
+                )
+              ? 3
+              : -1;
       return { i, score };
     })
     .filter((s) => s.score >= 0);

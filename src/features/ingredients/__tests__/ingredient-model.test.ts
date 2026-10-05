@@ -1,6 +1,7 @@
 import { guessCategory } from '@/features/ingredients/categories';
 import {
   areaForStore,
+  editDistance,
   ingredientFromData,
   ingredientToData,
   matchIngredient,
@@ -216,5 +217,70 @@ describe('ingredientFromData', () => {
       storePriority: ['maceys'],
       areaOverrides: { maceys: 'meat-seafood' },
     });
+  });
+});
+
+describe('matching abbreviations and typos', () => {
+  const rotel = ingredient('r', 'Hortels tomatoes w/ chile');
+  const jack = ingredient('j', 'Monterey Jack');
+  const batter = ingredient('b', 'pancake batter');
+  const salt = ingredient('s', 'salt');
+
+  it('reads abbreviations and accents as the full word, so they link exactly', () => {
+    const list = [
+      ingredient('t', 'Rotel tomatoes w/ chile'),
+      ingredient('p', 'cream cheese, 8 oz pkg'),
+    ];
+    expect(matchIngredient('Rotel tomatoes with chile', list)).toMatchObject({ kind: 'exact' });
+    expect(matchIngredient('jalapeño', [ingredient('x', 'Jalapeno')])).toMatchObject({
+      kind: 'exact',
+    });
+    expect(matchIngredient('mac & cheese', [ingredient('m', 'mac and cheese')])).toMatchObject({
+      kind: 'exact',
+    });
+  });
+
+  it('offers near-misses with a typo, but never links them on its own', () => {
+    expect(matchIngredient('rotel', [rotel, jack])).toEqual({
+      kind: 'partial',
+      candidates: [rotel],
+      suggestions: [],
+    });
+    expect(matchIngredient('Montery Jack', [rotel, jack])).toMatchObject({
+      kind: 'partial',
+      candidates: [jack],
+    });
+  });
+
+  it('lists names that contain the words before near-misses', () => {
+    const typo = ingredient('t', 'chedder cheese');
+    const sharp = ingredient('s2', 'sharp cheddar');
+    const result = matchIngredient('chedder', [sharp, typo]);
+    expect(result.kind === 'partial' && result.candidates.map((c) => c.name)).toEqual([
+      'chedder cheese',
+      'sharp cheddar',
+    ]);
+    // Different words are not typos of each other.
+    expect(matchIngredient('red onoin', [ingredient('y', 'yellow onion')])).toEqual({
+      kind: 'none',
+    });
+  });
+
+  it('leaves short words alone and doesn’t stretch longer ones too far', () => {
+    expect(matchIngredient('malt', [salt])).toEqual({ kind: 'none' });
+    expect(matchIngredient('butter', [batter]).kind).toBe('partial'); // one letter: she decides
+    expect(matchIngredient('beets', [batter])).toEqual({ kind: 'none' });
+  });
+
+  it('measures typos as letters added, removed, changed, or swapped', () => {
+    expect(editDistance('hortel', 'rotel')).toBe(2);
+    expect(editDistance('onoin', 'onion')).toBe(1);
+    expect(editDistance('monterey', 'montery')).toBe(1);
+    expect(editDistance('salt', 'malt')).toBe(1);
+    expect(editDistance('', 'abc')).toBe(3);
+  });
+
+  it('search finds near-misses after closer results', () => {
+    expect(searchIngredients('rotel', [jack, rotel]).map((i) => i.id)).toEqual(['r']);
   });
 });

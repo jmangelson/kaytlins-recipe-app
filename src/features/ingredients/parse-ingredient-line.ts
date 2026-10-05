@@ -199,12 +199,44 @@ const KEEP_TRAILING_S = /(ss|us|is)$/;
  * Key for matching ingredient names regardless of case, punctuation, or a
  * simple plural ("Yellow Onions" and "yellow onion" match).
  */
+/** Abbreviations in ingredient names, read as the full word for matching. */
+const ABBREVIATIONS: Record<string, string> = {
+  pkg: 'package',
+  pkgs: 'packages',
+  lg: 'large',
+  med: 'medium',
+  sm: 'small',
+  choc: 'chocolate',
+  bbq: 'barbecue',
+  evap: 'evaporated',
+  cond: 'condensed',
+  frz: 'frozen',
+  frzn: 'frozen',
+  veg: 'vegetable',
+  veggie: 'vegetable',
+  veggies: 'vegetables',
+  xtra: 'extra',
+  reg: 'regular',
+  lt: 'light',
+  chix: 'chicken',
+  parm: 'parmesan',
+  mozz: 'mozzarella',
+  ital: 'italian',
+};
+
 export function ingredientNameKey(name: string): string {
   const words = name
     .toLowerCase()
+    // "jalapeño" and "jalapeno" are the same word.
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\bw\/o\b/g, ' without ')
+    .replace(/\bw\//g, ' with ')
+    .replace(/&/g, ' and ')
     .replace(/[^a-z0-9\s-]/g, ' ')
     .split(/\s+/)
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((word) => ABBREVIATIONS[word] ?? word);
   if (words.length === 0) return '';
   const last = words[words.length - 1];
   let singular = last;
