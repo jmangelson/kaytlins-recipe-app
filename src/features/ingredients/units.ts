@@ -223,7 +223,8 @@ export function unitDimension(unit: UnitKey | null): Dimension {
 
 export function unitLabel(unit: UnitKey, amount: number | null): string {
   const def = UNITS[unit];
-  return amount !== null && Math.abs(amount - 1) < 1e-9 ? def.singular : def.plural;
+  // "⅓ cup", "1 cup", but "1 ½ cups".
+  return amount !== null && amount > 0 && amount <= 1 + 1e-9 ? def.singular : def.plural;
 }
 
 /** Converts an amount between units of the same dimension. */

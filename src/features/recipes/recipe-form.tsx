@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRef, useState, type RefObject } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
@@ -35,6 +35,10 @@ type RecipeFormProps = {
   ingredients: Ingredient[];
   saveLabel: string;
   onSave: (draft: RecipeDraft, photo: PhotoChange) => Promise<void>;
+  /** Shown above the fields (the scan button, or what a scan noticed). */
+  header?: ReactNode;
+  /** The starting draft isn't saved anywhere yet (a scan), so Back asks. */
+  unsavedFromStart?: boolean;
 };
 
 export function RecipeForm({
@@ -44,6 +48,8 @@ export function RecipeForm({
   ingredients,
   saveLabel,
   onSave,
+  header,
+  unsavedFromStart = false,
 }: RecipeFormProps) {
   const [draft, setDraft] = useState(initialDraft);
   const scrollRef = useRef<ScrollView>(null);
@@ -118,7 +124,9 @@ export function RecipeForm({
   // While saving, onSave navigates away itself.
   const dirty =
     !saving &&
-    (JSON.stringify(draft) !== JSON.stringify(initialDraft) || photo.kind !== 'unchanged');
+    (unsavedFromStart ||
+      JSON.stringify(draft) !== JSON.stringify(initialDraft) ||
+      photo.kind !== 'unchanged');
   useUnsavedChanges(dirty, async () => {
     save();
     return false;
@@ -130,6 +138,7 @@ export function RecipeForm({
       scrollRef={scrollRef}
       // ScrollView types this ref as never-null; it's only read after mount.
       innerViewRef={contentRef as RefObject<View>}>
+      {header}
       <TextField
         label="Recipe name"
         testID="recipe-name"

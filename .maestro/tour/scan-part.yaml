@@ -1,0 +1,27 @@
+# Recipe scan screens (Milestone 10). Starts on the Recipes tab; test builds
+# return a canned scan.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- tapOn: 'Add recipe'
+- takeScreenshot: build/screenshots/61-new-recipe-scan-button
+- tapOn: 'Scan a recipe photo'
+- takeScreenshot: build/screenshots/62-scan-empty
+- tapOn: 'Choose from photos'
+- tapOn: 'Photo taken on.*'
+- tapOn: 'Add \(1\)'
+- extendedWaitUntil:
+    visible: 'Page 1'
+    timeout: 15000
+- takeScreenshot: build/screenshots/63-scan-page
+- tapOn: 'Read recipe'
+- takeScreenshot: build/screenshots/64-scan-reading
+- extendedWaitUntil:
+    visible: 'Filled in from your photo.*'
+    timeout: 20000
+- takeScreenshot: build/screenshots/65-scan-filled
+- scrollUntilVisible:
+    element: 'Hard to read. Photo says.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/66-scan-unclear-line
+- back
+- tapOn: 'DISCARD|Discard'

@@ -1,0 +1,52 @@
+# Scan a recipe photo (test builds return a canned result, so no paid API
+# call): the form fills in, flags a hard-to-read line and the scan's warning,
+# general names still ask, and nothing saves until she taps Save.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - recipes
+---
+- evalScript: ${output.email = 'scan' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- tapOn: 'Add recipe'
+- tapOn: 'Scan a recipe photo'
+- assertVisible: 'Read recipe'
+- tapOn: 'Choose from photos'
+- tapOn: 'Photo taken on.*'
+- tapOn: 'Add \(1\)'
+- extendedWaitUntil:
+    visible: 'Page 1'
+    timeout: 15000
+- assertVisible: 'Take another page'
+- tapOn: 'Read recipe'
+- extendedWaitUntil:
+    visible: 'Filled in from your photo.*'
+    timeout: 20000
+
+# What the scan read, and what she should check
+- assertVisible: '.*right edge of the card is cut off.*'
+- assertVisible: '.*1 line was hard to read.*'
+- assertVisible: 'Lemon Bars'
+- scrollUntilVisible:
+    element: 'Hard to read. Photo says.*lemon ju.*'
+# "butter" and "sugar" are too general: she picks kinds
+- scrollUntilVisible:
+    element: 'Use new unsalted butter for butter'
+    direction: UP
+- tapOn: 'Use new unsalted butter for butter'
+- scrollUntilVisible:
+    element: 'Use new granulated sugar for sugar'
+- tapOn: 'Use new granulated sugar for sugar'
+
+# Nothing saved until Save
+- scrollUntilVisible:
+    element: 'Save recipe'
+- tapOn: 'Save recipe'
+- runFlow: subflows/accept-save-anyway.yaml
+- extendedWaitUntil:
+    visible: 'Lemon Bars'
+    timeout: 15000
+- assertVisible: '.*unsalted butter.*'

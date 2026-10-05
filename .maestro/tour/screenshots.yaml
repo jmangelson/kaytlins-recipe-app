@@ -427,3 +427,7 @@ appId: com.jmangelson.kaytlinsrecipes
 # Shopping (Milestone 7)
 - runFlow: shopping-part.yaml
 - runFlow: shopping-extras-part.yaml
+
+# Recipe scan (Milestone 10)
+- tapOn: 'Recipes'
+- runFlow: scan-part.yaml

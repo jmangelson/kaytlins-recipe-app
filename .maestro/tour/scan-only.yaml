@@ -1,0 +1,10 @@
+# Just the scan screens (for quick screenshot review).
+appId: com.jmangelson.kaytlinsrecipes
+---
+- evalScript: ${output.email = 'scantour' + Date.now() + '@test.dev'}
+- runFlow:
+    file: ../subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: recipes
+- runFlow: scan-part.yaml

@@ -30,5 +30,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: {
     ...config.extra,
     googleWebClientId: readGoogleWebClientId(),
+    // Photo scan Worker (worker/); SCAN_URL overrides it for local testing.
+    scanUrl: process.env.SCAN_URL ?? 'https://kaytlins-recipe-scan.joshuagm55.workers.dev',
   },
 });

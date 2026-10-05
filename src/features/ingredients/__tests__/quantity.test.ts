@@ -110,3 +110,11 @@ describe('combineQuantities', () => {
     ).toEqual([{ amount: 1, unit: 'tsp' }]);
   });
 });
+
+describe('unit labels', () => {
+  it('are singular up to one and plural above', () => {
+    expect(formatQuantity({ amount: 1 / 3, unit: 'cup' })).toBe('⅓ cup');
+    expect(formatQuantity({ amount: 1, unit: 'cup' })).toBe('1 cup');
+    expect(formatQuantity({ amount: 1.5, unit: 'cup' })).toBe('1 ½ cups');
+  });
+});

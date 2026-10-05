@@ -208,6 +208,11 @@ function RowSummary({
               Which ingredient is “{row.writtenName}”?
             </ThemedText>
           )}
+          {row.scan?.unclear && (
+            <ThemedText type="small" themeColor="attention">
+              Hard to read. Photo says: “{row.scan.sourceText}”
+            </ThemedText>
+          )}
         </View>
       </Pressable>
       {row.link.kind === 'choose' && (
