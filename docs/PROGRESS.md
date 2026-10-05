@@ -18,7 +18,7 @@ Update this file at the end of every milestone.
 | 7   | Shopping generation + pantry check                                         | Done        |
 | 8   | Checklist by store → area, share as text                                   | Done        |
 | 9   | Release: EAS APK on both phones                                            | In progress |
-| 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
+| 10  | AI photo scan (Cloudflare Worker + Claude)                                 | In progress |
 
 ## Completed
 
@@ -322,6 +322,27 @@ From the full check on her phone:
   version 1.0.1. Checked on the emulator: the button opens Google's sheet,
   backing out returns quietly; real sign-in needs a phone.
 - Still to do: the switch to the real household.
+
+### Milestone 10 — Recipe photo scan (2026-10-05)
+
+- Cloudflare Worker `kaytlins-recipe-scan` (`worker/`): checks the Firebase
+  ID token (Google's keys via jose), the allowed emails (a secret), and daily
+  limits in KV (20 per person, 50 total); calls `claude-opus-5-5` with the
+  photos and structured output (`output_config.format` built by the shared
+  `scan-contract.ts`, with her tag ids and the app's unit keys as enums),
+  effort medium, server-side refusal fallback; re-checks the JSON. The
+  Anthropic key is only a Worker secret.
+- App: New recipe → "Scan a recipe photo" (camera or up to 4 photos, resized
+  to 1400 px JPEG) → "Reading the recipe…" → the form fills in through the
+  normal row matching; a banner lists warnings, hard-to-read lines show the
+  printed text, and Back asks before dropping a scan. Test builds use a
+  canned scan (Maestro `recipe-scan`), so tests never call the paid API.
+- Real-model check with two synthetic cards (`worker/scripts/try-scan.ts`):
+  the typed card read exactly (units, can sizes, range, "to taste",
+  directions left out, tags suggested); a smudged line and a cut-off line
+  came back low-confidence with warnings. About 10 s and 3¢ per recipe.
+- Shipped as an over-the-air update to 1.0.1 (no native changes).
+- Still to do: the accuracy check on ~10 of her real recipe photos.
 
 ## Decisions
 

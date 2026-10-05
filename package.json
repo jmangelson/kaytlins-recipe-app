@@ -69,7 +69,7 @@
     "e2e:parallel": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --shard-split=2 .maestro",
     "eas": "bash scripts/eas.sh",
     "build:preview": "bash scripts/eas.sh build --platform android --profile preview --non-interactive",
-    "update:preview": "bash scripts/eas.sh update --channel preview --platform android --non-interactive --message",
+    "update:preview": "bash scripts/eas.sh update --channel preview --environment preview --platform android --non-interactive --message",
     "distribute": "bash scripts/distribute.sh",
     "build:local": "bash scripts/build-local.sh"
   },

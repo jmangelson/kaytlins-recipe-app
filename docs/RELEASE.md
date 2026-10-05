@@ -41,6 +41,26 @@ When the free cloud queue is slow, build the same APK here instead (same
 signing key; needs a clean git tree): `npm run build:local`. It writes
 `build/kaytlins-recipes-release.apk`.
 
+## Photo scan Worker
+
+`worker/` is deployed separately to Cloudflare
+(`https://kaytlins-recipe-scan.joshuagm55.workers.dev`):
+
+```bash
+cd worker && CLOUDFLARE_API_TOKEN=$(cat ~/.cloudflare-token) npx wrangler deploy
+```
+
+Secrets, encrypted on Cloudflare and never in git: `ANTHROPIC_API_KEY`, and
+`ALLOWED_EMAILS` (comma-separated Google accounts allowed to scan). Change one
+by piping the new value into `npx wrangler secret put NAME`. Daily limits are
+`DAILY_LIMIT_PER_USER` and `DAILY_LIMIT_TOTAL` in `worker/wrangler.toml`.
+
+To check reading quality on real photos (paid, about 3¢ each):
+
+```bash
+cd worker && ANTHROPIC_API_KEY=$(cat ~/.anthropic-key) npx tsx scripts/try-scan.ts page1.jpg
+```
+
 ## After the container is rebuilt
 
 Nothing here holds data, but these logins live in the container's home
@@ -56,7 +76,11 @@ directory and must be redone:
 3. **GitHub deploy key:** generate a new key in `~/.ssh` and add it to the
    repo's deploy keys (write access), as in the README.
 4. **`google-services.json`:** download it again into the repo root.
-5. **Gradle memory for local release builds:** add
+5. **Cloudflare and Anthropic** (only to redeploy the Worker or run
+   try-scan): save a Cloudflare API token ("Edit Cloudflare Workers"
+   template) to `~/.cloudflare-token` and the Anthropic key to
+   `~/.anthropic-key`.
+6. **Gradle memory for local release builds:** add
    `org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1536m` to
    `~/.gradle/gradle.properties` (the project default ran out of Metaspace).
 
