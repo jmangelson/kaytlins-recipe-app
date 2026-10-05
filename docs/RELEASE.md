@@ -62,8 +62,12 @@ directory and must be redone:
 Google sign-in only works for APKs whose signing certificate is registered
 in Firebase (Project settings → Your apps → Android → SHA certificate
 fingerprints). Registered: the debug key (development and test builds) and
-the EAS release key (SHA-1 and SHA-256). If sign-in fails with a
-DEVELOPER_ERROR in a release build, compare
+the EAS release key:
+
+- SHA-1 `11:9C:08:77:11:5A:09:30:80:27:32:31:48:C4:14:03:F4:0A:F6:A1`
+- SHA-256 `3A:9D:95:6C:D1:88:FD:56:A1:E0:BB:55:38:60:C6:06:D0:FB:AD:6E:B4:D7:73:B0:8A:3A:D2:AD:82:4C:41:FB`
+
+If sign-in fails with a DEVELOPER_ERROR in a release build, compare
 `apksigner verify --print-certs app.apk` with those fingerprints.
 
 ## First install on a phone
