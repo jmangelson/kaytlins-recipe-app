@@ -1,0 +1,15 @@
+# Recipe photo scan Worker (docs/RELEASE.md → Photo scan Worker).
+# Secrets (not in git): ANTHROPIC_API_KEY, ALLOWED_EMAILS.
+name = "kaytlins-recipe-scan"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+account_id = "2bf60361db78a7b7332a0e218b5fa9b1"
+
+[vars]
+FIREBASE_PROJECT_ID = "kaytlin-s-recipe-app"
+DAILY_LIMIT_PER_USER = "20"
+DAILY_LIMIT_TOTAL = "50"
+
+[[kv_namespaces]]
+binding = "SCAN_LIMITS"
+id = "21b9a0bb3374469ea32984b0248b2388"

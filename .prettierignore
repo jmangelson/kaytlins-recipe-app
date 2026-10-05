@@ -7,3 +7,5 @@ package-lock.json
 CLAUDE.md
 AGENTS.md
 .devcontainer/
+worker/node_modules/
+worker/.wrangler/

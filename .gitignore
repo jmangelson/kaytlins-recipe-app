@@ -55,3 +55,6 @@ coverage/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+
+# Cloudflare Worker local state
+worker/.wrangler/

@@ -46,6 +46,8 @@ export type DraftRow = {
   writtenName: string;
   raw: string;
   link: RowLink;
+  /** From a photo scan: the line as printed, and whether it was hard to read. */
+  scan?: { sourceText: string; unclear: boolean };
 };
 
 /** What the add/edit form holds while she edits. */
