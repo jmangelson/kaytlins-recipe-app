@@ -67,7 +67,11 @@
     "screenshots": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results .maestro/tour/screenshots.yaml",
     "e2e:quick": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --include-tags=quick .maestro",
     "e2e:tag": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results .maestro --include-tags",
-    "e2e:parallel": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --shard-split=2 .maestro"
+    "e2e:parallel": "bash scripts/e2e-setup.sh && maestro test --test-output-dir=build/maestro-results --shard-split=2 .maestro",
+    "eas": "bash scripts/eas.sh",
+    "build:preview": "bash scripts/eas.sh build --platform android --profile preview --non-interactive",
+    "update:preview": "bash scripts/eas.sh update --channel preview --platform android --non-interactive --message",
+    "distribute": "bash scripts/distribute.sh"
   },
   "private": true,
   "jest": {
