@@ -37,6 +37,12 @@ npm run distribute -- path/to/app.apk "What changed"
 
 The build number (versionCode) counts up on EAS automatically.
 
+**An over-the-air update only reaches installs of the same version.** After a
+new APK (say 1.0.1), phones still on the older APK (1.0.0) get nothing until
+they install it from Firebase App Tester. When an update doesn't show up,
+check Settings → App version (or Android's App info) first. Settings → Check
+for updates applies a published update right away.
+
 When the free cloud queue is slow, build the same APK here instead (same
 signing key; needs a clean git tree): `npm run build:local`. It writes
 `build/kaytlins-recipes-release.apk`.
