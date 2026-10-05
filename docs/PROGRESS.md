@@ -242,6 +242,18 @@ over edited stores.
   of when it was last opened, so items added on the tab afterwards show up
   in the count only after the list is opened.
 
+### Milestone 9 prep — App icon (2026-10-05)
+
+- New logo, chosen from six options: a lidded cooking pot with a K cut out
+  (peach `#F5AE88` on plum `#4E2A47`). Assets in `assets/images/`: 1024 px
+  `icon.png`, adaptive foreground/background, monochrome (themed icons;
+  the K is a true cut-out, so it reads in one color), and the splash image
+  (plum splash background, 120 dp).
+- Drawn as SVG on Android's 108-unit adaptive canvas, art inside the 66-unit
+  safe zone, rendered to PNG with resvg. Checked on the emulator: app
+  drawer, themed home-screen icon, splash. The app's blue accent is
+  unchanged.
+
 ## Decisions
 
 - 2026-10-05: hand-added items are canonical ingredients (with a store) and
