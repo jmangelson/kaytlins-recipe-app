@@ -71,7 +71,8 @@
     "eas": "bash scripts/eas.sh",
     "build:preview": "bash scripts/eas.sh build --platform android --profile preview --non-interactive",
     "update:preview": "bash scripts/eas.sh update --channel preview --platform android --non-interactive --message",
-    "distribute": "bash scripts/distribute.sh"
+    "distribute": "bash scripts/distribute.sh",
+    "build:local": "bash scripts/build-local.sh"
   },
   "private": true,
   "jest": {

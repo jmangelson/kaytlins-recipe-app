@@ -36,6 +36,10 @@ npm run distribute -- path/to/app.apk "What changed"
 
 The build number (versionCode) counts up on EAS automatically.
 
+When the free cloud queue is slow, build the same APK here instead (same
+signing key; needs a clean git tree): `npm run build:local`. It writes
+`build/kaytlins-recipes-release.apk`.
+
 ## After the container is rebuilt
 
 Nothing here holds data, but these logins live in the container's home
