@@ -13,7 +13,8 @@ import {
   scanJsonSchema,
   type ScanRequest,
 } from '../../src/features/scan/scan-contract';
-import { limitKeys, scanRequestProblem, SYSTEM_PROMPT, userPrompt } from './scan-request';
+import { readRecipe } from './read-recipe';
+import { limitKeys, scanRequestProblem } from './scan-request';
 
 export interface Env {
   ANTHROPIC_API_KEY: string;
@@ -96,71 +97,12 @@ async function scan(request: Request, env: Env): Promise<Response> {
     env.SCAN_LIMITS.put(keys.total, String(usedTotal + 1), twoDays),
   ]);
 
-  const tagIds = tags.map((t) => t.id);
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
-  let response: Anthropic.Beta.BetaMessage;
-  try {
-    response = await client.beta.messages.create({
-      model: 'claude-opus-5-5',
-      max_tokens: 16000,
-      // On a safety decline, the API retries the request on a fallback model.
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: {
-        effort: 'medium',
-        format: { type: 'json_schema', schema: scanJsonSchema(tagIds) },
-      },
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            ...images.map((image) => ({
-              type: 'image' as const,
-              source: {
-                type: 'base64' as const,
-                media_type: 'image/jpeg' as const,
-                data: image.data,
-              },
-            })),
-            { type: 'text' as const, text: userPrompt(tags) },
-          ],
-        },
-      ],
-    });
-  } catch (error) {
-    if (error instanceof Anthropic.RateLimitError) {
-      return problem(503, 'busy', 'The recipe reader is busy. Try again in a minute.');
-    }
-    if (error instanceof Anthropic.APIError) {
-      console.error('Claude API error', error.status, error.message);
-      return problem(
-        502,
-        'reader_error',
-        'The recipe reader isn’t available right now. Try again soon.'
-      );
-    }
-    throw error;
-  }
-
-  if (response.stop_reason === 'refusal') {
-    return problem(422, 'declined', 'These photos couldn’t be read as a recipe.');
-  }
-  if (response.stop_reason === 'max_tokens') {
-    return problem(422, 'too_long', 'That recipe is too long to read in one go. Try fewer pages.');
-  }
-  const text = response.content.find((b) => b.type === 'text');
-  let result = null;
-  try {
-    result = text?.type === 'text' ? parseScanResult(JSON.parse(text.text), tagIds) : null;
-  } catch {
-    result = null;
-  }
-  if (!result) {
-    console.error('Unexpected scan output', response.stop_reason);
-    return problem(502, 'reader_error', 'The recipe couldn’t be read. Try again.');
-  }
-  return reply(200, result);
+  const outcome = await readRecipe(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), {
+    images,
+    tags,
+  });
+  if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
+  return reply(200, outcome.result);
 }
 
 export default {
