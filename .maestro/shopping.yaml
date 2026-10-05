@@ -1,0 +1,93 @@
+# Make a shopping list from this week's calendar: leave out a meal, check the
+# pantry (have one item, some of another), make the list by store and area,
+# check an item off, go back to the pantry check, and build one from a plan.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - shopping
+  - quick
+---
+- evalScript: ${output.email = 'shopping' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: week
+- tapOn: 'Shopping'
+- assertVisible: 'No shopping lists yet.'
+
+# This week has Week A on it: day 1 enchiladas + pico, day 2 pasta
+- tapOn: 'New list'
+- extendedWaitUntil:
+    visible: '.*Dinner, Chicken Enchiladas, Pico'
+    timeout: 15000
+- assertVisible: '2 meals · 7 ingredients.*'
+- tapOn: '.*Dinner, Veggie Pasta'
+- assertVisible: '1 meal · 5 ingredients.*'
+- scrollUntilVisible:
+    element: 'Check pantry'
+- tapOn: 'Check pantry'
+
+# Pantry check
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- assertVisible: '5 of 5 to buy.'
+- tapOn: 'Have lime.*'
+- assertVisible: '4 of 5 to buy.'
+- tapOn: 'Have some chicken breasts'
+- tapOn:
+    id: 'have-chicken breasts'
+- inputText: '1/2'
+- assertVisible: 'Buy 1 ½ lb'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Make list'
+- assertVisible: 'Shop at Costco'
+- tapOn: 'Make list'
+
+# The list, grouped by store and area
+- extendedWaitUntil:
+    visible: '4 to buy at .*'
+    timeout: 15000
+- assertVisible: 'chicken breasts.*1 ½ lb.*'
+- assertNotVisible: 'lime.*'
+- tapOn: 'chicken breasts.*'
+- assertVisible: '1 of 4 in the cart.'
+- back
+- extendedWaitUntil:
+    visible: '1 of 4 in the cart'
+    timeout: 15000
+
+# Back to the pantry check keeps her answers
+- tapOn: '.*1 of 4 in the cart'
+- scrollUntilVisible:
+    element: 'Back to pantry check'
+- tapOn: 'Back to pantry check'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- assertVisible:
+    text: 'Have lime.*'
+    checked: true
+- assertVisible: 'Buy 1 ½ lb'
+- back
+
+# From a meal plan instead
+- tapOn: 'New list'
+- tapOn: 'A meal plan'
+- tapOn: 'Shop for Week A'
+- extendedWaitUntil:
+    visible: '2 meals · 7 ingredients.*'
+    timeout: 15000
+- back
+
+# Delete the list
+- tapOn: '.*Checking pantry.*'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- tapOn: 'Delete list'
+- tapOn: 'DELETE|Delete'
+- extendedWaitUntil:
+    visible: 'No shopping lists yet.'
+    timeout: 15000

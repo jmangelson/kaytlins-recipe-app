@@ -1,3 +1,5 @@
+import { applyPlan, startOfWeek, toDateKey } from '@/features/calendar/calendar-model';
+import { saveCalendarDays } from '@/features/calendar/calendar-repo';
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { emptyDraft, rowsFromText } from '@/features/recipes/recipe-draft';
 import { addItem, emptyPlanDays, type MealPlan } from '@/features/plans/meal-plan';
@@ -43,13 +45,24 @@ export async function addFixtureRecipes(householdId: string): Promise<void> {
   }
 }
 
-/** A two-day "Week A" plan using the sample recipes (add those first). */
-export async function addFixturePlan(householdId: string): Promise<void> {
+/**
+ * A two-day "Week A" plan using the sample recipes (add those first), and
+ * optionally put on the calendar from the start of this week.
+ */
+export async function addFixturePlan(
+  householdId: string,
+  onCalendar = false,
+  weekStart = 0
+): Promise<void> {
   const recipes = await listRecipes(householdId);
   const id = (name: string) => recipes.find((r) => r.name === name)!.id;
   let plan: MealPlan = { id: '', name: 'Week A', days: emptyPlanDays(2) };
   plan = addItem(plan, 0, 'dinner', id('Chicken Enchiladas'));
   plan = addItem(plan, 0, 'dinner', id('Pico'));
   plan = addItem(plan, 1, 'dinner', id('Veggie Pasta'));
-  await createPlan(householdId, plan.name, plan.days);
+  plan = { ...plan, id: await createPlan(householdId, plan.name, plan.days) };
+  if (onCalendar) {
+    const start = startOfWeek(toDateKey(new Date()), weekStart);
+    await saveCalendarDays(householdId, applyPlan(plan, start, 1, new Map(), 'skip'));
+  }
 }

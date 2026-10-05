@@ -67,7 +67,9 @@ describe('pantry check and placement', () => {
     expect(placed.map((l) => [l.name, l.storeId, l.sectionId, remaining(l)])).toEqual([
       ['ground beef', 'costco', 'meat', [{ amount: 2, unit: 'lb' }]],
       ['yellow onion', 'maceys', 'produce', [{ amount: 2, unit: null }]],
+      ['salt', null, null, []],
     ]);
+    expect(placed[2].haveIt).toBe(true);
   });
 
   it('groups a ready list by store order, then area', () => {

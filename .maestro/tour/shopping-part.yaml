@@ -1,0 +1,49 @@
+# Shopping screens for the tour (Milestone 7). Expects a plan on this week's
+# calendar. Run on its own with tour/shopping-only.yaml.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- tapOn: 'Shopping'
+- takeScreenshot: build/screenshots/46-shopping-empty
+- tapOn: 'New list'
+- extendedWaitUntil:
+    visible: '.*meals? · .* ingredients.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/47-new-list
+- scrollUntilVisible:
+    element: 'Check pantry'
+- takeScreenshot: build/screenshots/47b-new-list-bottom
+- tapOn: 'Check pantry'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- takeScreenshot: build/screenshots/48-pantry
+- tapOn:
+    text: 'Have some .*'
+    index: 0
+- tapOn:
+    id: 'have-.*'
+    index: 0
+- inputText: '1/2'
+- hideKeyboard
+- tapOn:
+    text: 'Have .*, Need .*'
+    index: 2
+- takeScreenshot: build/screenshots/49-pantry-partial
+- scrollUntilVisible:
+    element: 'Make list'
+- takeScreenshot: build/screenshots/50-pantry-stores
+- tapOn: 'Make list'
+- extendedWaitUntil:
+    visible: '.* to buy at .*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/51-list-ready
+# A list row (its label is "name, amount")
+- tapOn:
+    text: '.+, .+'
+    below: '.* to buy at .*'
+- takeScreenshot: build/screenshots/52-list-checked
+- scrollUntilVisible:
+    element: 'Back to pantry check'
+- takeScreenshot: build/screenshots/53-list-bottom
+- back
+- takeScreenshot: build/screenshots/54-shopping-lists

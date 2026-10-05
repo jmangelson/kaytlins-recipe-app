@@ -15,8 +15,8 @@ Update this file at the end of every milestone.
 | 4   | Settings: stores & areas, ingredient defaults, tags                        | Done        |
 | 5   | Meal plans (N-day, B/L/D)                                                  | Done        |
 | 6   | Calendar: apply plans to dates                                             | Done        |
-| 7   | Shopping generation + pantry check                                         | Next        |
-| 8   | Checklist by store → area, share as text                                   | Not started |
+| 7   | Shopping generation + pantry check                                         | Done        |
+| 8   | Checklist by store → area, share as text                                   | Next        |
 | 9   | Release: EAS APK on both phones                                            | Not started |
 | 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
 
@@ -197,6 +197,29 @@ over edited stores.
 - Maestro `calendar` flow (tags calendar, quick); `dev-setup` gained a
   `plan` sample (recipes + a two-day Week A).
 
+### Milestone 7 — Shopping list and pantry check (2026-10-05)
+
+- Shopping tab: lists newest first ("Checking pantry · 7 ingredients",
+  "6 to buy", "1 of 6 in the cart"), floating New list.
+- New list: shop for calendar days (start date, 1–14 days, this/next week)
+  or a meal plan. Every planned meal is listed under its day and ticked; she
+  can untick any to shop for a subset. Amounts scale to planned servings and
+  combine per ingredient ("2 lb + 1 can").
+- Pantry check: tick what she has (left off the list) or "Have some" with an
+  amount in the recipe's unit ("Have ½ lb of 2 lb" → "Buy 1 ½ lb"); choose
+  the stores this trip; "Make list" places each item at its first-choice
+  store among those, and its area there.
+- The list: store → area in walking order; tick items into the cart (struck
+  through); "usually from X" when it isn't at its preferred store. "Back to
+  pantry check" keeps her answers. Lists are snapshots in Firestore, shared
+  by both phones; Delete in the header.
+- Check-off landed here early; Milestone 8 adds hand-added items, clearing
+  checked items, sharing as text, and an offline check of the trip.
+- Rules validate shopping lists (32 rules tests); 179 unit tests; Maestro
+  `shopping` flow (tags shopping, quick); `dev-setup` gained a `week` sample
+  (Week A on this week's calendar); quick screenshot run
+  `.maestro/tour/shopping-only.yaml`.
+
 ## Decisions
 
 - 2026-10-04: one tag system with three groups (Type, Course, Meal); groups
@@ -251,6 +274,7 @@ over edited stores.
 | Floating Add button clipped ("Add") and floating over the list         | A bold weight over the default under-measures on Android; offset added the tab bar height although tab content ends above it                                                                                                                       | One font weight; offset from the content bottom; hidden while filters are open                                                                                   |
 | Week of empty plan days was very tall                                  | Each empty meal took three rows                                                                                                                                                                                                                    | Empty meals are one line ("Breakfast …… + Add")                                                                                                                  |
 | Firestore rules briefly failed to compile (live on the local emulator) | A scripted `String.replace` inserted text containing `$'`, which JavaScript expands to "the rest of the string"                                                                                                                                    | Restore from git; scripted edits use function replacers (`replace(a, () => b)`)                                                                                  |
+| Shopping list opened scrolled to the bottom after Make list            | The pantry check and the list share one scroll view, and the switch kept the scroll offset                                                                                                                                                         | Scroll to the top whenever the list switches between pantry check and list                                                                                       |
 
 ## Lessons learned
 
@@ -297,6 +321,9 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Offline checks:** `adb shell cmd connectivity airplane-mode enable|disable`.
   Query the Firestore emulator directly with `Authorization: Bearer owner`.
   The dev build loses Metro in airplane mode; fill forms online first.
+- **Maestro sees screens behind the current one.** A broad selector
+  (`'.+, .+'`, `index: 0`) can hit a row on the screen underneath in the
+  stack; anchor it with `below:` a label on the current screen.
 - **Check scripted edits landed.** A replace that silently matches nothing
   leaves the old code; grep for the new text after editing.
 - **Save on change, not on blur**, for inline edits on Android.

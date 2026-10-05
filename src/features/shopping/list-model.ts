@@ -62,6 +62,11 @@ export function linesFromNeeds(needs: NeedLine[]): ListLine[] {
   }));
 }
 
+/** Lines with something left to buy. */
+export function toBuy(list: Pick<ShoppingList, 'lines'>): ListLine[] {
+  return list.lines.filter((l) => remaining(l).length > 0);
+}
+
 /** What's still to buy on a line after the pantry check. */
 export function remaining(line: ListLine): Quantity[] {
   return line.needed
@@ -70,8 +75,9 @@ export function remaining(line: ListLine): Quantity[] {
 }
 
 /**
- * Finishes the pantry check: drops what she already has, and places every
- * remaining line at its best store on this trip and its area there.
+ * Finishes the pantry check: places every line still to buy at its best
+ * store on this trip and its area there. Lines she already has stay on the
+ * list unplaced, so going back to the pantry check keeps her answers.
  */
 export function placeLines(
   lines: ListLine[],
@@ -79,9 +85,8 @@ export function placeLines(
   storesInOrder: Store[],
   tripStoreIds: string[]
 ): ListLine[] {
-  const toBuy = lines.filter((l) => remaining(l).length > 0);
   const groups = groupForTrip(
-    toBuy.map((l) => ({
+    toBuy({ lines }).map((l) => ({
       ingredientId: l.ingredientId ?? l.key,
       name: l.name,
       quantities: remaining(l),
@@ -101,7 +106,7 @@ export function placeLines(
       )
     )
   );
-  return toBuy.map((line) => ({
+  return lines.map((line) => ({
     ...line,
     ...(placement.get(line.ingredientId ?? line.key) ?? {
       storeId: null,
@@ -115,7 +120,7 @@ export function placeLines(
 export function groupReadyList(list: ShoppingList, storesInOrder: Store[]): ListGroup[] {
   const groups: ListGroup[] = [];
   for (const store of storesInOrder) {
-    const lines = list.lines.filter((l) => l.storeId === store.id);
+    const lines = list.lines.filter((l) => l.storeId === store.id && remaining(l).length > 0);
     if (lines.length === 0) continue;
     const sectionIds = [...new Set(lines.map((l) => l.sectionId))].sort((a, b) => {
       const order = (id: string | null) =>

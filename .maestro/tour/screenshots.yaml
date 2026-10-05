@@ -371,3 +371,6 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Apply to calendar'
 - takeScreenshot: build/screenshots/45-apply-conflict
 - back
+
+# Shopping (Milestone 7)
+- runFlow: shopping-part.yaml

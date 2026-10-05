@@ -12,7 +12,7 @@ import { auth, usingFirebaseEmulators } from '@/lib/firebase';
 
 /**
  * Test-only setup, opened by Maestro as
- *   kaytlinsrecipes://dev-setup?email=a@test.dev&fixture=recipes   (or fixture=plan)
+ *   kaytlinsrecipes://dev-setup?email=a@test.dev&fixture=recipes   (or plan, week)
  * Signs in a test user, creates their household (with starter stores and
  * tags), optionally adds sample recipes, then opens the app. Only works
  * against the Firebase emulators.
@@ -34,9 +34,11 @@ export default function DevSetupScreen() {
           await createHousehold(uid, 'Our Kitchen');
           household = await loadUserHousehold(uid);
         }
-        if ((fixture === 'recipes' || fixture === 'plan') && household) {
+        if ((fixture === 'recipes' || fixture === 'plan' || fixture === 'week') && household) {
           await addFixtureRecipes(household.id);
-          if (fixture === 'plan') await addFixturePlan(household.id);
+          if (fixture !== 'recipes') {
+            await addFixturePlan(household.id, fixture === 'week', household.settings.weekStart);
+          }
         }
         await refreshHousehold();
         if (!cancelled) router.replace('/');
