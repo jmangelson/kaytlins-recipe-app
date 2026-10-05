@@ -428,6 +428,10 @@ appId: com.jmangelson.kaytlinsrecipes
 - runFlow: shopping-part.yaml
 - runFlow: shopping-extras-part.yaml
 
+# Recipe photos (several per recipe, full-screen viewer)
+- tapOn: 'Recipes'
+- runFlow: photos-part.yaml
+
 # Recipe scan (Milestone 10)
 - tapOn: 'Recipes'
 - runFlow: scan-part.yaml

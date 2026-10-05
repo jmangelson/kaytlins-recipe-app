@@ -24,6 +24,7 @@ function recipe(overrides: Partial<Recipe>): Recipe {
     tagIds: [],
     notes: '',
     hasPhoto: false,
+    photoIds: [],
     ingredients: [],
     ...overrides,
   };

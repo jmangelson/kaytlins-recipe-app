@@ -1,5 +1,5 @@
-# Add a photo to a recipe from the gallery, see it on the detail screen, then
-# remove it.
+# Several photos on a recipe (the dish, the directions): add two, see them on
+# the recipe, read one full screen and step between them, then remove one.
 appId: com.jmangelson.kaytlinsrecipes
 tags:
   - recipes
@@ -19,26 +19,46 @@ tags:
       id: 'recipe-name'
     timeout: 15000
 - runFlow: subflows/choose-recipe-photo.yaml
+- runFlow: subflows/choose-recipe-photo.yaml
+- assertVisible: 'Remove photo 2'
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
 - runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
-    visible: 'Photo of Veggie Pasta'
+    visible: 'Photo 1 of Veggie Pasta.*'
     timeout: 15000
+
+# Full screen: step between the photos
+- scrollUntilVisible:
+    element: 'Photo 2, open full screen'
+- tapOn: 'Photo 2, open full screen'
+- extendedWaitUntil:
+    visible: '2 of 2'
+    timeout: 15000
+- assertVisible: 'Pinch or double-tap to zoom.'
+- tapOn: 'Previous photo'
+- assertVisible: '1 of 2'
+- back
+
+# Remove one: one photo left, so no Photos row
+- scrollUntilVisible:
+    element: 'Edit recipe'
+    direction: UP
 - tapOn: 'Edit recipe'
 - extendedWaitUntil:
     visible:
       id: 'recipe-name'
     timeout: 15000
 - scrollUntilVisible:
-    element: 'Remove photo'
-- tapOn: 'Remove photo'
+    element: 'Remove photo 2'
+- tapOn: 'Remove photo 2'
+- assertNotVisible: 'Remove photo 2'
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
 - runFlow: subflows/accept-save-anyway.yaml
 - extendedWaitUntil:
-    visible: 'Edit recipe'
+    visible: 'Photo 1 of Veggie Pasta.*'
     timeout: 15000
-- assertNotVisible: 'Photo of Veggie Pasta'
+- assertNotVisible: 'Photo 2, open full screen'

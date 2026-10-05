@@ -20,6 +20,8 @@ export type Recipe = {
   tagIds: string[];
   notes: string;
   hasPhoto: boolean;
+  /** Her photos in order (the dish, the directions, scanned pages). */
+  photoIds: string[];
   ingredients: RecipeIngredient[];
 };
 

@@ -39,8 +39,8 @@ export async function addFixtureRecipes(householdId: string): Promise<void> {
       householdId,
       null,
       { ...emptyDraft(), name: recipe.name, tagIds: recipe.tagIds, rows },
-      { kind: 'unchanged' },
-      false
+      [],
+      []
     );
   }
 }

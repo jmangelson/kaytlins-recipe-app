@@ -28,6 +28,7 @@ const tacos: Recipe = {
   tagIds: [],
   notes: '',
   hasPhoto: false,
+  photoIds: [],
   ingredients: [
     line('beef', 'ground beef', 1, 'lb'),
     line('onion', 'yellow onion', 1, null),
@@ -42,6 +43,7 @@ const chili: Recipe = {
   tagIds: [],
   notes: '',
   hasPhoto: false,
+  photoIds: [],
   ingredients: [
     line('beef', 'ground beef', 8, 'oz'),
     line('onion', 'yellow onion', 2, null),

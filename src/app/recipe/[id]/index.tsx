@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -12,7 +12,7 @@ import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { formatIngredientAmount } from '@/features/recipes/recipe-draft';
-import { deleteRecipe, getRecipe, getRecipePhoto } from '@/features/recipes/recipe-repo';
+import { deleteRecipe, getRecipe, listRecipePhotos } from '@/features/recipes/recipe-repo';
 import { useHousehold } from '@/features/session/session-provider';
 import { listTags } from '@/features/stores/store-repo';
 import { useAsync } from '@/hooks/use-async';
@@ -27,8 +27,8 @@ export default function RecipeDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const data = useAsync(async () => {
     const [recipe, tags] = await Promise.all([getRecipe(household.id, id), listTags(household.id)]);
-    const photo = recipe?.hasPhoto ? await getRecipePhoto(household.id, id) : null;
-    return { recipe, tags, photo };
+    const photos = recipe ? await listRecipePhotos(household.id, recipe) : [];
+    return { recipe, tags, photos };
   }, [household.id, id]);
 
   // Show edits made on the edit screen when returning here.
@@ -48,10 +48,17 @@ export default function RecipeDetailScreen() {
       />
     );
   }
-  const { recipe, tags, photo } = data.state.data;
+  const { recipe, tags, photos } = data.state.data;
   if (!recipe) return <ErrorScreen message="This recipe was deleted." />;
 
   const recipeTags = tags.filter((t) => recipe.tagIds.includes(t.id));
+
+  function openPhoto(index: number) {
+    router.push({
+      pathname: '/recipe/[id]/photos',
+      params: { id: recipe!.id, index: String(index) },
+    });
+  }
 
   function confirmDelete() {
     Alert.alert(
@@ -88,13 +95,17 @@ export default function RecipeDetailScreen() {
           ),
         }}
       />
-      {photo && (
-        <Image
-          source={{ uri: `data:image/jpeg;base64,${photo}` }}
-          style={styles.photo}
-          contentFit="cover"
-          accessibilityLabel={`Photo of ${recipe.name}`}
-        />
+      {photos.length > 0 && (
+        <Pressable
+          accessibilityRole="imagebutton"
+          accessibilityLabel={`Photo 1 of ${recipe.name}, open full screen`}
+          onPress={() => openPhoto(0)}>
+          <Image
+            source={{ uri: `data:image/jpeg;base64,${photos[0].jpegBase64}` }}
+            style={styles.photo}
+            contentFit="cover"
+          />
+        </Pressable>
       )}
       <View style={styles.group}>
         <ThemedText type="subtitle" accessibilityRole="header" style={styles.title}>
@@ -142,6 +153,32 @@ export default function RecipeDetailScreen() {
         </View>
       ) : null}
 
+      {photos.length > 1 && (
+        <View style={styles.group}>
+          <ThemedText type="smallBold" accessibilityRole="header">
+            Photos
+          </ThemedText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.thumbs}>
+            {photos.map((photo, index) => (
+              <Pressable
+                key={photo.id}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`Photo ${index + 1}, open full screen`}
+                onPress={() => openPhoto(index)}>
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${photo.jpegBase64}` }}
+                  style={[styles.thumb, { borderColor: theme.border }]}
+                  contentFit="cover"
+                />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       <Button label="Delete recipe" variant="danger" onPress={confirmDelete} loading={deleting} />
     </Screen>
   );
@@ -164,6 +201,15 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 3,
     borderRadius: 12,
+  },
+  thumbs: {
+    gap: Spacing.three,
+  },
+  thumb: {
+    width: 120,
+    height: 160,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   ingredient: {
     flexDirection: 'row',

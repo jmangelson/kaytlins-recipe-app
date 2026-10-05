@@ -5,6 +5,7 @@ import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
+import { IconButton } from '@/components/icon-button';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -12,8 +13,9 @@ import { Spacing } from '@/constants/theme';
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { IngredientRowsEditor } from '@/features/recipes/ingredient-rows-editor';
 import { validateDraft, type DraftErrors } from '@/features/recipes/recipe-draft';
-import { pickRecipePhoto } from '@/features/recipes/recipe-photo';
-import type { PhotoChange } from '@/features/recipes/recipe-repo';
+import { newRecipePhotoId, type RecipePhoto } from '@/features/recipes/recipe-repo';
+import { pickScanPages } from '@/features/scan/scan-photos';
+import { useHousehold } from '@/features/session/session-provider';
 import type { RecipeDraft } from '@/features/recipes/recipe-types';
 import type { Tag } from '@/features/stores/store-types';
 import {
@@ -22,19 +24,22 @@ import {
   TAG_GROUPS,
   tagsByGroup,
 } from '@/features/stores/tag-groups';
+import { useTheme } from '@/hooks/use-theme';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
+/** Photos per recipe (each is its own ~300 KB document). */
+const MAX_PHOTOS = 10;
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
 type RecipeFormProps = {
   initialDraft: RecipeDraft;
-  /** Existing photo (base64 JPEG) when editing. */
-  initialPhoto: string | null;
+  /** Her photos when editing, or the scanned pages for a new scanned recipe. */
+  initialPhotos: RecipePhoto[];
   tags: Tag[];
   /** Her canonical ingredient list, for matching and picking. */
   ingredients: Ingredient[];
   saveLabel: string;
-  onSave: (draft: RecipeDraft, photo: PhotoChange) => Promise<void>;
+  onSave: (draft: RecipeDraft, photos: RecipePhoto[]) => Promise<void>;
   /** Shown above the fields (the scan button, or what a scan noticed). */
   header?: ReactNode;
   /** The starting draft isn't saved anywhere yet (a scan), so Back asks. */
@@ -43,7 +48,7 @@ type RecipeFormProps = {
 
 export function RecipeForm({
   initialDraft,
-  initialPhoto,
+  initialPhotos,
   tags,
   ingredients,
   saveLabel,
@@ -54,7 +59,9 @@ export function RecipeForm({
   const [draft, setDraft] = useState(initialDraft);
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
-  const [photo, setPhoto] = useState<PhotoChange>({ kind: 'unchanged' });
+  const { household } = useHousehold();
+  const theme = useTheme();
+  const [photos, setPhotos] = useState(initialPhotos);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -62,8 +69,6 @@ export function RecipeForm({
 
   const hasErrors = Object.values(errors).some(Boolean);
   const tagGroups = tagsByGroup(tags);
-  const shownPhoto =
-    photo.kind === 'set' ? photo.jpegBase64 : photo.kind === 'remove' ? null : initialPhoto;
 
   function update<K extends keyof RecipeDraft>(key: K, value: RecipeDraft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -78,11 +83,18 @@ export function RecipeForm({
     );
   }
 
-  async function choosePhoto(source: 'camera' | 'library') {
+  async function addPhotos(source: 'camera' | 'library') {
     setPhotoError(null);
     try {
-      const jpegBase64 = await pickRecipePhoto(source);
-      if (jpegBase64) setPhoto({ kind: 'set', jpegBase64 });
+      const picked = await pickScanPages(source, MAX_PHOTOS - photos.length);
+      setPhotos((p) => [
+        ...p,
+        ...picked.map((page) => ({
+          id: newRecipePhotoId(household.id),
+          jpegBase64: page.base64,
+          isNew: true,
+        })),
+      ]);
     } catch (e) {
       setPhotoError(e instanceof Error ? e.message : "Couldn't add that photo.");
     }
@@ -112,7 +124,7 @@ export function RecipeForm({
     setSaving(true);
     setSaveError(null);
     try {
-      await onSave(draft, photo);
+      await onSave(draft, photos);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Saving failed. Please try again.');
       setSaving(false);
@@ -126,7 +138,7 @@ export function RecipeForm({
     !saving &&
     (unsavedFromStart ||
       JSON.stringify(draft) !== JSON.stringify(initialDraft) ||
-      photo.kind !== 'unchanged');
+      photos.map((p) => p.id).join() !== initialPhotos.map((p) => p.id).join());
   useUnsavedChanges(dirty, async () => {
     save();
     return false;
@@ -208,28 +220,46 @@ export function RecipeForm({
       />
 
       <View style={styles.group}>
-        <ThemedText type="smallBold">Photo</ThemedText>
-        {shownPhoto ? (
+        <ThemedText type="smallBold">Photos</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Optional. The finished dish, or the directions to read while cooking.
+        </ThemedText>
+        {photos.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.photoRow}>
+            {photos.map((photo, index) => (
+              <View key={photo.id} style={styles.photoBox}>
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${photo.jpegBase64}` }}
+                  style={[styles.photo, { borderColor: theme.border }]}
+                  contentFit="cover"
+                  accessibilityLabel={`Photo ${index + 1}`}
+                />
+                <IconButton
+                  icon={{ android: 'close', ios: 'xmark' }}
+                  label={`Remove photo ${index + 1}`}
+                  onPress={() => setPhotos((p) => p.filter((x) => x.id !== photo.id))}
+                />
+              </View>
+            ))}
+          </ScrollView>
+        )}
+        {photos.length < MAX_PHOTOS ? (
           <>
-            <Image
-              source={{ uri: `data:image/jpeg;base64,${shownPhoto}` }}
-              style={styles.photo}
-              contentFit="cover"
-              accessibilityLabel="Recipe photo"
-            />
+            <Button label="Take photo" variant="secondary" onPress={() => addPhotos('camera')} />
             <Button
-              label="Remove photo"
+              label="Choose photos"
               variant="secondary"
-              onPress={() => setPhoto({ kind: 'remove' })}
+              onPress={() => addPhotos('library')}
             />
           </>
         ) : (
           <ThemedText type="small" themeColor="textSecondary">
-            Optional.
+            That’s the most photos for one recipe ({MAX_PHOTOS}).
           </ThemedText>
         )}
-        <Button label="Take photo" variant="secondary" onPress={() => choosePhoto('camera')} />
-        <Button label="Choose photo" variant="secondary" onPress={() => choosePhoto('library')} />
         {photoError && (
           <ThemedText type="small" themeColor="danger">
             {photoError}
@@ -263,9 +293,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
+  photoRow: {
+    gap: Spacing.three,
+  },
+  photoBox: {
+    alignItems: 'center',
+  },
   photo: {
-    width: '100%',
-    aspectRatio: 4 / 3,
-    borderRadius: 12,
+    width: 120,
+    height: 160,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

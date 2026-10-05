@@ -1,6 +1,7 @@
 # Scan a recipe photo (test builds return a canned result, so no paid API
 # call): the form fills in, flags a hard-to-read line and the scan's warning,
-# general names still ask, and nothing saves until she taps Save.
+# general names still ask, nothing saves until she taps Save, and the
+# scanned page is kept as the recipe's photo.
 appId: com.jmangelson.kaytlinsrecipes
 tags:
   - recipes
@@ -50,3 +51,5 @@ tags:
     visible: 'Lemon Bars'
     timeout: 15000
 - assertVisible: '.*unsalted butter.*'
+# The scanned page was saved with the recipe as its photo
+- assertVisible: 'Photo 1 of Lemon Bars.*'

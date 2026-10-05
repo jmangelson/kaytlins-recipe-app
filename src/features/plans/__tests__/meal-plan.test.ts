@@ -19,7 +19,16 @@ function plan(days = 2): MealPlan {
 }
 
 function recipe(id: string, name: string, tagIds: string[]): Recipe {
-  return { id, name, servings: 4, tagIds, notes: '', hasPhoto: false, ingredients: [] };
+  return {
+    id,
+    name,
+    servings: 4,
+    tagIds,
+    notes: '',
+    hasPhoto: false,
+    photoIds: [],
+    ingredients: [],
+  };
 }
 
 describe('visibleMeals', () => {

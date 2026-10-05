@@ -114,6 +114,11 @@ describe('scanToDraft', () => {
     expect(draft.rows[0].scan?.unclear).toBe(false);
   });
 
+  it('keeps the scanned pages to save as the recipe’s photos', () => {
+    expect(scanToDraft(result, [], ['page1', 'page2']).pages).toEqual(['page1', 'page2']);
+    expect(scanToDraft(result, []).pages).toEqual([]);
+  });
+
   it('uses the default servings when the photo doesn’t say', () => {
     const scanned = scanToDraft({ ...result, servings: null }, []);
     expect(scanned.draft.servings).toBe('4');

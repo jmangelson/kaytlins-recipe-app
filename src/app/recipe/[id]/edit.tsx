@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { draftFromRecipe } from '@/features/recipes/recipe-draft';
 import { RecipeForm } from '@/features/recipes/recipe-form';
-import { getRecipe, getRecipePhoto, saveRecipe } from '@/features/recipes/recipe-repo';
+import { getRecipe, listRecipePhotos, saveRecipe } from '@/features/recipes/recipe-repo';
 import { useHousehold } from '@/features/session/session-provider';
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { listTags } from '@/features/stores/store-repo';
@@ -18,8 +18,8 @@ export default function EditRecipeScreen() {
       listTags(household.id),
       listIngredients(household.id),
     ]);
-    const photo = recipe?.hasPhoto ? await getRecipePhoto(household.id, id) : null;
-    return { recipe, tags, ingredients, photo };
+    const photos = recipe ? await listRecipePhotos(household.id, recipe) : [];
+    return { recipe, tags, ingredients, photos };
   }, [household.id, id]);
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading recipe" />;
@@ -31,18 +31,18 @@ export default function EditRecipeScreen() {
       />
     );
   }
-  const { recipe, tags, ingredients, photo } = data.state.data;
+  const { recipe, tags, ingredients, photos } = data.state.data;
   if (!recipe) return <ErrorScreen message="This recipe was deleted." />;
 
   return (
     <RecipeForm
       initialDraft={draftFromRecipe(recipe)}
-      initialPhoto={photo}
+      initialPhotos={photos}
       tags={tags}
       ingredients={ingredients}
       saveLabel="Save changes"
-      onSave={async (draft, photoChange) => {
-        await saveRecipe(household.id, recipe.id, draft, photoChange, recipe.hasPhoto);
+      onSave={async (draft, newPhotos) => {
+        await saveRecipe(household.id, recipe.id, draft, newPhotos, recipe.photoIds);
         router.back();
       }}
     />

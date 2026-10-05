@@ -9,7 +9,7 @@ import { Spacing } from '@/constants/theme';
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { emptyDraft } from '@/features/recipes/recipe-draft';
 import { RecipeForm } from '@/features/recipes/recipe-form';
-import { saveRecipe } from '@/features/recipes/recipe-repo';
+import { newRecipePhotoId, saveRecipe, type RecipePhoto } from '@/features/recipes/recipe-repo';
 import type { ScannedDraft } from '@/features/scan/scan-draft';
 import { takeScan } from '@/features/scan/scan-handoff';
 import { useHousehold } from '@/features/session/session-provider';
@@ -27,12 +27,23 @@ export default function NewRecipeScreen() {
     return { tags, ingredients };
   }, [household.id]);
   // A scan finished on the scan screen: start the form over from it.
-  const [scanned, setScanned] = useState<{ result: ScannedDraft; id: number } | null>(null);
+  // The scanned pages are kept as the recipe's photos (she can remove them).
+  const [scanned, setScanned] = useState<{
+    result: ScannedDraft;
+    photos: RecipePhoto[];
+    id: number;
+  } | null>(null);
   useFocusEffect(
     useCallback(() => {
       const result = takeScan();
-      if (result) setScanned((s) => ({ result, id: (s?.id ?? 0) + 1 }));
-    }, [])
+      if (!result) return;
+      const photos = result.pages.map((jpegBase64) => ({
+        id: newRecipePhotoId(household.id),
+        jpegBase64,
+        isNew: true,
+      }));
+      setScanned((s) => ({ result, photos, id: (s?.id ?? 0) + 1 }));
+    }, [household.id])
   );
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading" />;
@@ -49,7 +60,7 @@ export default function NewRecipeScreen() {
     <RecipeForm
       key={scanned?.id ?? 0}
       initialDraft={scanned?.result.draft ?? emptyDraft()}
-      initialPhoto={null}
+      initialPhotos={scanned?.photos ?? []}
       tags={data.state.data.tags}
       ingredients={data.state.data.ingredients}
       saveLabel="Save recipe"
@@ -65,8 +76,8 @@ export default function NewRecipeScreen() {
           />
         )
       }
-      onSave={async (draft, photo) => {
-        const id = await saveRecipe(household.id, null, draft, photo, false);
+      onSave={async (draft, photos) => {
+        const id = await saveRecipe(household.id, null, draft, photos, []);
         router.replace({ pathname: '/recipe/[id]', params: { id } });
       }}
     />

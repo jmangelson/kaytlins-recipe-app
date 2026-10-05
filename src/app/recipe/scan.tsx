@@ -63,7 +63,13 @@ export default function ScanRecipeScreen() {
     setError(null);
     try {
       const result = await scanRecipe(pages, tags);
-      handOffScan(scanToDraft(result, ingredients));
+      handOffScan(
+        scanToDraft(
+          result,
+          ingredients,
+          pages.map((p) => p.base64)
+        )
+      );
       router.back();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The recipe couldn’t be read.');

@@ -1,0 +1,40 @@
+# Recipe photos (several per recipe, full-screen viewer). Starts on Recipes
+# with the sample recipes.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- scrollUntilVisible:
+    element: 'Veggie Pasta'
+- tapOn: 'Veggie Pasta'
+- tapOn: 'Edit recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- runFlow: ../subflows/choose-recipe-photo.yaml
+- runFlow: ../subflows/choose-recipe-photo.yaml
+- scrollUntilVisible:
+    element: 'Remove photo 2'
+    centerElement: true
+- takeScreenshot: build/screenshots/68-form-photos
+- scrollUntilVisible:
+    element: 'Save changes'
+- tapOn: 'Save changes'
+- runFlow: ../subflows/accept-save-anyway.yaml
+- extendedWaitUntil:
+    visible: 'Photo 1 of Veggie Pasta.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/69-recipe-photo
+- scrollUntilVisible:
+    element: 'Photo 2, open full screen'
+    centerElement: true
+- takeScreenshot: build/screenshots/70-recipe-photos-row
+- tapOn: 'Photo 2, open full screen'
+- extendedWaitUntil:
+    visible: '2 of 2'
+    timeout: 15000
+- takeScreenshot: build/screenshots/71-photo-viewer
+- doubleTapOn:
+    point: '50%,40%'
+- takeScreenshot: build/screenshots/72-photo-viewer-zoomed
+- back
+- back

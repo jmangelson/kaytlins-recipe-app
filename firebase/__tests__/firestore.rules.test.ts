@@ -330,9 +330,38 @@ describe('recipes and recipe photos', () => {
 
   it('rejects oversized photos', async () => {
     await assertFails(
-      setDoc(doc(dbAs('alice'), 'households', HID, 'recipePhotos', 'r2'), {
-        jpegBase64: 'x'.repeat(700001),
+      setDoc(doc(dbAs('alice'), 'households', HID, 'recipePhotos', 'p1'), {
+        jpegBase64: 'x'.repeat(900001),
+        recipeId: 'r2',
       })
+    );
+  });
+
+  it('saves several photos for a recipe, each in its own document', async () => {
+    const db = dbAs('alice');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'households', HID, 'recipes', 'r3'), {
+      ...recipe,
+      hasPhoto: true,
+      photoIds: ['p1', 'p2'],
+    });
+    batch.set(doc(db, 'households', HID, 'recipePhotos', 'p1'), {
+      jpegBase64: 'abc',
+      recipeId: 'r3',
+    });
+    batch.set(doc(db, 'households', HID, 'recipePhotos', 'p2'), {
+      jpegBase64: 'x'.repeat(800000),
+      recipeId: 'r3',
+    });
+    await assertSucceeds(batch.commit());
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'recipes', 'r4'), {
+        ...recipe,
+        photoIds: Array.from({ length: 13 }, (_, i) => 'p' + i),
+      })
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'recipePhotos', 'p3'), { jpegBase64: 'abc', caption: 'x' })
     );
   });
 

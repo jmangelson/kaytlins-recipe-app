@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { ActivityIndicator, LogBox, StyleSheet, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ThemedView } from '@/components/themed-view';
 import { SessionErrorScreen } from '@/features/session/session-error-screen';
@@ -14,11 +15,14 @@ if (usingFirebaseEmulators) LogBox.ignoreAllLogs();
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <SessionProvider>
-        <RootNavigator />
-      </SessionProvider>
-    </ThemeProvider>
+    // Gestures (pinch-to-zoom on recipe photos) need this at the root.
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <SessionProvider>
+          <RootNavigator />
+        </SessionProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -71,6 +75,7 @@ function RootNavigator() {
         />
         <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
         <Stack.Screen name="recipe/scan" options={{ headerShown: true, title: 'Scan a recipe' }} />
+        <Stack.Screen name="recipe/[id]/photos" options={{ headerShown: true, title: 'Photos' }} />
         <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
         <Stack.Screen
           name="recipe/[id]/edit"
@@ -85,6 +90,9 @@ function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   loading: {
     flex: 1,
     alignItems: 'center',

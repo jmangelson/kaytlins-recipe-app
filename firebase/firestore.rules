@@ -73,21 +73,24 @@ service cloud.firestore {
 
     function validRecipe(data) {
       return data.keys().hasOnly(['name', 'servings', 'tagIds', 'notes', 'hasPhoto',
-          'ingredients', 'createdAt', 'updatedAt'])
+          'photoIds', 'ingredients', 'createdAt', 'updatedAt'])
         && validName(data.name, 120)
         && data.servings is number && data.servings > 0 && data.servings <= 100
         && data.tagIds is list && data.tagIds.size() <= 20
         && data.notes is string && data.notes.size() <= 5000
         && data.hasPhoto is bool
+        && (!('photoIds' in data) || (data.photoIds is list && data.photoIds.size() <= 12))
         && data.ingredients is list && data.ingredients.size() <= 100
         && data.updatedAt == request.time
         && (!('createdAt' in data) || data.createdAt is timestamp);
     }
 
     function validRecipePhoto(data) {
-      // Photos are resized on the phone to ~60 KB; cap well under the 1 MiB doc limit.
-      return data.keys().hasOnly(['jpegBase64'])
-        && data.jpegBase64 is string && data.jpegBase64.size() <= 700000;
+      // One photo per doc (dish or directions), resized on the phone to about
+      // 1400 px (~300 KB of base64); cap under the 1 MiB doc limit.
+      return data.keys().hasOnly(['jpegBase64', 'recipeId'])
+        && data.jpegBase64 is string && data.jpegBase64.size() <= 900000
+        && (!('recipeId' in data) || data.recipeId is string);
     }
 
     function validMealPlan(data) {
@@ -216,7 +219,7 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validRecipe(request.resource.data);
       }
 
-      match /recipePhotos/{recipeId} {
+      match /recipePhotos/{photoId} {
         allow read, delete: if isMember(hid);
         allow create, update: if isMember(hid) && validRecipePhoto(request.resource.data);
       }

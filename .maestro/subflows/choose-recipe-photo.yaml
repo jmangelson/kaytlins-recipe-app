@@ -1,12 +1,12 @@
-# From a recipe form, picks the first gallery photo and accepts the crop.
+# From a recipe form, adds the first gallery photo (multi-select picker).
 # Needs a gallery image (scripts/e2e-setup.sh).
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - scrollUntilVisible:
-    element: 'Choose photo'
-- tapOn: 'Choose photo'
+    element: 'Choose photos'
+    centerElement: true
+- tapOn: 'Choose photos'
 - tapOn: 'Photo taken on.*'
-- tapOn:
-    id: 'crop_image_menu_crop'
+- tapOn: 'Add \(1\)'
 - scrollUntilVisible:
-    element: 'Remove photo'
+    element: 'Remove photo .*'

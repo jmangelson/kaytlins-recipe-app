@@ -10,6 +10,8 @@ export type ScannedDraft = {
   warnings: string[];
   /** True when the photo didn't say how many it serves (the default is used). */
   servingsMissing: boolean;
+  /** The scanned pages (base64 JPEG), saved with the recipe as its photos. */
+  pages: string[];
 };
 
 /**
@@ -18,7 +20,11 @@ export type ScannedDraft = {
  * the same rules as typed lines (exact names link, vague or general ones ask).
  * Hard-to-read lines keep their printed text for review. Nothing is saved.
  */
-export function scanToDraft(result: ScanResult, ingredients: Ingredient[]): ScannedDraft {
+export function scanToDraft(
+  result: ScanResult,
+  ingredients: Ingredient[],
+  pages: string[] = []
+): ScannedDraft {
   const rows = result.ingredients
     .filter((i) => i.name.trim())
     .map((i) => ({
@@ -46,5 +52,6 @@ export function scanToDraft(result: ScanResult, ingredients: Ingredient[]): Scan
     },
     warnings: result.warnings,
     servingsMissing: result.servings === null,
+    pages,
   };
 }
