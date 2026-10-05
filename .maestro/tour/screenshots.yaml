@@ -431,3 +431,9 @@ appId: com.jmangelson.kaytlinsrecipes
 # Recipe scan (Milestone 10)
 - tapOn: 'Recipes'
 - runFlow: scan-part.yaml
+
+# App version (Settings)
+- tapOn: 'Settings'
+- scrollUntilVisible:
+    element: 'Check for updates'
+- takeScreenshot: build/screenshots/67-settings-app-version

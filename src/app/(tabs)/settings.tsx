@@ -8,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { formatInviteCode } from '@/features/household/invite-code';
 import { useHousehold } from '@/features/session/session-provider';
+import { AppVersion } from '@/features/settings/app-version';
 import { signOut } from '@/features/session/sign-in';
 import { listTags } from '@/features/stores/store-repo';
 import { TAG_GROUPS, tagsByGroup } from '@/features/stores/tag-groups';
@@ -86,6 +87,7 @@ export default function SettingsScreen() {
         <ThemedText>{user.email ?? user.displayName ?? 'Unknown account'}</ThemedText>
         <Button label="Sign out" variant="danger" onPress={() => signOut()} />
       </View>
+      <AppVersion />
     </Screen>
   );
 }

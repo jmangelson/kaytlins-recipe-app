@@ -1,0 +1,14 @@
+# Settings → App version (quick screenshot review).
+appId: com.jmangelson.kaytlinsrecipes
+---
+- evalScript: ${output.email = 'version' + Date.now() + '@test.dev'}
+- runFlow:
+    file: ../subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- tapOn: 'Settings'
+- scrollUntilVisible:
+    element: 'Check for updates'
+- assertVisible: 'Development build.'
+- takeScreenshot: build/screenshots/67-settings-app-version
