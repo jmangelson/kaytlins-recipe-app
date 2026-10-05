@@ -127,7 +127,7 @@ describe('groupForTrip', () => {
       sections: [
         { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce'] },
         { id: 'meat', name: 'Meat & Seafood', order: 1, categoryIds: ['meat-seafood'] },
-        { id: 'baking', name: 'Baking & Spices', order: 2, categoryIds: ['baking-spices'] },
+        { id: 'baking', name: 'Baking & Spices', order: 2, categoryIds: ['baking', 'spices'] },
       ],
     },
     {

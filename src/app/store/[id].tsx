@@ -67,6 +67,8 @@ function StoreEditor({
   const [newArea, setNewArea] = useState('');
   const [areaError, setAreaError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Move arrows only show in reorder mode, so the list stays calm otherwise.
+  const [reordering, setReordering] = useState(false);
   const dirty = JSON.stringify(store) !== JSON.stringify(initial);
 
   function persist(next: Store) {
@@ -181,9 +183,24 @@ function StoreEditor({
       </View>
 
       <View style={styles.group}>
-        <ThemedText type="smallBold" accessibilityRole="header">
-          Areas in walking order
-        </ThemedText>
+        <View style={styles.headingRow}>
+          <ThemedText type="smallBold" accessibilityRole="header" style={styles.flex}>
+            Areas in walking order
+          </ThemedText>
+          {store.sections.length > 1 && (
+            <Chip
+              label={reordering ? 'Done' : 'Reorder'}
+              accessibilityLabel={reordering ? 'Done reordering' : 'Reorder areas'}
+              selected={reordering}
+              onPress={() => setReordering(!reordering)}
+            />
+          )}
+        </View>
+        {reordering && (
+          <ThemedText type="small" themeColor="textSecondary">
+            Move areas into the order you walk the store. Tap Done, then Save.
+          </ThemedText>
+        )}
         {store.sections.length === 0 ? (
           <ThemedText themeColor="textSecondary">
             No areas yet. Add the first one below, like Produce.
@@ -194,6 +211,7 @@ function StoreEditor({
               key={section.id}
               section={section}
               position={index + 1}
+              reordering={reordering}
               error={areaErrors[section.id] ?? null}
               onRename={(newName) => {
                 persist({
@@ -234,7 +252,7 @@ function StoreEditor({
         )}
       </View>
 
-      <View style={styles.group}>
+      <View style={[styles.group, reordering && styles.hidden]}>
         <TextField
           label="Add an area"
           testID="new-area-name"
@@ -256,6 +274,7 @@ function StoreEditor({
 function AreaRow({
   section,
   position,
+  reordering,
   onRename,
   error,
   onUp,
@@ -265,6 +284,8 @@ function AreaRow({
 }: {
   section: StoreSection;
   position: number;
+  /** Reorder mode: just the name and move arrows. */
+  reordering: boolean;
   onToggleCategory: (categoryId: CategoryId) => void;
   onRename: (name: string) => void;
   /** Shown after Save when the name needs fixing. */
@@ -276,6 +297,29 @@ function AreaRow({
   const theme = useTheme();
   const [showCategories, setShowCategories] = useState(false);
   const holds = section.categoryIds.map(categoryName).join(', ');
+
+  if (reordering) {
+    return (
+      <View style={[styles.areaRow, styles.reorderRow, { borderBottomColor: theme.border }]}>
+        <ThemedText themeColor="textSecondary" style={styles.position}>
+          {position}
+        </ThemedText>
+        <ThemedText style={styles.flex}>{section.name}</ThemedText>
+        <IconButton
+          icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
+          label={`Move ${section.name} up`}
+          onPress={() => onUp?.()}
+          disabled={!onUp}
+        />
+        <IconButton
+          icon={{ android: 'arrow_downward', ios: 'arrow.down' }}
+          label={`Move ${section.name} down`}
+          onPress={() => onDown?.()}
+          disabled={!onDown}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.areaBlock, { borderBottomColor: theme.border }]}>
@@ -313,18 +357,6 @@ function AreaRow({
             {holds ? `Holds ${holds}` : 'Holds no categories'}
           </ThemedText>
         </Pressable>
-        <IconButton
-          icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
-          label={`Move ${section.name} up`}
-          onPress={() => onUp?.()}
-          disabled={!onUp}
-        />
-        <IconButton
-          icon={{ android: 'arrow_downward', ios: 'arrow.down' }}
-          label={`Move ${section.name} down`}
-          onPress={() => onDown?.()}
-          disabled={!onDown}
-        />
         <IconButton
           icon={{ android: 'delete', ios: 'trash' }}
           label={`Remove ${section.name}`}
@@ -364,6 +396,18 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  hidden: {
+    display: 'none',
+  },
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  reorderRow: {
+    minHeight: 52,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   areaBlock: {
     paddingTop: Spacing.one,

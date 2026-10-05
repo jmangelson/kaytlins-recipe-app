@@ -5,6 +5,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   deleteDoc,
@@ -458,5 +459,48 @@ describe('extra items', () => {
     await assertFails(setDoc(ref, { ...item, name: '' }));
     await assertFails(setDoc(ref, { ...item, storeId: 'costco' }));
     await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'extraItems', 'x1'), item));
+  });
+});
+
+describe('leaving and deleting a household', () => {
+  beforeEach(async () => {
+    await createHouseholdBatch('alice', HID, CODE).commit();
+    await joinBatch('bob', HID).commit();
+  });
+
+  function leaveBatch(uid: string) {
+    const db = dbAs(uid);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'households', HID), { memberIds: arrayRemove(uid) });
+    batch.delete(doc(db, 'users', uid));
+    return batch;
+  }
+
+  it('lets a member leave while others stay', async () => {
+    await assertSucceeds(leaveBatch('bob').commit());
+  });
+
+  it('does not let the last member leave, or anyone remove someone else', async () => {
+    await leaveBatch('bob').commit();
+    await assertFails(leaveBatch('alice').commit());
+    await joinBatch('bob', HID).commit();
+    await assertFails(
+      updateDoc(doc(dbAs('alice'), 'households', HID), { memberIds: arrayRemove('bob') })
+    );
+  });
+
+  it('lets only the last member delete the household and its invite code', async () => {
+    const deleteAll = (uid: string) => {
+      const db = dbAs(uid);
+      const batch = writeBatch(db);
+      batch.delete(doc(db, 'invites', CODE));
+      batch.delete(doc(db, 'households', HID));
+      batch.delete(doc(db, 'users', uid));
+      return batch;
+    };
+    await assertFails(deleteAll('alice').commit());
+    await assertFails(deleteDoc(doc(dbAs('mallory'), 'invites', CODE)));
+    await leaveBatch('bob').commit();
+    await assertSucceeds(deleteAll('alice').commit());
   });
 });

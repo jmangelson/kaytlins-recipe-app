@@ -9,7 +9,7 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 
-import { isCategoryId } from '@/features/ingredients/categories';
+import { upgradeCategoryIds } from '@/features/ingredients/categories';
 import type { Store, StoreSection, Tag } from '@/features/stores/store-types';
 import { isTagGroupId } from '@/features/stores/tag-groups';
 import { db } from '@/lib/firebase';
@@ -28,7 +28,7 @@ export async function listStores(householdId: string): Promise<Store[]> {
     const sections = ((data.sections ?? []) as StoreSection[])
       .map((section) => ({
         ...section,
-        categoryIds: (section.categoryIds ?? []).filter(isCategoryId),
+        categoryIds: upgradeCategoryIds(section.categoryIds ?? []),
       }))
       .sort((a, b) => a.order - b.order);
     return { id: d.id, name: data.name, order: data.order, hidden: !!data.hidden, sections };

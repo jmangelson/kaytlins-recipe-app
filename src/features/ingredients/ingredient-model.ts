@@ -1,4 +1,4 @@
-import { guessCategory, isCategoryId, type CategoryId } from '@/features/ingredients/categories';
+import { guessCategory, upgradeCategory, type CategoryId } from '@/features/ingredients/categories';
 import { specificOptions } from '@/features/ingredients/generic-ingredients';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import type { Store, StoreSection } from '@/features/stores/store-types';
@@ -53,7 +53,7 @@ export function ingredientFromData(id: string, data: Record<string, unknown>): I
     nameKey: ingredientNameKey(name),
     aliases,
     aliasKeys: aliases.map(ingredientNameKey),
-    category: isCategoryId(data.category) ? data.category : guessCategory(name),
+    category: upgradeCategory(data.category, name),
     storePriority,
     areaOverrides,
     defaultUnit: (data.defaultUnit as string | null) ?? null,

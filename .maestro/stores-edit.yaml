@@ -38,10 +38,20 @@ tags:
 - scrollUntilVisible:
     element: 'Add area'
 - tapOn: 'Add area'
+# Arrows only show in reorder mode.
+- assertNotVisible: 'Move Bulk up'
+- scrollUntilVisible:
+    element: 'Reorder areas'
+    direction: UP
+- tapOn: 'Reorder areas'
 - scrollUntilVisible:
     element: 'Move Bulk up'
 - tapOn: 'Move Bulk up'
 - assertVisible: 'Move Bulk down'
+- scrollUntilVisible:
+    element: 'Done reordering'
+    direction: UP
+- tapOn: 'Done reordering'
 - scrollUntilVisible:
     element: 'Remove Pantry'
 - tapOn: 'Remove Pantry'
@@ -53,7 +63,7 @@ tags:
     element: 'Area 2 name'
     direction: UP
 - tapOn: 'Area 2 name'
-- eraseText: 10
+- eraseText: 30
 - inputText: 'Bakery & Bread'
 - hideKeyboard
 - tapOn: 'Save store'
@@ -63,7 +73,7 @@ tags:
       id: 'store-name'
     timeout: 15000
 - scrollUntilVisible:
-    element: 'Move Bakery & Bread up'
+    element: 'Bakery & Bread'
 
 # Hide it
 - scrollUntilVisible:
@@ -77,7 +87,8 @@ tags:
 - tapOn: 'SAVE|Save'
 - scrollUntilVisible:
     element: 'Hidden stores'
-- assertVisible: 'Costco Wholesale.*'
+- scrollUntilVisible:
+    element: 'Costco Wholesale.*'
 
 # Add a store
 - scrollUntilVisible:
@@ -96,4 +107,17 @@ tags:
 - back
 - scrollUntilVisible:
     element: "Trader Joe's.*"
-- assertVisible: 'Move Trader Joe.s up'
+# Store order changes in reorder mode, saved with Save order.
+- assertNotVisible: 'Move Trader Joe.s up'
+- scrollUntilVisible:
+    element: 'Reorder stores'
+    direction: UP
+- tapOn: 'Reorder stores'
+- scrollUntilVisible:
+    element: 'Move Trader Joe.s up'
+- tapOn: 'Move Trader Joe.s up'
+- scrollUntilVisible:
+    element: 'Save order'
+- tapOn: 'Save order'
+- assertNotVisible: 'Move Trader Joe.s up'
+- assertVisible: 'Reorder stores'

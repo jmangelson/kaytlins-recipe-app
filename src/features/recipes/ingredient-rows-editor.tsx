@@ -45,20 +45,27 @@ export function IngredientRowsEditor({
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [addText, setAddText] = useState('');
   const rowViews = useRef(new Map<string, View>());
+  // The row whose editor just closed; it scrolls to the top once laid out.
+  const scrollToRow = useRef<string | null>(null);
 
   /**
-   * Closing a tall row editor can leave that row above the screen, so scroll
-   * it back near the top once the collapsed row has been laid out.
+   * Closing a tall row editor would leave the page scrolled far below that
+   * row, so once the collapsed row has its new layout (onLayout, not a frame
+   * guess, which measured the old layout), scroll it to the top of the screen.
    */
   function closeEditor(key: string) {
+    scrollToRow.current = key;
     setEditingKey(null);
-    requestAnimationFrame(() => {
-      const row = rowViews.current.get(key);
-      const content = contentRef?.current;
-      if (!row || !content) return;
-      row.measureLayout(content, (_x, y) => {
-        scrollRef?.current?.scrollTo({ y: Math.max(0, y - 96), animated: true });
-      });
+  }
+
+  function rowLaidOut(key: string) {
+    if (scrollToRow.current !== key) return;
+    scrollToRow.current = null;
+    const row = rowViews.current.get(key);
+    const content = contentRef?.current;
+    if (!row || !content) return;
+    row.measureLayout(content, (_x, y) => {
+      scrollRef?.current?.scrollTo({ y: Math.max(0, y - Spacing.two), animated: false });
     });
   }
 
@@ -117,7 +124,8 @@ export function IngredientRowsEditor({
                 ref={(view) => {
                   if (view) rowViews.current.set(row.key, view);
                   else rowViews.current.delete(row.key);
-                }}>
+                }}
+                onLayout={() => rowLaidOut(row.key)}>
                 <RowSummary
                   row={row}
                   onEdit={() => setEditingKey(row.key)}

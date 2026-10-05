@@ -1,17 +1,27 @@
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   doc,
   getDoc,
   getDocFromServer,
   getDocs,
+  getDocsFromServer,
   updateDoc,
   serverTimestamp,
   writeBatch,
 } from '@react-native-firebase/firestore';
 import { getRandomBytes } from 'expo-crypto';
 
-import { SEED_STORES, SEED_TAGS, SEED_VERSION, seedTagOrder } from '@/features/household/seed-data';
+import {
+  isUneditedSeed,
+  SEED_STORES,
+  SEED_TAGS,
+  SEED_VERSION,
+  seedTagOrder,
+  V3_SECTIONS,
+} from '@/features/household/seed-data';
+import { upgradeCategoryIds } from '@/features/ingredients/categories';
 import {
   generateInviteCode,
   isValidInviteCode,
@@ -179,6 +189,9 @@ export async function seedHouseholdIfNeeded(householdId: string): Promise<void> 
  *   their grocery categories;
  * - to 3: her existing tags become Type tags, and the Course and Meal starter
  *   tags she doesn't have yet are added.
+ * - to 4: starter stores she never edited get the new, more specific aisles;
+ *   any other store keeps her areas, with the old "Pantry & Canned" and
+ *   "Baking & Spices" categories expanded to the new ones.
  */
 async function upgradeSeed(householdId: string, fromVersion: number): Promise<void> {
   const batch = writeBatch(db);
@@ -216,6 +229,26 @@ async function upgradeSeed(householdId: string, fromVersion: number): Promise<vo
       }),
     });
   }
+  if (fromVersion < 4) {
+    // Runs after the to-2 pass above, so v1 areas already have categories.
+    const all = await getDocs(collection(db, 'households', householdId, 'stores'));
+    for (const store of all.docs) {
+      const sections = (store.data().sections ?? []) as {
+        id: string;
+        name: string;
+        order: number;
+        categoryIds?: string[];
+      }[];
+      const seed = SEED_STORES.find((s) => s.id === store.id);
+      const legacy = V3_SECTIONS[store.id];
+      batch.update(store.ref, {
+        sections:
+          seed && legacy && isUneditedSeed(sections, legacy)
+            ? seed.sections.map((s, order) => ({ ...s, order }))
+            : sections.map((s) => ({ ...s, categoryIds: upgradeCategoryIds(s.categoryIds ?? []) })),
+      });
+    }
+  }
   batch.update(doc(db, 'households', householdId), { seedVersion: SEED_VERSION });
   await batch.commit();
 }
@@ -231,4 +264,69 @@ export async function updateHousehold(
       settings: changes.settings,
     })
   );
+}
+
+/** Every collection a household's data lives in (see firestore.rules). */
+const HOUSEHOLD_COLLECTIONS = [
+  'stores',
+  'tags',
+  'ingredients',
+  'recipes',
+  'recipePhotos',
+  'mealPlans',
+  'calendarDays',
+  'shoppingLists',
+  'extraItems',
+];
+
+export class OfflineError extends Error {
+  constructor() {
+    super('Connect to the internet and try again.');
+  }
+}
+
+/**
+ * Leaves a household others still use: her id comes off its members and her
+ * profile stops pointing at it, so the app goes back to household setup
+ * (create a new one, or join with a code). Its data stays with the others.
+ */
+export async function leaveHousehold(uid: string, household: Household): Promise<void> {
+  if (household.memberIds.length <= 1) {
+    throw new Error('You’re the only member. Delete the household instead.');
+  }
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'households', household.id), { memberIds: arrayRemove(uid) });
+  batch.delete(doc(db, 'users', uid));
+  await batch.commit();
+}
+
+/**
+ * Permanently deletes a household she is the only member of: all its
+ * recipes, plans, calendar, lists, stores and tags, its invite code, the
+ * household, and her link to it. Needs a connection, so nothing is left
+ * half-deleted on another phone's cache.
+ */
+export async function deleteHousehold(uid: string, household: Household): Promise<void> {
+  if (household.memberIds.length !== 1 || household.memberIds[0] !== uid) {
+    throw new Error('Only the last member can delete a household. Leave it instead.');
+  }
+  for (const name of HOUSEHOLD_COLLECTIONS) {
+    let snapshot;
+    try {
+      snapshot = await getDocsFromServer(collection(db, 'households', household.id, name));
+    } catch {
+      throw new OfflineError();
+    }
+    // Batches hold up to 500 writes.
+    for (let i = 0; i < snapshot.docs.length; i += 400) {
+      const batch = writeBatch(db);
+      snapshot.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'invites', household.inviteCode));
+  batch.delete(doc(db, 'households', household.id));
+  batch.delete(doc(db, 'users', uid));
+  await batch.commit();
 }

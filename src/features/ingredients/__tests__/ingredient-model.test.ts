@@ -26,7 +26,7 @@ const stores: Store[] = [
     sections: [
       { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce'] },
       { id: 'bakery', name: 'Bakery', order: 1, categoryIds: ['bakery'] },
-      { id: 'baking', name: 'Baking & Spices', order: 2, categoryIds: ['baking-spices'] },
+      { id: 'baking', name: 'Baking', order: 2, categoryIds: ['baking'] },
     ],
   },
   {
@@ -36,7 +36,7 @@ const stores: Store[] = [
     hidden: false,
     sections: [
       { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce'] },
-      { id: 'pantry', name: 'Pantry', order: 1, categoryIds: ['pantry-canned', 'baking-spices'] },
+      { id: 'pantry', name: 'Pantry', order: 1, categoryIds: ['canned', 'baking', 'spices'] },
       { id: 'bakery', name: 'Bakery', order: 2, categoryIds: ['bakery'] },
     ],
   },
@@ -51,10 +51,15 @@ describe('guessCategory', () => {
     ['diced yellow onion', 'produce'],
     ['Shredded Monterey Jack', 'dairy-eggs'],
     ['boneless skinless chicken thighs', 'meat-seafood'],
-    ['red enchilada sauce', 'pantry-canned'],
+    ['red enchilada sauce', 'international'],
+    ['jasmine rice', 'pasta-grains'],
+    ['cream of chicken soup', 'canned'],
+    ['apple cider vinegar', 'condiments'],
+    ['maple syrup', 'breakfast'],
     ['flour tortillas', 'bakery'],
-    ['all-purpose flour', 'baking-spices'],
-    ['black pepper', 'baking-spices'],
+    ['all-purpose flour', 'baking'],
+    ['black pepper', 'spices'],
+    ['smoked paprika', 'spices'],
     ['red bell pepper', 'produce'],
     ['frozen peas', 'frozen'],
     ['ground beef', 'meat-seafood'],
@@ -131,7 +136,7 @@ describe('areaForStore', () => {
   const flour = ingredient('f', 'All-purpose flour');
 
   it('uses the area that holds its category in each store', () => {
-    expect(areaForStore(flour, stores[0])?.name).toBe('Baking & Spices');
+    expect(areaForStore(flour, stores[0])?.name).toBe('Baking');
     expect(areaForStore(flour, stores[1])?.name).toBe('Pantry');
   });
 

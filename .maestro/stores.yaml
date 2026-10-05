@@ -20,11 +20,11 @@ tags:
 - extendedWaitUntil:
     visible: "Macey's.*"
     timeout: 15000
-- assertVisible: "Macey's, 11 areas"
-- assertVisible: 'Costco, 8 areas'
-- assertVisible: "Sam's Club, 8 areas"
-- assertVisible: 'Walmart, 11 areas'
-- assertVisible: "Smith's, 11 areas"
+- assertVisible: "Macey's, 16 areas"
+- assertVisible: 'Costco, 11 areas'
+- assertVisible: "Sam's Club, 11 areas"
+- assertVisible: 'Walmart, 16 areas'
+- assertVisible: "Smith's, 16 areas"
 # Areas are listed in walking order on the store's own screen.
 - tapOn: "Macey's.*"
 - extendedWaitUntil:

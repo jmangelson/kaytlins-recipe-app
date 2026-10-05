@@ -193,7 +193,7 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'recipe-add-ingredients'
 - tapOn:
     id: 'recipe-add-ingredients'
-- inputText: '3 sweet onions, sliced'
+- inputText: '3 onions, sliced'
 - pressKey: Enter
 - inputText: '4 cups beef broth'
 - hideKeyboard
@@ -205,8 +205,10 @@ appId: com.jmangelson.kaytlinsrecipes
     direction: UP
     centerElement: true
 - takeScreenshot: build/screenshots/21b-recipe-vague-match
-- tapOn: 'New: sweet onions'
+- tapOn: 'Use new sweet onion for onions'
+# Leaving the unsaved form asks first
 - back
+- tapOn: 'DISCARD|Discard'
 
 # Settings and shopping setup (Milestone 4)
 - tapOn: 'Settings'
@@ -223,6 +225,13 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'household-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/23-household-settings
+- scrollUntilVisible:
+    element: 'Delete household…'
+- tapOn: 'Delete household…'
+- scrollUntilVisible:
+    element: 'Delete everything'
+- takeScreenshot: build/screenshots/23b-household-delete
+- tapOn: 'Cancel'
 - back
 - scrollUntilVisible:
     element: 'Stores & aisles'
@@ -232,6 +241,11 @@ appId: com.jmangelson.kaytlinsrecipes
     visible: "Macey's.*"
     timeout: 15000
 - takeScreenshot: build/screenshots/24-stores
+- tapOn: 'Reorder stores'
+- takeScreenshot: build/screenshots/24b-stores-reorder
+- scrollUntilVisible:
+    element: 'Cancel'
+- tapOn: 'Cancel'
 - tapOn: "Macey's.*"
 - extendedWaitUntil:
     visible:
@@ -244,7 +258,18 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Add area'
 - takeScreenshot: build/screenshots/26-store-edit-bottom
+- scrollUntilVisible:
+    element: 'Reorder areas'
+    direction: UP
+    centerElement: true
+- tapOn: 'Reorder areas'
+- takeScreenshot: build/screenshots/26b-store-reorder
+- tapOn: 'Move Bakery down'
 - back
+- extendedWaitUntil:
+    visible: 'Save your changes?'
+    timeout: 5000
+- tapOn: 'DISCARD|Discard'
 - scrollUntilVisible:
     element:
       id: 'new-store-name'

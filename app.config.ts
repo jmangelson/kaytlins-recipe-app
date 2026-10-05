@@ -2,8 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 // google-services.json is downloaded from the Firebase console and kept out of
-// git (see README). Google Sign-In needs its web OAuth client id (type 3).
-const GOOGLE_SERVICES_FILE = './google-services.json';
+// git (see README). Cloud builds get it from the secret EAS file variable
+// GOOGLE_SERVICES_JSON (its path on the build server). Google Sign-In needs
+// its web OAuth client id (type 3).
+const GOOGLE_SERVICES_FILE = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
 
 type GoogleServices = {
   client: { oauth_client: { client_id: string; client_type: number }[] }[];

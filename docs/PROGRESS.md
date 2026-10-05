@@ -281,6 +281,28 @@ From the full check on her phone:
   milk, oil, … ~40) always ask for a specific kind, even when she has the
   general one: her more specific ingredients first, then common kinds
   ("Use new yellow onion"), then "New: onion" to keep it general.
+- **More specific aisles (seed v4):** "Pantry & Canned" and "Baking & Spices"
+  became seven categories (Canned Goods & Soup; Pasta, Rice & Grains;
+  International & Mexican; Condiments, Oils & Dressings; Baking; Spices &
+  Seasonings; Cereal & Breakfast). Macey's, Walmart, and Smith's get 16 areas
+  in supermarket walking order with Baking and Spices apart; Costco and Sam's
+  get 11 in a warehouse order (household and snacks first, one Pantry and a
+  Baking & Spices area in the center, fresh and frozen at the back). The v4
+  upgrade replaces only starter stores she never edited
+  (`isUneditedSeed`); other stores keep her areas with the old categories
+  expanded. Old categories on ingredients and areas are also upgraded when
+  read (`upgradeCategory`, `upgradeCategoryIds`).
+- **Reorder modes:** the store editor's move arrows appear only after
+  "Reorder" (then Done and Save); the Stores list has "Reorder stores" with
+  Save order / Cancel (no more instant saves on each arrow).
+- **Leave or delete a household** (Household settings): a member leaves when
+  others remain; the last member deletes it (all its data, invite code, and
+  her link) after typing its name. Either way the app returns to household
+  setup to create one or join with a code. Rules allow only removing
+  yourself, and deleting by the last member (37 rules tests); Maestro
+  `household-leave`.
+- **Recipe row editor:** Done scrolls that row to the top of the screen,
+  measured once the collapsed row is laid out.
 
 ## Decisions
 
@@ -407,6 +429,12 @@ disabled]`: a failed run otherwise leaves the emulator offline and the next
 - **React Compiler lint** rejects writing refs during render and calling a
   function before it's declared; split a screen into a loader and a form
   component so hooks can use what the form defines.
+- **Restart the Firebase emulators after disk trouble.** After the disk
+  filled, the running emulator stopped picking up rules changes (its log
+  stopped at 00:01) and denied new rules that passed in the rules tests.
+- **Scroll after a layout change in `onLayout`,** not a
+  `requestAnimationFrame` guess: the frame can run before the new
+  layout and measure the old one.
 - **Check scripted edits landed.** A replace that silently matches nothing
   leaves the old code; grep for the new text after editing.
 - **Save on change, not on blur**, for inline edits on Android.
@@ -421,7 +449,7 @@ disabled]`: a failed run otherwise leaves the emulator offline and the next
 - **Installing the release APK over the dev build keeps its data** (same debug
   signing key), including an Auth-emulator sign-in the real backend rejects.
   Uninstall first (and check it succeeded) or `pm clear` before testing.
-- **`String.replace(a, b)` treats `$&`, `$'`, `$\`` in `b` specially.** Regexes in
+- **`String.replace(a, b)` treats `$&`, `$'`, `$`` in `b` specially.** Regexes in
 rules (`…$'`) triggered it. Use `replace(a, () => b)` for literal text.
 - **Screenshot review catches real bugs** that tests miss (clipped labels,
   hidden errors). It is now a required step for every milestone.

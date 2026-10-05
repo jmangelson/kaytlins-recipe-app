@@ -1,0 +1,95 @@
+# Leaving and deleting a household: a second member leaves (back to setup,
+# the household keeps its owner), then the owner, now its only member,
+# deletes it after typing its name and starts a fresh one.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - auth
+---
+- launchApp:
+    clearState: true
+- evalScript: ${output.owner = 'leaveowner' + Date.now() + '@test.dev'}
+- evalScript: ${output.joiner = 'leavejoiner' + Date.now() + '@test.dev'}
+
+# Owner creates the household and copies the invite code.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.owner}
+- runFlow: subflows/create-household.yaml
+- tapOn: 'Settings'
+- scrollUntilVisible:
+    element:
+      id: 'invite-code'
+- copyTextFrom:
+    id: 'invite-code'
+- runFlow: subflows/sign-out.yaml
+
+# A second member joins, then leaves.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.joiner}
+- extendedWaitUntil:
+    visible: 'Set up your household'
+    timeout: 30000
+- tapOn: 'Invite code'
+- pasteText
+- hideKeyboard
+- tapOn: 'Join household'
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Household settings'
+- scrollUntilVisible:
+    element: 'Leave household'
+- assertNotVisible: 'Delete household…'
+- tapOn: 'Leave household'
+- tapOn: 'LEAVE|Leave'
+- extendedWaitUntil:
+    visible: 'Set up your household'
+    timeout: 30000
+- runFlow: subflows/sign-out.yaml
+
+# The owner is its only member again, and deletes it.
+- runFlow:
+    file: subflows/sign-in-test-user.yaml
+    env:
+      EMAIL: ${output.owner}
+- extendedWaitUntil:
+    visible: 'No recipes yet.*'
+    timeout: 30000
+- tapOn: 'Settings'
+- assertVisible: '1 member'
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Household settings'
+- scrollUntilVisible:
+    element: 'Delete household…'
+- assertNotVisible: 'Leave household'
+- tapOn: 'Delete household…'
+- scrollUntilVisible:
+    element: 'Delete everything'
+- tapOn:
+    id: 'confirm-household-name'
+- inputText: 'Our Kitch'
+- hideKeyboard
+# Not the name yet: the button stays off.
+- tapOn: 'Delete everything'
+- assertVisible: 'Delete everything'
+- tapOn:
+    id: 'confirm-household-name'
+- inputText: 'en'
+- hideKeyboard
+- tapOn: 'Delete everything'
+- extendedWaitUntil:
+    visible: 'Set up your household'
+    timeout: 30000
+
+# A fresh start
+- runFlow: subflows/create-household.yaml
+- tapOn: 'Settings'
+- assertVisible: '1 member'

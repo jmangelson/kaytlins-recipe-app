@@ -26,10 +26,11 @@ appId: com.jmangelson.kaytlinsrecipes
     when:
       visible: '.*is new.*'
     commands:
+      # Named as typed or a suggested kind ("Add roma tomatoes")
       - scrollUntilVisible:
-          element: 'Add tomatoes'
+          element: 'Add (?!to list).*tomatoes'
           centerElement: true
-      - tapOn: 'Add tomatoes'
+      - tapOn: 'Add (?!to list).*tomatoes'
 - scrollUntilVisible:
     element: 'Other things to buy'
     direction: UP

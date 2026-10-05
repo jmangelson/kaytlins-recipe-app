@@ -42,6 +42,14 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "owner": "jmangelsons-team",
+    "extra": {
+      "googleWebClientId": "579765143755-jovomupnf4r1vlaqhvgfve80cs9jfc0m.apps.googleusercontent.com",
+      "router": {},
+      "eas": {
+        "projectId": "b034550e-1a25-4d86-b5c9-12cbc88dc632"
+      }
     }
   }
 }

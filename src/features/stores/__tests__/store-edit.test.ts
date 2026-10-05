@@ -50,13 +50,9 @@ describe('section edits', () => {
 
 describe('toggleSectionCategory', () => {
   it('adds and removes a category from one area', () => {
-    const sections = [
-      { id: 'pantry', name: 'Pantry', order: 0, categoryIds: ['pantry-canned' as const] },
-    ];
-    const added = toggleSectionCategory(sections, 'pantry', 'baking-spices');
-    expect(added[0].categoryIds).toEqual(['pantry-canned', 'baking-spices']);
-    expect(toggleSectionCategory(added, 'pantry', 'pantry-canned')[0].categoryIds).toEqual([
-      'baking-spices',
-    ]);
+    const sections = [{ id: 'pantry', name: 'Pantry', order: 0, categoryIds: ['canned' as const] }];
+    const added = toggleSectionCategory(sections, 'pantry', 'baking');
+    expect(added[0].categoryIds).toEqual(['canned', 'baking']);
+    expect(toggleSectionCategory(added, 'pantry', 'canned')[0].categoryIds).toEqual(['baking']);
   });
 });

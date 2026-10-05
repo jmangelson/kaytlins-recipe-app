@@ -16,6 +16,7 @@ import { moveItem, nameProblem } from '@/features/stores/store-edit';
 import { createStore, listStores, reorderStores } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -26,8 +27,28 @@ export default function StoresScreen() {
   const [newName, setNewName] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
   const refresh = stores.refresh;
+  // Reorder mode: the shown stores' ids in their new order, saved with Save
+  // order (Back asks first). Null when not reordering.
+  const [order, setOrder] = useState<string[] | null>(null);
+  const loaded = stores.state.status === 'success' ? stores.state.data : [];
+  const loadedShown = loaded.filter((s) => !s.hidden).map((s) => s.id);
+  const dirty = order !== null && order.join() !== loadedShown.join();
+
+  async function saveOrder(): Promise<boolean> {
+    if (!order) return true;
+    const byId = new Map(loaded.map((s) => [s.id, s]));
+    // Hidden stores keep their place after the shown ones.
+    await reorderStores(household.id, [
+      ...order.map((id) => byId.get(id)!),
+      ...loaded.filter((s) => s.hidden),
+    ]);
+    setOrder(null);
+    refresh();
+    return true;
+  }
+  useUnsavedChanges(dirty, saveOrder);
+
   useFocusEffect(
     useCallback(() => {
       refresh();
@@ -45,15 +66,14 @@ export default function StoresScreen() {
   }
 
   const all = stores.state.data;
-  const shown = all.filter((s) => !s.hidden);
+  const byId = new Map(all.map((s) => [s.id, s]));
+  const shown = order
+    ? order.map((id) => byId.get(id)!).filter(Boolean)
+    : all.filter((s) => !s.hidden);
   const hidden = all.filter((s) => s.hidden);
 
-  async function move(index: number, delta: -1 | 1) {
-    setBusy(true);
-    // Hidden stores keep their place after the shown ones.
-    await reorderStores(household.id, [...moveItem(shown, index, delta), ...hidden]);
-    setBusy(false);
-    refresh();
+  function move(index: number, delta: -1 | 1) {
+    setOrder(moveItem(shown, index, delta).map((s) => s.id));
   }
 
   async function add() {
@@ -78,20 +98,33 @@ export default function StoresScreen() {
         Shopping lists follow this store order, then each store’s areas in walking order. Tap a
         store to rename it, hide it, or edit its areas.
       </ThemedText>
+      {shown.length > 1 && !order && (
+        <Button
+          label="Reorder stores"
+          variant="secondary"
+          onPress={() => setOrder(shown.map((s) => s.id))}
+        />
+      )}
 
       <View>
         {shown.map((store, index) => (
           <StoreRow
             key={store.id}
             store={store}
+            reordering={!!order}
             onUp={index > 0 ? () => move(index, -1) : undefined}
             onDown={index < shown.length - 1 ? () => move(index, 1) : undefined}
-            disabled={busy}
           />
         ))}
       </View>
+      {order && (
+        <View style={styles.group}>
+          <Button label="Save order" onPress={saveOrder} disabled={!dirty} />
+          <Button label="Cancel" variant="secondary" onPress={() => setOrder(null)} />
+        </View>
+      )}
 
-      {hidden.length > 0 && (
+      {!order && hidden.length > 0 && (
         <View style={styles.group}>
           <ThemedText type="smallBold" accessibilityRole="header">
             Hidden stores
@@ -112,7 +145,7 @@ export default function StoresScreen() {
         </View>
       )}
 
-      <View style={styles.group}>
+      <View style={[styles.group, order && styles.hidden]}>
         <TextField
           label="Add a store"
           testID="new-store-name"
@@ -133,39 +166,44 @@ export default function StoresScreen() {
 
 function StoreRow({
   store,
+  reordering,
   onUp,
   onDown,
-  disabled,
 }: {
   store: Store;
+  /** Reorder mode: the name and move arrows instead of a link to the store. */
+  reordering: boolean;
   onUp?: () => void;
   onDown?: () => void;
-  disabled: boolean;
 }) {
   const theme = useTheme();
   const count = store.sections.length;
+  if (!reordering) {
+    return (
+      <ListRow
+        title={store.name}
+        subtitle={count === 0 ? 'No areas yet' : `${count} ${count === 1 ? 'area' : 'areas'}`}
+        subtitleTone={count === 0 ? 'attention' : 'default'}
+        onPress={() => router.push({ pathname: '/store/[id]', params: { id: store.id } })}
+      />
+    );
+  }
   return (
     <View style={[styles.storeRow, { borderBottomColor: theme.border }]}>
       <View style={styles.flex}>
-        <ListRow
-          title={store.name}
-          subtitle={count === 0 ? 'No areas yet' : `${count} ${count === 1 ? 'area' : 'areas'}`}
-          subtitleTone={count === 0 ? 'attention' : 'default'}
-          onPress={() => router.push({ pathname: '/store/[id]', params: { id: store.id } })}
-          divider={false}
-        />
+        <ThemedText>{store.name}</ThemedText>
       </View>
       <IconButton
         icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
         label={`Move ${store.name} up`}
         onPress={() => onUp?.()}
-        disabled={disabled || !onUp}
+        disabled={!onUp}
       />
       <IconButton
         icon={{ android: 'arrow_downward', ios: 'arrow.down' }}
         label={`Move ${store.name} down`}
         onPress={() => onDown?.()}
-        disabled={disabled || !onDown}
+        disabled={!onDown}
       />
     </View>
   );
@@ -178,7 +216,11 @@ const styles = StyleSheet.create({
   storeRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 56,
     borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  hidden: {
+    display: 'none',
   },
   flex: {
     flex: 1,
