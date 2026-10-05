@@ -2,7 +2,7 @@
   "expo": {
     "name": "Kaytlin's Recipes",
     "slug": "kaytlins-recipe-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "kaytlinsrecipes",
@@ -30,7 +30,6 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-google-signin/google-signin",
       [
         "expo-image-picker",
         {

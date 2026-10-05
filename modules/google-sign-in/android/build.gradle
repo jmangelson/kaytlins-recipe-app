@@ -1,0 +1,24 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.jmangelson.kaytlinsrecipes'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.googlesignin"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+}
+
+dependencies {
+  // Android's Credential Manager, with Google accounts from Play services,
+  // and Google's ID token credential (the supported replacement for the
+  // deprecated Google Sign-In for Android).
+  implementation "androidx.credentials:credentials:1.5.0"
+  implementation "androidx.credentials:credentials-play-services-auth:1.5.0"
+  implementation "com.google.android.libraries.identity.googleid:googleid:1.1.1"
+}

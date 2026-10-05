@@ -5,40 +5,31 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
 } from '@react-native-firebase/auth';
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 import Constants from 'expo-constants';
 
 import { auth, usingFirebaseEmulators } from '@/lib/firebase';
+import { GoogleSignIn } from '../../../modules/google-sign-in';
 
-let configured = false;
-
-function configureGoogleSignIn() {
-  if (configured) return;
-  GoogleSignin.configure({
-    webClientId: Constants.expoConfig?.extra?.googleWebClientId,
-  });
-  configured = true;
+function errorCode(error: unknown): string | undefined {
+  return typeof error === 'object' && error && 'code' in error ? String(error.code) : undefined;
 }
 
-/** Signs in with Google. Resolves false if the person cancelled. */
+/**
+ * Signs in with Google through Android's Credential Manager. Resolves false
+ * if the person cancelled.
+ */
 export async function signInWithGoogle(): Promise<boolean> {
-  configureGoogleSignIn();
+  const webClientId = Constants.expoConfig?.extra?.googleWebClientId as string | undefined;
+  if (!webClientId) throw new Error('Google sign-in isn’t set up in this build.');
   try {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    const response = await GoogleSignin.signIn();
-    if (!isSuccessResponse(response)) return false;
-
-    const { idToken } = response.data;
-    if (!idToken) throw new Error('Google did not return an ID token.');
+    const { idToken } = await GoogleSignIn.signIn(webClientId);
     await signInWithCredential(auth, GoogleAuthProvider.credential(idToken));
     return true;
   } catch (error) {
-    if (isErrorWithCode(error) && error.code === statusCodes.IN_PROGRESS) return false;
+    if (errorCode(error) === 'ERR_CANCELED') return false;
+    if (errorCode(error) === 'ERR_NO_ACCOUNT') {
+      throw new Error('Add a Google account to this phone (Settings → Accounts), then try again.');
+    }
     throw error;
   }
 }
@@ -58,9 +49,6 @@ export async function signInForTesting(email: string): Promise<void> {
 }
 
 export async function signOut(): Promise<void> {
-  if (!usingFirebaseEmulators) {
-    configureGoogleSignIn();
-    await GoogleSignin.signOut().catch(() => undefined);
-  }
+  if (!usingFirebaseEmulators) await GoogleSignIn.signOut().catch(() => undefined);
   await firebaseSignOut(auth);
 }

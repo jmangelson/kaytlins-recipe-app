@@ -315,8 +315,13 @@ From the full check on her phone:
 - Version 1.0.0 (build 7) built locally (`npm run build:local`; the free
   cloud queue was slow) and sent to the `household` group with Firebase App
   Distribution (`npm run distribute`). See docs/RELEASE.md.
-- Still to do: Google sign-in on Credential Manager; the switch to the real
-  household.
+- Google sign-in moved to Android's Credential Manager with a small local
+  Expo module (`modules/google-sign-in`, Kotlin, Google's official
+  `androidx.credentials` and `googleid` libraries); the free edition of
+  @react-native-google-signin only has the deprecated API. Native change, so
+  version 1.0.1. Checked on the emulator: the button opens Google's sheet,
+  backing out returns quietly; real sign-in needs a phone.
+- Still to do: the switch to the real household.
 
 ## Decisions
 
@@ -411,9 +416,7 @@ firestore:rules`, after `npm run test:rules` passes.
 - **Firebase emulators** accept any Google credential, so Maestro uses an
   emulator-only email sign-in; real Google sign-in needs a manual check on a
   phone (needs the debug SHA-1 registered, which it is).
-- **Google Sign-In deprecation:** the original `GoogleSignin` API logs a
-  "gsi-migration" warning (legacy Google Sign-In for Android is deprecated in
-  favor of Credential Manager). It works today; revisit before release (M9).
+- **Google Sign-In:** now on Credential Manager (see Milestone 9).
 - **Rules: any matching rule grants access.** To validate a collection's
   shape, exclude it from the members-only catch-all, or the catch-all
   silently allows malformed writes.
@@ -449,6 +452,9 @@ disabled]`: a failed run otherwise leaves the emulator offline and the next
 - **Scroll after a layout change in `onLayout`,** not a
   `requestAnimationFrame` guess: the frame can run before the new
   layout and measure the old one.
+- **Release builds and the emulator compete.** A Gradle release build with
+  4 GB froze the emulator ("hanging thread"); stop Gradle daemons
+  (`./gradlew --stop`) after builds, and build with one emulator or none.
 - **Check scripted edits landed.** A replace that silently matches nothing
   leaves the old code; grep for the new text after editing.
 - **Save on change, not on blur**, for inline edits on Android.
