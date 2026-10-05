@@ -56,6 +56,9 @@ directory and must be redone:
 3. **GitHub deploy key:** generate a new key in `~/.ssh` and add it to the
    repo's deploy keys (write access), as in the README.
 4. **`google-services.json`:** download it again into the repo root.
+5. **Gradle memory for local release builds:** add
+   `org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1536m` to
+   `~/.gradle/gradle.properties` (the project default ran out of Metaspace).
 
 ## Google sign-in and the signing key
 

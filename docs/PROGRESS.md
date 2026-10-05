@@ -17,7 +17,7 @@ Update this file at the end of every milestone.
 | 6   | Calendar: apply plans to dates                                             | Done        |
 | 7   | Shopping generation + pantry check                                         | Done        |
 | 8   | Checklist by store → area, share as text                                   | Done        |
-| 9   | Release: EAS APK on both phones                                            | Not started |
+| 9   | Release: EAS APK on both phones                                            | In progress |
 | 10  | AI photo scan (Cloudflare Worker + Claude)                                 | Not started |
 
 ## Completed
@@ -303,6 +303,20 @@ From the full check on her phone:
   `household-leave`.
 - **Recipe row editor:** Done scrolls that row to the top of the screen,
   measured once the collapsed row is laid out.
+
+### Milestone 9 — First release build (2026-10-05)
+
+- EAS project `@jmangelsons-team/kaytlins-recipe-app` (robot token in
+  `~/.expo-token`); EAS keeps the release signing key; release fingerprints
+  added to Firebase. `google-services.json` reaches cloud builds as a secret
+  EAS file variable.
+- Over-the-air updates (`expo-updates`, channel `preview`, runtime version =
+  app version). Build profiles `preview` (APK) and `production`.
+- Version 1.0.0 (build 7) built locally (`npm run build:local`; the free
+  cloud queue was slow) and sent to the `household` group with Firebase App
+  Distribution (`npm run distribute`). See docs/RELEASE.md.
+- Still to do: Google sign-in on Credential Manager; the switch to the real
+  household.
 
 ## Decisions
 
