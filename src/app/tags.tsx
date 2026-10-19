@@ -133,7 +133,7 @@ export default function TagsScreen() {
           </ThemedText>
           {byGroup[group.id].length === 0 ? (
             <ThemedText themeColor="textSecondary">
-              No {group.name.toLowerCase()} tags yet.
+              No {group.name.toLowerCase().replace(/ tags$/, '')} tags yet.
             </ThemedText>
           ) : (
             <View>

@@ -1,0 +1,101 @@
+# Round 2 phase 1 screens: Your units, Other tags, store priority on a new
+# item, and the fresh-or-dried question for a bare herb. Starts on any tab.
+appId: com.jmangelson.kaytlinsrecipes
+---
+# Your units: empty, then with one added
+- runFlow:
+    file: ../subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Your units'
+- extendedWaitUntil:
+    visible: 'No units of your own yet.'
+    timeout: 15000
+- takeScreenshot: build/screenshots/70-units-empty
+- tapOn:
+    id: 'new-unit'
+- inputText: 'sleeve'
+- hideKeyboard
+- takeScreenshot: build/screenshots/71-units-typing
+- tapOn: 'Add unit'
+- extendedWaitUntil:
+    visible: 'Remove sleeve'
+    timeout: 15000
+- takeScreenshot: build/screenshots/72-units-added
+- back
+
+# Tags: the Other tags group with a Camping tag
+- runFlow:
+    file: ../subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Manage tags'
+- scrollUntilVisible:
+    element:
+      id: 'new-tag-name'
+    centerElement: true
+# The chip, not the "Other tags" heading above it
+- tapOn:
+    text: 'Other tags'
+    index: 1
+- tapOn:
+    id: 'new-tag-name'
+- inputText: 'Camping'
+- hideKeyboard
+- tapOn: 'Add tag'
+- scrollUntilVisible:
+    element: 'Delete Camping'
+    centerElement: true
+- takeScreenshot: build/screenshots/73-tags-other
+- back
+
+# A new item bought at two stores, in order
+- tapOn: 'Shopping'
+- runFlow:
+    file: ../subflows/add-item.yaml
+    env:
+      TEXT: 'dish soap'
+- extendedWaitUntil:
+    visible: '.*is new.*Where do you usually buy it.*'
+    timeout: 15000
+- tapOn: 'Usually from Costco'
+- tapOn: "Usually from Macey's"
+- scrollUntilVisible:
+    element: 'Add dish soap'
+    centerElement: true
+- takeScreenshot: build/screenshots/74-item-store-priority
+- tapOn: 'Add dish soap'
+
+# A bare herb asks fresh or dried
+- tapOn: 'Recipes'
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'Pesto'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'recipe-add-ingredients'
+- tapOn:
+    id: 'recipe-add-ingredients'
+- inputText: '2 cups basil'
+- pressKey: Enter
+- inputText: '1 tsp dried thyme'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Which ingredient is “basil”.*'
+    centerElement: true
+- assertVisible: 'Use new fresh basil for basil'
+- assertVisible: 'Use new dried basil for basil'
+- assertNotVisible: 'New: basil'
+- takeScreenshot: build/screenshots/75-herb-fresh-or-dried
+- tapOn: 'Use new fresh basil for basil'
+- assertNotVisible: 'Which ingredient is “basil”.*'
+- takeScreenshot: build/screenshots/76-herb-chosen
+- back
+- tapOn: 'DISCARD|Discard'

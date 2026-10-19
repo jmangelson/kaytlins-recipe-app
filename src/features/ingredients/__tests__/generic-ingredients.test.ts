@@ -1,4 +1,4 @@
-import { specificOptions } from '@/features/ingredients/generic-ingredients';
+import { needsFreshOrDried, specificOptions } from '@/features/ingredients/generic-ingredients';
 import { parseIngredientLine } from '@/features/ingredients/parse-ingredient-line';
 
 describe('fresh and dried herbs', () => {
@@ -29,6 +29,13 @@ describe('fresh and dried herbs', () => {
     '"%s" is already specific',
     (name) => expect(specificOptions(name)).toBeNull()
   );
+
+  it('only bare herbs must be chosen (no "New: basil")', () => {
+    expect(needsFreshOrDried('Basil')).toBe(true);
+    expect(needsFreshOrDried('bay leaf')).toBe(true);
+    expect(needsFreshOrDried('fresh basil')).toBe(false);
+    expect(needsFreshOrDried('onion')).toBe(false);
+  });
 
   it('keeps "fresh" and "dried" in the parsed name', () => {
     expect(parseIngredientLine('2 tbsp chopped fresh basil').name).toMatch(/fresh basil/i);

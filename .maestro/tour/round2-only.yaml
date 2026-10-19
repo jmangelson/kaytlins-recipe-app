@@ -1,0 +1,10 @@
+# Round 2 phase 1 screens only (quick screenshot review).
+appId: com.jmangelson.kaytlinsrecipes
+---
+- evalScript: ${output.email = 'round2' + Date.now() + '@test.dev'}
+- runFlow:
+    file: ../subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- runFlow: round2-part.yaml

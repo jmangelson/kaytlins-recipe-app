@@ -7,6 +7,7 @@ import { IconButton } from '@/components/icon-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { needsFreshOrDried } from '@/features/ingredients/generic-ingredients';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
@@ -239,10 +240,13 @@ function RowSummary({
               onPress={() => onLink({ kind: 'new', name })}
             />
           ))}
-          <Chip
-            label={`New: ${row.writtenName}`}
-            onPress={() => onLink({ kind: 'new', name: row.writtenName })}
-          />
+          {/* A bare herb must be chosen as fresh or dried, not kept as is. */}
+          {!needsFreshOrDried(row.writtenName) && (
+            <Chip
+              label={`New: ${row.writtenName}`}
+              onPress={() => onLink({ kind: 'new', name: row.writtenName })}
+            />
+          )}
           <Chip label="Other…" onPress={onEdit} />
         </View>
       )}

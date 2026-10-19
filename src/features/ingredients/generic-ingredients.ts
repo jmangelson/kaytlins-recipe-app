@@ -1,11 +1,35 @@
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 
 /**
+ * Herbs: fresh and dried are different ingredients from different aisles,
+ * so a bare herb name always asks which one the recipe means, and the bare
+ * name itself isn't offered as a new ingredient.
+ */
+const HERBS: Record<string, string[]> = {
+  parsley: ['fresh parsley', 'dried parsley flakes'],
+  cilantro: ['fresh cilantro', 'dried cilantro'],
+  basil: ['fresh basil', 'dried basil'],
+  thyme: ['fresh thyme', 'dried thyme'],
+  rosemary: ['fresh rosemary', 'dried rosemary'],
+  oregano: ['fresh oregano', 'dried oregano'],
+  sage: ['fresh sage', 'rubbed sage'],
+  dill: ['fresh dill', 'dried dill weed'],
+  mint: ['fresh mint', 'dried mint'],
+  chives: ['fresh chives', 'dried chives'],
+  tarragon: ['fresh tarragon', 'dried tarragon'],
+  marjoram: ['fresh marjoram', 'dried marjoram'],
+  'bay leaf': ['dried bay leaves', 'fresh bay leaves'],
+  'bay leaves': ['dried bay leaves', 'fresh bay leaves'],
+  ginger: ['fresh ginger', 'ground ginger'],
+};
+
+/**
  * Names too general to shop for ("onion", "rice", "beans"). A line or item
  * with one of these always asks which kind she means, offering her own more
  * specific ingredients first and then these common choices.
  */
 const GENERIC: Record<string, string[]> = {
+  ...HERBS,
   onion: ['yellow onion', 'red onion', 'white onion', 'sweet onion', 'green onions', 'shallots'],
   rice: ['long-grain white rice', 'jasmine rice', 'basmati rice', 'brown rice', 'Calrose rice'],
   beans: [
@@ -73,29 +97,19 @@ const GENERIC: Record<string, string[]> = {
   salsa: ['mild salsa', 'medium salsa', 'salsa verde'],
   mustard: ['yellow mustard', 'Dijon mustard', 'ground mustard'],
   chocolate: ['chocolate chips', 'semi-sweet baking chocolate', 'cocoa powder'],
-  // Herbs: fresh and dried are different ingredients from different aisles,
-  // so a bare herb name always asks which one the recipe means.
-  parsley: ['fresh parsley', 'dried parsley flakes'],
-  cilantro: ['fresh cilantro', 'dried cilantro'],
-  basil: ['fresh basil', 'dried basil'],
-  thyme: ['fresh thyme', 'dried thyme'],
-  rosemary: ['fresh rosemary', 'dried rosemary'],
-  oregano: ['fresh oregano', 'dried oregano'],
-  sage: ['fresh sage', 'rubbed sage'],
-  dill: ['fresh dill', 'dried dill weed'],
-  mint: ['fresh mint', 'dried mint'],
-  chives: ['fresh chives', 'dried chives'],
-  tarragon: ['fresh tarragon', 'dried tarragon'],
-  marjoram: ['fresh marjoram', 'dried marjoram'],
-  'bay leaf': ['dried bay leaves', 'fresh bay leaves'],
-  'bay leaves': ['dried bay leaves', 'fresh bay leaves'],
-  ginger: ['fresh ginger', 'ground ginger'],
 };
 
 // Keyed by the matching key, so "Onions", "onion", and "ONION" all count.
 const BY_KEY = new Map(
   Object.entries(GENERIC).map(([name, options]) => [ingredientNameKey(name), options])
 );
+
+const HERB_KEYS = new Set(Object.keys(HERBS).map(ingredientNameKey));
+
+/** True for a bare herb name, which must be chosen as fresh or dried. */
+export function needsFreshOrDried(name: string): boolean {
+  return HERB_KEYS.has(ingredientNameKey(name));
+}
 
 /** Common specific kinds when the name is too general to shop for, else null. */
 export function specificOptions(name: string): string[] | null {
