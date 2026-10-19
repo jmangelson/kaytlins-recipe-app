@@ -344,6 +344,30 @@ From the full check on her phone:
 - Shipped as an over-the-air update to 1.0.1 (no native changes).
 - Still to do: the accuracy check on ~10 of her real recipe photos.
 
+### Round 2, phase 1 — Units, sizes, herbs, tags, store order (2026-10-19)
+
+- "tb"/"tbls" read as tbsp; new count units (fillet, breast, thigh,
+  container, carton, tub, piece, loaf, ear, stalk, link, roll, envelope).
+- Household units (Settings › Your units), offered to the unit picker and to
+  photo scans.
+- Size words before or after a name go to the note; "a dozen", "half a
+  dozen" read as 12 and 6. 1% milk among the milk choices.
+- Fresh and dried herbs are separate ingredients: a bare herb name (basil,
+  cilantro, thyme, ginger, …) always asks fresh or dried, with no "New: basil"
+  option. Scans keep "fresh"/"dried" in the name.
+- "Other tags" group (e.g. Camping); recipe-tab tags sorted by group.
+- New items can list several stores in priority order.
+- New lists made from dates trim to the first and last planned day.
+- Photo crop restored (one photo per pick).
+- Released: Firestore rules (units collection), Worker (units, sizes, herbs in
+  the prompt), OTA update 143cb546 on preview (runtime 1.0.1).
+- Checks: lint, TypeScript, 273 unit tests, 40 rules tests, 17/17 e2e flows,
+  round 2 screenshot tour reviewed (fixed "No other tags tags yet").
+- Phase 2 groundwork (not wired in): about 80 categories, with produce split
+  by where it sits (counter fruit, cold fruit, greens and vegetables,
+  potatoes/onions/garlic; Costco keeps cold produce apart), Macey's walking
+  order, and a built-in catalog of about 4,000 names.
+
 ## Decisions
 
 - 2026-10-05: Back never saves; explicit Save everywhere, with a
@@ -409,6 +433,14 @@ From the full check on her phone:
 | Disk full (916 GB); the second emulator died                           | The emulator network simulator (`netsimd`) looped on "Error in packet stream" after an emulator exited, writing 193 GB of stderr log in /tmp at ~70 MB/s                                                                                           | Truncated the log and restarted the emulators; `start-emulator.sh` now links `netsim_stderr.log` to /dev/null                                                    |
 
 ## Lessons learned
+
+- **Metro reloads mid-suite.** Editing app code while Maestro runs hot-reloads
+  the app under the tests: a fixture's "1 bunch cilantro" became an
+  unresolved (fresh-or-dried) row and dev-setup failed. Don't edit app code
+  during an e2e run, or rerun the flows that ran after the edit.
+- **The e2e setup now reinstalls a changed dev APK** (checksum on the
+  device). A stale APK without the native sign-in module failed every flow
+  on one emulator.
 
 - **Read the installed package's types before using an API.** Expo SDK 57,
   RNFB 26 (modular API), google-signin 16 and expo-router NativeTabs all
