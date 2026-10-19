@@ -20,19 +20,20 @@ tags:
 - extendedWaitUntil:
     visible: "Macey's.*"
     timeout: 15000
-- assertVisible: "Macey's, 16 areas"
-- assertVisible: 'Costco, 11 areas'
-- assertVisible: "Sam's Club, 11 areas"
-- assertVisible: 'Walmart, 16 areas'
-- assertVisible: "Smith's, 16 areas"
+- assertVisible: "Macey's, 27 areas"
+- assertVisible: 'Costco, 14 areas'
+- assertVisible: "Sam's Club, 14 areas"
+- assertVisible: 'Walmart, 21 areas'
+- assertVisible: "Smith's, 21 areas"
 # Areas are listed in walking order on the store's own screen.
 - tapOn: "Macey's.*"
 - extendedWaitUntil:
     visible:
       id: 'store-name'
     timeout: 15000
-- assertVisible: 'Produce'
-- assertVisible: 'Bakery'
+- assertVisible: 'Produce · Fruit'
+- scrollUntilVisible:
+    element: 'Bread & bakery'
 - back
 - back
 - assertVisible: 'Recipe tags'

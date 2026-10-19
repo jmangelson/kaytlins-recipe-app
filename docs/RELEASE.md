@@ -47,7 +47,7 @@ When the free cloud queue is slow, build the same APK here instead (same
 signing key; needs a clean git tree): `npm run build:local`. It writes
 `build/kaytlins-recipes-release.apk`.
 
-## Photo scan Worker
+## Photo scan and categorize Worker
 
 `worker/` is deployed separately to Cloudflare
 (`https://kaytlins-recipe-scan.joshuagm55.workers.dev`):
@@ -65,6 +65,16 @@ To check reading quality on real photos (paid, about 3¢ each):
 
 ```bash
 cd worker && ANTHROPIC_API_KEY=$(cat ~/.anthropic-key) npx tsx scripts/try-scan.ts page1.jpg
+```
+
+The same Worker serves `/categorize`: ingredient names the app's built-in
+catalog doesn't know are sent here (once each, in the background) and Claude
+Haiku picks a category. Its own daily limits are `CATEGORIZE_LIMIT_PER_USER`
+and `CATEGORIZE_LIMIT_TOTAL` (calls, each up to 40 names). To try it (paid,
+a fraction of a cent):
+
+```bash
+cd worker && ANTHROPIC_API_KEY=$(cat ~/.anthropic-key) npx tsx scripts/try-categorize.ts "Rotel" "Tajín"
 ```
 
 ## After the container is rebuilt

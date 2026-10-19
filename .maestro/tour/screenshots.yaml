@@ -252,9 +252,9 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'store-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/25-store-edit
-- tapOn: 'Categories in Bakery.*'
+- tapOn: 'Categories in Bread & bakery.*'
 - takeScreenshot: build/screenshots/25b-store-area-categories
-- tapOn: 'Categories in Bakery.*'
+- tapOn: 'Categories in Bread & bakery.*'
 - scrollUntilVisible:
     element: 'Add area'
 - takeScreenshot: build/screenshots/26-store-edit-bottom
@@ -264,7 +264,7 @@ appId: com.jmangelson.kaytlinsrecipes
     centerElement: true
 - tapOn: 'Reorder areas'
 - takeScreenshot: build/screenshots/26b-store-reorder
-- tapOn: 'Move Bakery down'
+- tapOn: 'Move Bread & bakery down'
 - back
 - extendedWaitUntil:
     visible: 'Save your changes?'
@@ -299,6 +299,17 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'ingredient-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/29-ingredient-edit
+# The category picker: departments, its own open
+- scrollUntilVisible:
+    element: 'Meat & seafood, Fresh meat'
+    centerElement: true
+- takeScreenshot: build/screenshots/29a-ingredient-category
+- tapOn: 'Produce'
+- scrollUntilVisible:
+    element: 'Potatoes, onions & garlic'
+    centerElement: true
+- takeScreenshot: build/screenshots/29a2-ingredient-category-produce
+- tapOn: 'Produce'
 - scrollUntilVisible:
     element: '\+ Costco'
 - tapOn: '\+ Costco'
@@ -315,7 +326,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/29c-ingredient-areas
 - tapOn: 'Save'
 - extendedWaitUntil:
-    visible: "chicken breasts, Meat & Seafood · Costco › Macey's"
+    visible: "chicken breasts, Fresh meat · Costco › Macey's"
     timeout: 15000
 - takeScreenshot: build/screenshots/30-ingredients-assigned
 - back

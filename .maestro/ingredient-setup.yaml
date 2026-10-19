@@ -17,7 +17,7 @@ tags:
     env:
       ITEM: 'Ingredients'
 - scrollUntilVisible:
-    element: 'roma tomatoes, Produce · any store'
+    element: 'roma tomatoes, Greens & vegetables · any store'
     timeout: 30000
 - tapOn: 'roma tomatoes.*'
 - extendedWaitUntil:
@@ -50,7 +50,7 @@ tags:
     direction: UP
 - tapOn: 'Save'
 - extendedWaitUntil:
-    visible: "roma tomatoes, Produce · Costco › Macey's"
+    visible: "roma tomatoes, Greens & vegetables · Costco › Macey's"
     timeout: 15000
 
 # Merge plum tomatoes into roma tomatoes; the Pico recipe follows.
@@ -70,7 +70,7 @@ tags:
 - tapOn: 'Use roma tomatoes'
 - tapOn: 'MERGE|Merge'
 - extendedWaitUntil:
-    visible: "roma tomatoes, Produce · Costco › Macey's"
+    visible: "roma tomatoes, Greens & vegetables · Costco › Macey's"
     timeout: 15000
 - assertNotVisible: 'plum tomatoes.*'
 

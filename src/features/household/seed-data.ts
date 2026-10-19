@@ -130,7 +130,11 @@ const GROCERY_SECTIONS: SeedSection[] = [
     name: 'Pet, baby & school',
     categoryIds: ['pet', 'baby', 'automotive', 'school-supplies'],
   },
-  { id: 'health-beauty', name: 'Health & beauty', categoryIds: ['health-beauty'] },
+  {
+    id: 'health-beauty',
+    name: 'Health, beauty & medicine',
+    categoryIds: ['health-beauty', 'medicine'],
+  },
   {
     id: 'meat-seafood',
     name: 'Meat & seafood',
@@ -180,7 +184,11 @@ const WAREHOUSE_SECTIONS: SeedSection[] = [
       'school-supplies',
     ],
   },
-  { id: 'health-beauty', name: 'Health & beauty', categoryIds: ['health-beauty'] },
+  {
+    id: 'health-beauty',
+    name: 'Health, beauty & medicine',
+    categoryIds: ['health-beauty', 'medicine'],
+  },
   {
     id: 'snacks',
     name: 'Snacks & candy',

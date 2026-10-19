@@ -98,6 +98,11 @@ describe('guessCategory', () => {
     ['Tillamook ice cream', 'ice-cream'],
     ['paper towels', 'paper-towels'],
     ['dog food', 'pet'],
+    ['Tylenol', 'medicine'],
+    ['infant Tylenol', 'medicine'],
+    ['baby lotion', 'health-beauty'],
+    ['Cool Whip', 'ice-cream'],
+    ['frozen pie crust', 'frozen-breakfast'],
     ['unicorn tears', 'uncategorized'],
   ])('%s → %s', (name, category) => {
     expect(guessCategory(name)).toBe(category);

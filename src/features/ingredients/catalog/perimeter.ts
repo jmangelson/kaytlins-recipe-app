@@ -623,7 +623,6 @@ export const PERIMETER: Partial<Record<CategoryId, string[]>> = {
     'kefir',
     'skyr',
     'whipped topping refrigerated',
-    'cool whip',
     'whipped cream',
     'reddi wip',
     'aerosol whipped cream',

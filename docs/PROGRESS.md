@@ -344,6 +344,31 @@ From the full check on her phone:
 - Shipped as an over-the-air update to 1.0.1 (no native changes).
 - Still to do: the accuracy check on ~10 of her real recipe photos.
 
+### Round 2, phase 2 — Specific categories and real aisles (2026-10-19)
+
+- 78 categories in 11 departments (pickers group them; departments open on
+  tap). Produce by where it sits: counter fruit, cold fruit, greens and
+  vegetables (with fresh herbs), potatoes/onions/garlic.
+- Built-in catalog of about 4,060 names, each in exactly one category
+  (tested). Unknown names: suffix match ("diced yellow onion"), form words
+  (frozen/canned/dried/ground + the rest), keywords, then Claude Haiku via
+  the Worker's `/categorize` (once per name, in the background, own daily
+  limits); until then Uncategorized.
+- Herbs and spices ask their form (fresh/dried/ground/whole/seed/sticks…);
+  every offered choice must be a catalog product (tested).
+- Seed v5: Macey's in Kaytlin's walking order (perimeter, aisles 16 → 2,
+  aisle 14 = shampoo, skin care, lotion); Costco/Sam's with the cold produce
+  room apart from the bins; a finer generic layout for Walmart/Smith's;
+  Uncategorized in every store.
+- Upgrade: `categoryVersion: 5` marks v5 data (some v4 ids are also v5 ids
+  with narrower meaning). A v4 category equal to the frozen v4 guess is
+  re-guessed; one she chose stays within its family. Unedited starter stores
+  and Macey's get the new layouts; edited stores keep their areas with
+  categories expanded. `categorySet` marks her choices from now on.
+- Paid check: Haiku categorized 12 sample names correctly except Cool Whip
+  (no good category) → whipped topping and frozen desserts moved to "Ice
+  cream & frozen desserts", frozen dough to "Frozen breakfast, bread & dough".
+
 ### Round 2, phase 1 — Units, sizes, herbs, tags, store order (2026-10-19)
 
 - "tb"/"tbls" read as tbsp; new count units (fillet, breast, thigh,

@@ -80,9 +80,9 @@ export const CATEGORIES = [
   { id: 'frozen-vegetables', name: 'Frozen vegetables & fruit', dept: 'frozen' },
   { id: 'frozen-potatoes', name: 'Frozen potatoes', dept: 'frozen' },
   { id: 'frozen-meals', name: 'Frozen meals', dept: 'frozen' },
-  { id: 'frozen-breakfast', name: 'Frozen breakfast', dept: 'frozen' },
+  { id: 'frozen-breakfast', name: 'Frozen breakfast, bread & dough', dept: 'frozen' },
   { id: 'frozen-pizza', name: 'Frozen pizza', dept: 'frozen' },
-  { id: 'ice-cream', name: 'Ice cream & frozen treats', dept: 'frozen' },
+  { id: 'ice-cream', name: 'Ice cream & frozen desserts', dept: 'frozen' },
   // Household and the rest
   { id: 'picnic', name: 'Paper plates & picnic', dept: 'household' },
   { id: 'food-storage', name: 'Foil, wrap & storage bags', dept: 'household' },
@@ -94,7 +94,8 @@ export const CATEGORIES = [
   { id: 'automotive', name: 'Automotive', dept: 'household' },
   { id: 'baby', name: 'Baby & diapers', dept: 'household' },
   { id: 'school-supplies', name: 'School & office', dept: 'household' },
-  { id: 'health-beauty', name: 'Health & beauty', dept: 'household' },
+  { id: 'health-beauty', name: 'Shampoo, skin care & beauty', dept: 'household' },
+  { id: 'medicine', name: 'Medicine & health', dept: 'household' },
   { id: 'uncategorized', name: 'Uncategorized', dept: 'household' },
 ] as const;
 
@@ -123,7 +124,7 @@ export type AreaSeed = { id: string; name: string; categoryIds: CategoryId[] };
 /**
  * Macey's, as Kaytlin walks it: the perimeter (produce in three parts, bakery, PB&J,
  * packaged meats, cheese, fresh meat, dairy), then back through the aisles
- * from 15 down to 2.
+ * from 16 down to 2 (14 is shampoo, skin care, and lotion).
  */
 export const MACEYS_AREAS: AreaSeed[] = [
   {
@@ -160,6 +161,11 @@ export const MACEYS_AREAS: AreaSeed[] = [
       'frozen-vegetables',
       'frozen-breakfast',
     ],
+  },
+  {
+    id: 'aisle-14',
+    name: 'Aisle 14 · Shampoo, skin care & lotion',
+    categoryIds: ['health-beauty'],
   },
   { id: 'aisle-13', name: 'Aisle 13 · Baby & school', categoryIds: ['baby', 'school-supplies'] },
   {
@@ -245,6 +251,6 @@ export const MACEYS_AREAS: AreaSeed[] = [
     name: 'Aisle 2 · Beer & cold drinks',
     categoryIds: ['beer-wine', 'energy-drinks', 'cold-drinks', 'seasonal'],
   },
-  { id: 'other', name: 'Health & beauty', categoryIds: ['health-beauty'] },
+  { id: 'medicine', name: 'Medicine & health', categoryIds: ['medicine'] },
   { id: 'uncategorized', name: 'Uncategorized', categoryIds: ['uncategorized'] },
 ];

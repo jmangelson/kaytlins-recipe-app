@@ -115,6 +115,7 @@ export const V4_TO_V5: Record<V4CategoryId, CategoryId[]> = {
     'baby',
     'school-supplies',
     'health-beauty',
+    'medicine',
   ],
   other: ['uncategorized'],
 };
@@ -184,7 +185,7 @@ const FROZEN_FROM: Partial<Record<CategoryId, CategoryId>> = {
   'fresh-meat': 'frozen-meat',
   'packaged-meat': 'frozen-meat',
   'fresh-seafood': 'frozen-seafood',
-  bakery: 'frozen-vegetables',
+  bakery: 'frozen-breakfast',
   'cold-cereal': 'frozen-breakfast',
   'pancake-syrup': 'frozen-breakfast',
 };
@@ -269,7 +270,8 @@ const KEYWORDS: [RegExp, CategoryId][] = [
   [/\b(bag|foil|wrap|container)\b/, 'food-storage'],
   [/\b(diaper|baby|formula)\b/, 'baby'],
   [/\b(dog|cat|pet|litter)\b/, 'pet'],
-  [/\b(shampoo|toothpaste|deodorant|vitamin|medicine|lotion|razor)\b/, 'health-beauty'],
+  [/\b(medicine|vitamin|allergy|cough|ibuprofen|antacid)\b/, 'medicine'],
+  [/\b(shampoo|toothpaste|deodorant|lotion|razor)\b/, 'health-beauty'],
 ];
 
 function catalogLookup(words: string[]): CategoryId | null {
