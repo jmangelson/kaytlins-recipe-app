@@ -1,6 +1,7 @@
 # Captures a screenshot of each screen for review (not an assertion suite;
 # lives outside .maestro/ top level so `npm run e2e` skips it).
-# Run: maestro test .maestro/tour/screenshots.yaml  (screenshots land under the test output dir)
+# Run: npm run screenshots (this flow plus tour/*-only.yaml, split across two
+# emulators when two are running; screenshots land under the test output dir)
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - launchApp:
@@ -143,7 +144,7 @@ appId: com.jmangelson.kaytlinsrecipes
     visible: 'Edit recipe'
     timeout: 15000
 - scrollUntilVisible:
-    element: 'Photo of Chicken Enchiladas'
+    element: 'Photo 1 of Chicken Enchiladas.*'
     direction: UP
 - takeScreenshot: build/screenshots/17-recipe-detail
 - scrollUntilVisible:
@@ -252,6 +253,9 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'store-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/25-store-edit
+- scrollUntilVisible:
+    element: 'Categories in Bread & bakery.*'
+    centerElement: true
 - tapOn: 'Categories in Bread & bakery.*'
 - takeScreenshot: build/screenshots/25b-store-area-categories
 - tapOn: 'Categories in Bread & bakery.*'
@@ -435,23 +439,5 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/45-apply-conflict
 - back
 
-# Shopping (Milestone 7)
-- runFlow: shopping-part.yaml
-- runFlow: shopping-extras-part.yaml
-
-# Recipe photos (several per recipe, full-screen viewer)
-- tapOn: 'Recipes'
-- runFlow: photos-part.yaml
-
-# Recipe scan (Milestone 10)
-- tapOn: 'Recipes'
-- runFlow: scan-part.yaml
-
-# Round 2: units, other tags, store priority, fresh or dried herbs
-- runFlow: round2-part.yaml
-
-# App version (Settings)
-- tapOn: 'Settings'
-- scrollUntilVisible:
-    element: 'Check for updates'
-- takeScreenshot: build/screenshots/67-settings-app-version
+# Shopping, photos, scan, round 2, and app version are their own flows
+# (tour/*-only.yaml), run on a second emulator by scripts/screenshots.sh.

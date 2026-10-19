@@ -124,7 +124,8 @@ export type AreaSeed = { id: string; name: string; categoryIds: CategoryId[] };
 /**
  * Macey's, as Kaytlin walks it: the perimeter (produce in three parts, bakery, PB&J,
  * packaged meats, cheese, fresh meat, dairy), then back through the aisles
- * from 16 down to 2 (14 is shampoo, skin care, and lotion).
+ * from 16 down to 2 (14 is shampoo, skin care, and lotion); the
+ * pharmacy (medicine) comes between aisles 16 and 15.
  */
 export const MACEYS_AREAS: AreaSeed[] = [
   {
@@ -150,6 +151,7 @@ export const MACEYS_AREAS: AreaSeed[] = [
     name: 'Aisle 16 · Ice cream & frozen pizza',
     categoryIds: ['ice-cream', 'frozen-pizza'],
   },
+  { id: 'pharmacy', name: 'Pharmacy · Medicine & health', categoryIds: ['medicine'] },
   {
     id: 'aisle-15',
     name: 'Aisle 15 · Frozen meat, fish & meals',
@@ -251,6 +253,5 @@ export const MACEYS_AREAS: AreaSeed[] = [
     name: 'Aisle 2 · Beer & cold drinks',
     categoryIds: ['beer-wine', 'energy-drinks', 'cold-drinks', 'seasonal'],
   },
-  { id: 'medicine', name: 'Medicine & health', categoryIds: ['medicine'] },
   { id: 'uncategorized', name: 'Uncategorized', categoryIds: ['uncategorized'] },
 ];

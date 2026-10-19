@@ -58,11 +58,12 @@ tags:
 - tapOn: 'REMOVE|Remove'
 - assertNotVisible: 'Remove Pantry'
 
-# Rename an area, then Save: everything above saves together.
+# Rename an area (Bakery, now 6th; a short name so the cursor lands at the
+# end), then Save: everything above saves together.
 - scrollUntilVisible:
-    element: 'Area 2 name'
+    element: 'Area 6 name'
     direction: UP
-- tapOn: 'Area 2 name'
+- tapOn: 'Area 6 name'
 - eraseText: 30
 - inputText: 'Bakery & Bread'
 - hideKeyboard
