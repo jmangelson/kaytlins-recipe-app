@@ -127,9 +127,19 @@ describe('groupForTrip', () => {
       order: 0,
       hidden: false,
       sections: [
-        { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce'] },
-        { id: 'meat', name: 'Meat & Seafood', order: 1, categoryIds: ['meat-seafood'] },
-        { id: 'baking', name: 'Baking & Spices', order: 2, categoryIds: ['baking', 'spices'] },
+        {
+          id: 'produce',
+          name: 'Produce',
+          order: 0,
+          categoryIds: ['produce-fruit', 'produce-cold-fruit', 'produce-greens', 'produce-roots'],
+        },
+        {
+          id: 'meat',
+          name: 'Meat & Seafood',
+          order: 1,
+          categoryIds: ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
+        },
+        { id: 'baking', name: 'Baking & Spices', order: 2, categoryIds: ['flour-sugar', 'spices'] },
       ],
     },
     {
@@ -138,8 +148,18 @@ describe('groupForTrip', () => {
       order: 1,
       hidden: false,
       sections: [
-        { id: 'meat', name: 'Meat & Seafood', order: 0, categoryIds: ['meat-seafood'] },
-        { id: 'produce', name: 'Produce', order: 1, categoryIds: ['produce'] },
+        {
+          id: 'meat',
+          name: 'Meat & Seafood',
+          order: 0,
+          categoryIds: ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
+        },
+        {
+          id: 'produce',
+          name: 'Produce',
+          order: 1,
+          categoryIds: ['produce-fruit', 'produce-cold-fruit', 'produce-greens', 'produce-roots'],
+        },
       ],
     },
   ];
@@ -147,7 +167,10 @@ describe('groupForTrip', () => {
     ['beef', { ...newIngredient('ground beef'), id: 'beef', storePriority: ['costco', 'maceys'] }],
     ['onion', { ...newIngredient('yellow onion'), id: 'onion' }],
     ['cumin', { ...newIngredient('cumin'), id: 'cumin', storePriority: ['costco'] }],
-    ['mystery', { ...newIngredient('dragon fruit powder'), id: 'mystery', category: 'other' }],
+    [
+      'mystery',
+      { ...newIngredient('dragon fruit powder'), id: 'mystery', category: 'uncategorized' },
+    ],
   ]);
   const lines = [
     {

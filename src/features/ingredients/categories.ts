@@ -1,564 +1,327 @@
+import { CATALOG_BY_KEY } from '@/features/ingredients/catalog';
+import {
+  guessCategoryV4,
+  isV4CategoryId,
+  type V4CategoryId,
+} from '@/features/ingredients/legacy-categories-v4';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
+import {
+  CATEGORIES,
+  DEPARTMENTS,
+  type CategoryId,
+  type DepartmentId,
+} from '@/features/ingredients/taxonomy';
+
+export { CATEGORIES, DEPARTMENTS, type CategoryId, type DepartmentId };
 
 /**
- * Standard grocery categories. Every ingredient has one; each store area says
- * which categories it holds, so an ingredient's area in any store follows
- * from its category unless she overrides it for that store.
+ * Saved categories are v5 when the document says `categoryVersion: 5`.
+ * Older documents use the v4 ids, some of which ("bakery", "spices",
+ * "condiments") are also v5 ids with a narrower meaning, so the marker, not
+ * the id, tells them apart.
  */
-export const CATEGORIES = [
-  { id: 'produce', name: 'Produce' },
-  { id: 'bakery', name: 'Bakery & Bread' },
-  { id: 'deli', name: 'Deli' },
-  { id: 'meat-seafood', name: 'Meat & Seafood' },
-  { id: 'dairy-eggs', name: 'Dairy & Eggs' },
-  { id: 'frozen', name: 'Frozen' },
-  { id: 'canned', name: 'Canned Goods & Soup' },
-  { id: 'pasta-grains', name: 'Pasta, Rice & Grains' },
-  { id: 'international', name: 'International & Mexican' },
-  { id: 'condiments', name: 'Condiments, Oils & Dressings' },
-  { id: 'baking', name: 'Baking' },
-  { id: 'spices', name: 'Spices & Seasonings' },
-  { id: 'breakfast', name: 'Cereal & Breakfast' },
-  { id: 'snacks', name: 'Snacks' },
-  { id: 'beverages', name: 'Beverages' },
-  { id: 'household', name: 'Household' },
-  { id: 'other', name: 'Other' },
-] as const;
-
-export type CategoryId = (typeof CATEGORIES)[number]['id'];
+export const CATEGORY_VERSION = 5;
 
 export function isCategoryId(value: unknown): value is CategoryId {
   return CATEGORIES.some((c) => c.id === value);
 }
 
+export function categoryName(id: CategoryId): string {
+  return CATEGORIES.find((c) => c.id === id)?.name ?? 'Uncategorized';
+}
+
+/** Categories by department, in list order, for pickers. */
+export function categoriesByDepartment(): {
+  department: (typeof DEPARTMENTS)[number];
+  categories: (typeof CATEGORIES)[number][];
+}[] {
+  return DEPARTMENTS.map((department) => ({
+    department,
+    categories: CATEGORIES.filter((c) => c.dept === department.id),
+  }));
+}
+
 /**
- * Categories from before "Pantry & Canned" and "Baking & Spices" were split
- * (seed v4), and what each became. Saved data may still use them.
+ * What each v4 category became; the first is the fallback when the new
+ * guesser doesn't know the name (or guesses outside the family).
  */
-export const LEGACY_CATEGORIES: Record<string, CategoryId[]> = {
+export const V4_TO_V5: Record<V4CategoryId, CategoryId[]> = {
+  produce: ['produce-greens', 'produce-fruit', 'produce-cold-fruit', 'produce-roots'],
+  bakery: ['bakery', 'tortillas'],
+  deli: ['deli'],
+  'meat-seafood': ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
+  'dairy-eggs': ['dairy', 'cheese', 'eggs', 'refrigerated'],
+  frozen: [
+    'frozen-meals',
+    'frozen-meat',
+    'frozen-seafood',
+    'frozen-vegetables',
+    'frozen-potatoes',
+    'frozen-breakfast',
+    'frozen-pizza',
+    'ice-cream',
+  ],
+  canned: ['canned-vegetables', 'canned-fruit', 'soup', 'beans', 'canned-meat', 'canned-milk'],
+  'pasta-grains': [
+    'pasta',
+    'rice-grains',
+    'pasta-sauce',
+    'gluten-free',
+    'packaged-dinners',
+    'stuffing-potatoes',
+  ],
+  international: ['hispanic', 'asian'],
+  condiments: ['condiments', 'cooking-oil', 'salad-dressing', 'pasta-sauce', 'pbj'],
+  baking: [
+    'flour-sugar',
+    'baking-chips',
+    'baking-mixes',
+    'gelatin-pudding',
+    'marshmallows',
+    'canned-milk',
+    'cooking-gadgets',
+  ],
+  spices: ['spices'],
+  breakfast: ['cold-cereal', 'hot-cereal', 'pancake-syrup', 'granola-bars', 'pbj', 'coffee-tea'],
+  snacks: [
+    'chips',
+    'cookies-crackers',
+    'candy',
+    'nuts-seeds',
+    'jerky',
+    'fruit-snacks',
+    'granola-bars',
+    'seasonal',
+  ],
+  beverages: [
+    'cold-drinks',
+    'water',
+    'juice',
+    'soda',
+    'sports-drinks',
+    'energy-drinks',
+    'coffee-tea',
+    'beer-wine',
+  ],
+  household: [
+    'cleaning',
+    'paper-towels',
+    'laundry',
+    'trash-bags',
+    'food-storage',
+    'picnic',
+    'pet',
+    'automotive',
+    'baby',
+    'school-supplies',
+    'health-beauty',
+  ],
+  other: ['uncategorized'],
+};
+
+/** v3 categories, split at seed v4 into these v4 ones. */
+const V3_TO_V4: Record<string, V4CategoryId[]> = {
   'pantry-canned': ['canned', 'pasta-grains', 'international', 'condiments', 'breakfast'],
   'baking-spices': ['baking', 'spices'],
 };
 
-/** A saved category, upgraded: legacy ones are re-guessed within what they became. */
-export function upgradeCategory(value: unknown, name: string): CategoryId {
-  if (isCategoryId(value)) return value;
-  const guess = guessCategory(name);
-  const family = typeof value === 'string' ? LEGACY_CATEGORIES[value] : undefined;
-  if (!family) return guess;
-  return family.includes(guess) ? guess : family[0];
+/** The v5 categories an old (v3 or v4) category id stands for, or null. */
+function legacyFamily(value: unknown): CategoryId[] | null {
+  if (isV4CategoryId(value)) return V4_TO_V5[value];
+  const v4 = typeof value === 'string' ? V3_TO_V4[value] : undefined;
+  return v4 ? [...new Set(v4.flatMap((id) => V4_TO_V5[id]))] : null;
 }
-
-/** An area's saved categories, with legacy ones expanded and unknown ones dropped. */
-export function upgradeCategoryIds(values: unknown[]): CategoryId[] {
-  const ids = values.flatMap((v) =>
-    typeof v === 'string' && LEGACY_CATEGORIES[v] ? LEGACY_CATEGORIES[v] : [v]
-  );
-  return [...new Set(ids.filter(isCategoryId))];
-}
-
-export function categoryName(id: CategoryId): string {
-  return CATEGORIES.find((c) => c.id === id)?.name ?? 'Other';
-}
-
-/** Common ingredients by category (names are matched with ingredientNameKey). */
-const KNOWN: Record<CategoryId, string[]> = {
-  produce: [
-    'onion',
-    'yellow onion',
-    'white onion',
-    'red onion',
-    'sweet onion',
-    'green onion',
-    'scallion',
-    'shallot',
-    'leek',
-    'garlic',
-    'garlic clove',
-    'ginger',
-    'potato',
-    'russet potato',
-    'yukon gold potato',
-    'red potato',
-    'sweet potato',
-    'yam',
-    'carrot',
-    'baby carrot',
-    'celery',
-    'tomato',
-    'roma tomato',
-    'cherry tomato',
-    'grape tomato',
-    'lettuce',
-    'romaine lettuce',
-    'iceberg lettuce',
-    'spinach',
-    'baby spinach',
-    'kale',
-    'arugula',
-    'spring mix',
-    'cabbage',
-    'red cabbage',
-    'broccoli',
-    'cauliflower',
-    'zucchini',
-    'yellow squash',
-    'butternut squash',
-    'spaghetti squash',
-    'cucumber',
-    'bell pepper',
-    'red bell pepper',
-    'green bell pepper',
-    'yellow bell pepper',
-    'jalapeno',
-    'jalapeño',
-    'poblano pepper',
-    'serrano pepper',
-    'mushroom',
-    'cremini mushroom',
-    'portobello mushroom',
-    'asparagus',
-    'green bean',
-    'corn',
-    'corn on the cob',
-    'pea',
-    'snap pea',
-    'eggplant',
-    'avocado',
-    'lemon',
-    'lime',
-    'orange',
-    'apple',
-    'banana',
-    'strawberry',
-    'blueberry',
-    'raspberry',
-    'blackberry',
-    'grape',
-    'peach',
-    'pear',
-    'pineapple',
-    'mango',
-    'watermelon',
-    'cantaloupe',
-    'kiwi',
-    'cilantro',
-    'parsley',
-    'italian parsley',
-    'basil',
-    'fresh basil',
-    'mint',
-    'dill',
-    'rosemary',
-    'thyme',
-    'sage',
-    'chive',
-    'radish',
-    'beet',
-    'bean sprout',
-    'bok choy',
-  ],
-  bakery: [
-    'bread',
-    'white bread',
-    'wheat bread',
-    'sourdough bread',
-    'french bread',
-    'baguette',
-    'hamburger bun',
-    'hot dog bun',
-    'bun',
-    'roll',
-    'dinner roll',
-    'bagel',
-    'english muffin',
-    'tortilla',
-    'flour tortilla',
-    'corn tortilla',
-    'pita',
-    'naan',
-    'croissant',
-    'muffin',
-    'hoagie roll',
-    'slider bun',
-  ],
-  deli: [
-    'deli turkey',
-    'sliced turkey',
-    'deli ham',
-    'sliced ham',
-    'salami',
-    'pepperoni',
-    'rotisserie chicken',
-    'hummus',
-    'prosciutto',
-  ],
-  'meat-seafood': [
-    'chicken',
-    'chicken breast',
-    'boneless skinless chicken breast',
-    'chicken thigh',
-    'boneless skinless chicken thigh',
-    'chicken drumstick',
-    'chicken wing',
-    'whole chicken',
-    'ground chicken',
-    'ground turkey',
-    'turkey',
-    'ground beef',
-    'lean ground beef',
-    'beef',
-    'stew meat',
-    'beef stew meat',
-    'chuck roast',
-    'roast',
-    'steak',
-    'flank steak',
-    'sirloin steak',
-    'ribeye',
-    'brisket',
-    'pork',
-    'pork chop',
-    'pork loin',
-    'pork tenderloin',
-    'pork shoulder',
-    'ground pork',
-    'bacon',
-    'sausage',
-    'italian sausage',
-    'breakfast sausage',
-    'ham',
-    'salmon',
-    'salmon fillet',
-    'tilapia',
-    'cod',
-    'halibut',
-    'shrimp',
-    'tuna steak',
-    'scallop',
-    'crab',
-    'lobster',
-  ],
-  'dairy-eggs': [
-    'milk',
-    'whole milk',
-    '2% milk',
-    'skim milk',
-    'buttermilk',
-    'heavy cream',
-    'heavy whipping cream',
-    'whipping cream',
-    'half-and-half',
-    'sour cream',
-    'cream cheese',
-    'butter',
-    'unsalted butter',
-    'salted butter',
-    'margarine',
-    'egg',
-    'large egg',
-    'egg white',
-    'yogurt',
-    'greek yogurt',
-    'cottage cheese',
-    'ricotta',
-    'ricotta cheese',
-    'cheese',
-    'cheddar',
-    'cheddar cheese',
-    'shredded cheddar',
-    'sharp cheddar',
-    'mozzarella',
-    'mozzarella cheese',
-    'shredded mozzarella',
-    'parmesan',
-    'parmesan cheese',
-    'feta',
-    'feta cheese',
-    'monterey jack',
-    'pepper jack',
-    'swiss cheese',
-    'provolone',
-    'colby jack',
-    'mexican blend cheese',
-    'string cheese',
-    'whipped cream',
-  ],
-  frozen: [
-    'frozen pea',
-    'frozen corn',
-    'frozen broccoli',
-    'frozen spinach',
-    'frozen mixed vegetable',
-    'frozen berry',
-    'frozen strawberry',
-    'frozen blueberry',
-    'ice cream',
-    'frozen pizza',
-    'frozen waffle',
-    'tater tot',
-    'french fry',
-    'frozen shrimp',
-    'pie crust',
-  ],
-  canned: [
-    'black bean',
-    'kidney bean',
-    'pinto bean',
-    'cannellini bean',
-    'garbanzo bean',
-    'chickpea',
-    'refried bean',
-    'diced tomato',
-    'crushed tomato',
-    'tomato sauce',
-    'tomato paste',
-    'chicken broth',
-    'beef broth',
-    'vegetable broth',
-    'chicken stock',
-    'beef stock',
-    'cream of chicken soup',
-    'cream of mushroom soup',
-    'tuna',
-    'canned tuna',
-    'olive',
-    'black olive',
-    'evaporated milk',
-    'sweetened condensed milk',
-  ],
-  'pasta-grains': [
-    'rice',
-    'white rice',
-    'brown rice',
-    'jasmine rice',
-    'basmati rice',
-    'long-grain white rice',
-    'pasta',
-    'spaghetti',
-    'penne',
-    'rotini',
-    'macaroni',
-    'elbow macaroni',
-    'fettuccine',
-    'linguine',
-    'lasagna noodle',
-    'egg noodle',
-    'quinoa',
-    'couscous',
-    'lentil',
-    'marinara',
-    'marinara sauce',
-    'pasta sauce',
-    'alfredo sauce',
-    'breadcrumb',
-    'panko',
-  ],
-  international: [
-    'salsa',
-    'enchilada sauce',
-    'red enchilada sauce',
-    'green enchilada sauce',
-    'green chile',
-    'diced green chile',
-    'chipotle in adobo',
-    'taco shell',
-    'tostada',
-    'soy sauce',
-    'teriyaki sauce',
-    'hoisin sauce',
-    'fish sauce',
-    'sriracha',
-    'coconut milk',
-    'ramen',
-    'rice noodle',
-    'curry paste',
-  ],
-  condiments: [
-    'olive oil',
-    'extra virgin olive oil',
-    'vegetable oil',
-    'canola oil',
-    'coconut oil',
-    'sesame oil',
-    'cooking spray',
-    'vinegar',
-    'white vinegar',
-    'apple cider vinegar',
-    'balsamic vinegar',
-    'red wine vinegar',
-    'rice vinegar',
-    'worcestershire sauce',
-    'hot sauce',
-    'ketchup',
-    'mustard',
-    'yellow mustard',
-    'dijon mustard',
-    'mayonnaise',
-    'mayo',
-    'barbecue sauce',
-    'bbq sauce',
-    'ranch dressing',
-    'italian dressing',
-    'pickle',
-    'crouton',
-  ],
-  baking: [
-    'flour',
-    'all-purpose flour',
-    'bread flour',
-    'whole wheat flour',
-    'sugar',
-    'granulated sugar',
-    'brown sugar',
-    'powdered sugar',
-    "confectioners' sugar",
-    'baking soda',
-    'baking powder',
-    'yeast',
-    'active dry yeast',
-    'cornstarch',
-    'cocoa powder',
-    'chocolate chip',
-    'semi-sweet chocolate chip',
-    'vanilla',
-    'vanilla extract',
-    'almond extract',
-    'sprinkle',
-    'food coloring',
-    'shortening',
-    'walnut',
-    'pecan',
-    'almond',
-    'sliced almond',
-    'raisin',
-    'coconut',
-    'shredded coconut',
-    'graham cracker',
-    'cake mix',
-    'brownie mix',
-  ],
-  spices: [
-    'salt',
-    'kosher salt',
-    'sea salt',
-    'pepper',
-    'black pepper',
-    'ground black pepper',
-    'garlic powder',
-    'onion powder',
-    'paprika',
-    'smoked paprika',
-    'chili powder',
-    'cumin',
-    'ground cumin',
-    'oregano',
-    'dried oregano',
-    'basil leaves',
-    'dried basil',
-    'dried thyme',
-    'italian seasoning',
-    'cinnamon',
-    'ground cinnamon',
-    'nutmeg',
-    'ginger powder',
-    'ground ginger',
-    'cayenne',
-    'cayenne pepper',
-    'red pepper flake',
-    'crushed red pepper',
-    'bay leaf',
-    'taco seasoning',
-    'curry powder',
-    'turmeric',
-    'garam masala',
-    'seasoning salt',
-    'ranch seasoning',
-  ],
-  breakfast: [
-    'oat',
-    'rolled oat',
-    'oatmeal',
-    'cereal',
-    'granola',
-    'pancake mix',
-    'peanut butter',
-    'jam',
-    'jelly',
-    'honey',
-    'maple syrup',
-    'syrup',
-  ],
-  snacks: ['chip', 'tortilla chip', 'potato chip', 'cracker', 'pretzel', 'popcorn', 'granola bar'],
-  beverages: [
-    'water',
-    'sparkling water',
-    'juice',
-    'orange juice',
-    'apple juice',
-    'lemonade',
-    'coffee',
-    'tea',
-    'soda',
-    'white wine',
-    'red wine',
-    'beer',
-  ],
-  household: [
-    'aluminum foil',
-    'foil',
-    'plastic wrap',
-    'parchment paper',
-    'paper towel',
-    'napkin',
-    'trash bag',
-    'zip-top bag',
-    'dish soap',
-  ],
-  other: [],
-};
-
-const KNOWN_BY_KEY = new Map<string, CategoryId>();
-for (const [category, names] of Object.entries(KNOWN) as [CategoryId, string[]][]) {
-  for (const name of names) KNOWN_BY_KEY.set(ingredientNameKey(name), category);
-}
-
-/** Single words that decide the category when the full name isn't known. */
-const KEYWORDS: [RegExp, CategoryId][] = [
-  [/\bfrozen\b/, 'frozen'],
-  [/\b(canned|can of)\b/, 'canned'],
-  [/\b(cheese|cheddar|mozzarella|parmesan|milk|butter|yogurt|cream|egg)\b/, 'dairy-eggs'],
-  [
-    /\b(chicken|beef|pork|turkey|sausage|bacon|steak|salmon|shrimp|fish|fillet|roast|lamb)\b/,
-    'meat-seafood',
-  ],
-  [/\b(bread|bun|roll|bagel|tortilla|baguette|muffin)\b/, 'bakery'],
-  [/\b(broth|stock|soup|bean)\b/, 'canned'],
-  [/\b(pasta|noodle|rice|grain)\b/, 'pasta-grains'],
-  [/\b(salsa|enchilada|taco|soy|curry)\b/, 'international'],
-  [/\b(oil|vinegar|dressing|sauce|ketchup|mayo)\b/, 'condiments'],
-  [/\b(flour|sugar|extract|baking)\b/, 'baking'],
-  [/\b(seasoning|powder|spice|dried|ground)\b/, 'spices'],
-  [/\b(cereal|oat|syrup|pancake|granola)\b/, 'breakfast'],
-  [/\b(lettuce|onion|pepper|tomato|potato|squash|berry|apple|herb|fresh)\b/, 'produce'],
-  [/\b(chip|cracker|cookie)\b/, 'snacks'],
-  [/\b(juice|soda|wine|beer|coffee|tea)\b/, 'beverages'],
-];
 
 /**
- * Best-guess category for an ingredient name: the built-in list first (also
- * trying the name without leading words, so "diced yellow onion" finds
- * "yellow onion"), then keywords, else "other".
+ * An ingredient's saved category, as a v5 category. A v4 category that was
+ * just the app's old guess is guessed again with the new list; one she
+ * chose is kept within what it became ("Dairy & Eggs" → Cheese, Milk &
+ * dairy, Eggs, …), so her choice isn't undone.
  */
-export function guessCategory(name: string): CategoryId {
-  const key = ingredientNameKey(name);
-  const words = key.split(' ');
+export function upgradeCategory(
+  data: { category?: unknown; categoryVersion?: unknown },
+  name: string
+): CategoryId {
+  if (data.categoryVersion === CATEGORY_VERSION && isCategoryId(data.category)) {
+    return data.category;
+  }
+  const family = legacyFamily(data.category);
+  const guess = knownCategory(name);
+  if (!family) return guess ?? 'uncategorized';
+  const wasGuess = isV4CategoryId(data.category) && data.category === guessCategoryV4(name);
+  if (wasGuess) return guess ?? family[0];
+  return guess && family.includes(guess) ? guess : family[0];
+}
+
+/**
+ * True when she chose the saved category herself: marked so from v5 on;
+ * before that, a v4 category other than the old guess for the name.
+ */
+export function categoryWasChosen(
+  data: { category?: unknown; categoryVersion?: unknown; categorySet?: unknown },
+  name: string
+): boolean {
+  if (data.categoryVersion === CATEGORY_VERSION) return data.categorySet === true;
+  return isV4CategoryId(data.category) && data.category !== guessCategoryV4(name);
+}
+
+/**
+ * An area's saved categories as v5 ones: old ids expand to everything they
+ * became; unknown ids are dropped.
+ */
+export function upgradeCategoryIds(values: unknown[], categoryVersion?: unknown): CategoryId[] {
+  if (categoryVersion === CATEGORY_VERSION) return [...new Set(values.filter(isCategoryId))];
+  return [...new Set(values.flatMap((v) => legacyFamily(v) ?? []))];
+}
+
+// "frozen X", "canned X", "dried X", "ground X": the form decides the
+// aisle, and the rest of the name says which part of it.
+const FROZEN_FROM: Partial<Record<CategoryId, CategoryId>> = {
+  'produce-fruit': 'frozen-vegetables',
+  'produce-cold-fruit': 'frozen-vegetables',
+  'produce-greens': 'frozen-vegetables',
+  'produce-roots': 'frozen-potatoes',
+  'fresh-meat': 'frozen-meat',
+  'packaged-meat': 'frozen-meat',
+  'fresh-seafood': 'frozen-seafood',
+  bakery: 'frozen-vegetables',
+  'cold-cereal': 'frozen-breakfast',
+  'pancake-syrup': 'frozen-breakfast',
+};
+const CANNED_FROM: Partial<Record<CategoryId, CategoryId>> = {
+  'produce-fruit': 'canned-fruit',
+  'produce-cold-fruit': 'canned-fruit',
+  'produce-greens': 'canned-vegetables',
+  'produce-roots': 'canned-vegetables',
+  'fresh-meat': 'canned-meat',
+  'packaged-meat': 'canned-meat',
+  'fresh-seafood': 'canned-meat',
+  dairy: 'canned-milk',
+  soup: 'soup',
+  beans: 'beans',
+};
+const DRIED_FROM: Partial<Record<CategoryId, CategoryId>> = {
+  'produce-fruit': 'nuts-seeds',
+  'produce-cold-fruit': 'nuts-seeds',
+  'produce-greens': 'spices',
+  'produce-roots': 'spices',
+  beans: 'beans',
+  'canned-vegetables': 'beans',
+  pasta: 'pasta',
+  hispanic: 'hispanic',
+};
+
+const GROUND_FROM: Partial<Record<CategoryId, CategoryId>> = {
+  'fresh-meat': 'fresh-meat',
+  'packaged-meat': 'fresh-meat',
+  'nuts-seeds': 'nuts-seeds',
+};
+
+/** Single words that decide the category when no catalog name matches. */
+const KEYWORDS: [RegExp, CategoryId][] = [
+  [/\b(ice cream|gelato|popsicle|sherbet)\b/, 'ice-cream'],
+  [/\bpizza\b/, 'frozen-pizza'],
+  [/\b(cheese|cheddar|mozzarella|parmesan|provolone|feta|gouda|brie)\b/, 'cheese'],
+  [/\beggs?\b/, 'eggs'],
+  [/\b(milk|cream|yogurt|butter|creamer)\b/, 'dairy'],
+  [
+    /\b(bacon|sausage|ham|salami|pepperoni|hot dog|bratwurst|kielbasa|lunch meat)\b/,
+    'packaged-meat',
+  ],
+  [/\b(salmon|shrimp|fish|tilapia|cod|crab|lobster|scallop|tuna steak)\b/, 'fresh-seafood'],
+  [/\b(chicken|beef|pork|turkey|steak|lamb|roast|rib|chop|brisket|veal)\b/, 'fresh-meat'],
+  [/\b(tortilla|wrap)\b/, 'tortillas'],
+  [/\b(bread|bun|roll|bagel|baguette|muffin|croissant|cake|pie|donut)\b/, 'bakery'],
+  [/\b(broth|stock|soup|chowder|bouillon)\b/, 'soup'],
+  [/\bbeans?\b|\blentil/, 'beans'],
+  [/\b(pasta|noodle|spaghetti|macaroni|penne)\b/, 'pasta'],
+  [/\b(rice|quinoa|couscous|barley|grain)\b/, 'rice-grains'],
+  [/\b(salsa|enchilada|taco|tostada|chile|chipotle|mole)\b/, 'hispanic'],
+  [/\b(soy|teriyaki|hoisin|curry|sriracha|miso|wonton|ramen)\b/, 'asian'],
+  [/\b(oil|vinegar|shortening)\b/, 'cooking-oil'],
+  [/\b(dressing|vinaigrette|crouton)\b/, 'salad-dressing'],
+  [/\b(sauce|ketchup|mayo|mayonnaise|mustard|relish|pickle|olive)\b/, 'condiments'],
+  [/\b(jam|jelly|preserves|peanut butter|honey)\b/, 'pbj'],
+  [/\b(chocolate chip|baking chip|morsel)\b/, 'baking-chips'],
+  [/\b(flour|sugar|extract|baking|yeast|cornstarch|cocoa|sprinkle)\b/, 'flour-sugar'],
+  [/\b(mix|frosting)\b/, 'baking-mixes'],
+  [/\b(seasoning|powder|spice|dried|rub|salt|pepper flakes)\b/, 'spices'],
+  [/\b(cereal|flakes)\b/, 'cold-cereal'],
+  [/\b(oat|oatmeal|grits)\b/, 'hot-cereal'],
+  [/\b(syrup|pancake|waffle)\b/, 'pancake-syrup'],
+  [/\b(granola|protein bar|snack bar)\b/, 'granola-bars'],
+  [/\b(chip|pretzel|popcorn|puff)\b/, 'chips'],
+  [/\b(cracker|cookie|wafer)\b/, 'cookies-crackers'],
+  [/\b(candy|chocolate|gum|gummy|licorice|lollipop)\b/, 'candy'],
+  [/\b(nut|almond|pecan|walnut|cashew|seed|raisin)\b/, 'nuts-seeds'],
+  [/\bjerky\b/, 'jerky'],
+  [/\bjuice\b|\blemonade\b/, 'juice'],
+  [/\b(soda|cola|pop)\b/, 'soda'],
+  [/\b(water|seltzer)\b/, 'water'],
+  [/\b(coffee|tea|cocoa mix)\b/, 'coffee-tea'],
+  [/\b(beer|wine)\b/, 'beer-wine'],
+  [/\b(potato|onion|garlic|shallot|yam)\b/, 'produce-roots'],
+  [/\b(berry|berries|grape|cherry|apple|pear)\b/, 'produce-cold-fruit'],
+  [/\b(orange|lemon|lime|banana|melon|mango|peach|plum|fruit)\b/, 'produce-fruit'],
+  [/\b(lettuce|greens|pepper|tomato|squash|cabbage|kale|herb|fresh|salad)\b/, 'produce-greens'],
+  [/\b(soap|cleaner|wipes|bleach|detergent)\b/, 'cleaning'],
+  [/\b(towel|tissue|toilet paper|napkin)\b/, 'paper-towels'],
+  [/\b(bag|foil|wrap|container)\b/, 'food-storage'],
+  [/\b(diaper|baby|formula)\b/, 'baby'],
+  [/\b(dog|cat|pet|litter)\b/, 'pet'],
+  [/\b(shampoo|toothpaste|deodorant|vitamin|medicine|lotion|razor)\b/, 'health-beauty'],
+];
+
+function catalogLookup(words: string[]): CategoryId | null {
+  // The whole name, then without leading words ("diced yellow onion" finds
+  // "yellow onion"; "honey roasted turkey breast" finds "turkey breast").
   for (let start = 0; start < words.length; start++) {
-    const match = KNOWN_BY_KEY.get(words.slice(start).join(' '));
+    const match = CATALOG_BY_KEY.get(words.slice(start).join(' '));
     if (match) return match;
   }
-  for (const [pattern, category] of KEYWORDS) {
-    if (pattern.test(key)) return category;
-  }
-  return 'other';
+  return null;
+}
+
+function formCategory(
+  words: string[],
+  forms: string[],
+  from: Partial<Record<CategoryId, CategoryId>>
+): { form: boolean; category: CategoryId | null } {
+  const at = words.findIndex((w) => forms.includes(w));
+  if (at < 0) return { form: false, category: null };
+  const rest = words.filter((_, i) => i !== at);
+  const base = rest.length ? (catalogLookup(rest) ?? keywordCategory(rest.join(' '))) : null;
+  return { form: true, category: base ? (from[base] ?? null) : null };
+}
+
+function keywordCategory(key: string): CategoryId | null {
+  for (const [pattern, category] of KEYWORDS) if (pattern.test(key)) return category;
+  return null;
+}
+
+/**
+ * The category for a name from the built-in list, the form words, or
+ * keywords; null when none of them knows it (then Claude is asked, or it
+ * stays Uncategorized).
+ */
+export function knownCategory(name: string): CategoryId | null {
+  const key = ingredientNameKey(name);
+  if (!key) return null;
+  const exact = CATALOG_BY_KEY.get(key);
+  if (exact) return exact;
+  const words = key.split(' ');
+  const frozen = formCategory(words, ['frozen'], FROZEN_FROM);
+  if (frozen.form) return frozen.category ?? 'frozen-meals';
+  const canned = formCategory(words, ['canned', 'tinned', 'jarred'], CANNED_FROM);
+  if (canned.form) return canned.category ?? 'canned-vegetables';
+  const dried = formCategory(words, ['dried', 'dry', 'dehydrated'], DRIED_FROM);
+  if (dried.form) return dried.category ?? 'spices';
+  const ground = formCategory(words, ['ground'], GROUND_FROM);
+  if (ground.form) return ground.category ?? 'spices';
+  return catalogLookup(words) ?? keywordCategory(key);
+}
+
+/** Best-guess category for a new ingredient: Uncategorized when nothing knows it. */
+export function guessCategory(name: string): CategoryId {
+  return knownCategory(name) ?? 'uncategorized';
 }

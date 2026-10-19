@@ -12,7 +12,8 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { CATEGORIES, categoryName } from '@/features/ingredients/categories';
+import { categoryName } from '@/features/ingredients/categories';
+import { CategoryPicker } from '@/features/ingredients/category-picker';
 import {
   areaForStore,
   canonicalName,
@@ -251,16 +252,13 @@ function IngredientEditor({
         <ThemedText type="smallBold" accessibilityRole="header">
           Category
         </ThemedText>
-        <View style={styles.chips}>
-          {CATEGORIES.map((c) => (
-            <Chip
-              key={c.id}
-              label={c.name}
-              selected={ingredient.category === c.id}
-              onPress={() => update({ category: c.id })}
-            />
-          ))}
-        </View>
+        <ThemedText themeColor={ingredient.category === 'uncategorized' ? 'attention' : 'text'}>
+          {categoryName(ingredient.category)}
+        </ThemedText>
+        <CategoryPicker
+          selected={[ingredient.category]}
+          onToggle={(id) => update({ category: id, categorySet: true })}
+        />
       </View>
 
       <View style={styles.group}>

@@ -68,9 +68,9 @@ export default function IngredientsScreen() {
     );
   }
 
-  const otherCount = ingredients.filter((i) => i.category === 'other').length;
+  const otherCount = ingredients.filter((i) => i.category === 'uncategorized').length;
   const visible = searchIngredients(search, ingredients).filter(
-    (i) => !onlyOther || i.category === 'other'
+    (i) => !onlyOther || i.category === 'uncategorized'
   );
 
   return (
@@ -90,7 +90,7 @@ export default function IngredientsScreen() {
       {otherCount > 0 && (
         <View style={styles.filters}>
           <Chip
-            label={`Category: Other (${otherCount})`}
+            label={`Uncategorized (${otherCount})`}
             selected={onlyOther}
             onPress={() => setOnlyOther((v) => !v)}
           />
@@ -105,7 +105,7 @@ export default function IngredientsScreen() {
               key={ingredient.id}
               title={ingredient.name}
               subtitle={summary(ingredient, stores)}
-              subtitleTone={ingredient.category === 'other' ? 'attention' : 'default'}
+              subtitleTone={ingredient.category === 'uncategorized' ? 'attention' : 'default'}
               onPress={() =>
                 router.push({ pathname: '/ingredient/[id]', params: { id: ingredient.id } })
               }

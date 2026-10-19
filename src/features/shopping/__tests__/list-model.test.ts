@@ -20,8 +20,18 @@ const stores: Store[] = [
     order: 0,
     hidden: false,
     sections: [
-      { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce'] },
-      { id: 'meat', name: 'Meat & Seafood', order: 1, categoryIds: ['meat-seafood'] },
+      {
+        id: 'produce',
+        name: 'Produce',
+        order: 0,
+        categoryIds: ['produce-fruit', 'produce-cold-fruit', 'produce-greens', 'produce-roots'],
+      },
+      {
+        id: 'meat',
+        name: 'Meat & Seafood',
+        order: 1,
+        categoryIds: ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
+      },
     ],
   },
   {
@@ -29,7 +39,14 @@ const stores: Store[] = [
     name: 'Costco',
     order: 1,
     hidden: false,
-    sections: [{ id: 'meat', name: 'Meat & Seafood', order: 0, categoryIds: ['meat-seafood'] }],
+    sections: [
+      {
+        id: 'meat',
+        name: 'Meat & Seafood',
+        order: 0,
+        categoryIds: ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
+      },
+    ],
   },
 ];
 const ingredients = new Map<string, Ingredient>([

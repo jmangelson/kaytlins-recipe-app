@@ -9,7 +9,7 @@ import {
   writeBatch,
 } from '@react-native-firebase/firestore';
 
-import { upgradeCategoryIds } from '@/features/ingredients/categories';
+import { CATEGORY_VERSION, upgradeCategoryIds } from '@/features/ingredients/categories';
 import type { Store, StoreSection, Tag } from '@/features/stores/store-types';
 import { isTagGroupId } from '@/features/stores/tag-groups';
 import { db } from '@/lib/firebase';
@@ -28,7 +28,7 @@ export async function listStores(householdId: string): Promise<Store[]> {
     const sections = ((data.sections ?? []) as StoreSection[])
       .map((section) => ({
         ...section,
-        categoryIds: upgradeCategoryIds(section.categoryIds ?? []),
+        categoryIds: upgradeCategoryIds(section.categoryIds ?? [], data.categoryVersion),
       }))
       .sort((a, b) => a.order - b.order);
     return { id: d.id, name: data.name, order: data.order, hidden: !!data.hidden, sections };
@@ -65,6 +65,7 @@ export async function saveStore(householdId: string, store: Store): Promise<void
       name: store.name.trim(),
       order: store.order,
       hidden: store.hidden,
+      categoryVersion: CATEGORY_VERSION,
       sections: store.sections.map((section, order) => ({
         id: section.id,
         name: section.name.trim(),

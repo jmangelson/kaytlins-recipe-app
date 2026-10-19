@@ -14,14 +14,13 @@ import {
 import { getRandomBytes } from 'expo-crypto';
 
 import {
-  isUneditedSeed,
   SEED_STORES,
   SEED_TAGS,
   SEED_VERSION,
   seedTagOrder,
-  V3_SECTIONS,
+  upgradedSections,
 } from '@/features/household/seed-data';
-import { upgradeCategoryIds } from '@/features/ingredients/categories';
+import { CATEGORY_VERSION } from '@/features/ingredients/categories';
 import {
   generateInviteCode,
   isValidInviteCode,
@@ -144,6 +143,7 @@ export async function seedHousehold(householdId: string): Promise<void> {
       name: store.name,
       order,
       hidden: false,
+      categoryVersion: CATEGORY_VERSION,
       sections: store.sections.map((section, sectionOrder) => ({
         ...section,
         order: sectionOrder,
@@ -189,9 +189,9 @@ export async function seedHouseholdIfNeeded(householdId: string): Promise<void> 
  *   their grocery categories;
  * - to 3: her existing tags become Type tags, and the Course and Meal starter
  *   tags she doesn't have yet are added.
- * - to 4: starter stores she never edited get the new, more specific aisles;
- *   any other store keeps her areas, with the old "Pantry & Canned" and
- *   "Baking & Spices" categories expanded to the new ones.
+ * - to 5 (and 4): Macey's gets her real walking order; other starter stores
+ *   she never edited get their new layouts; any other store keeps her areas
+ *   with old categories expanded to the specific ones (see upgradedSections).
  */
 async function upgradeSeed(householdId: string, fromVersion: number): Promise<void> {
   const batch = writeBatch(db);
@@ -229,23 +229,15 @@ async function upgradeSeed(householdId: string, fromVersion: number): Promise<vo
       }),
     });
   }
-  if (fromVersion < 4) {
+  if (fromVersion < 5) {
     // Runs after the to-2 pass above, so v1 areas already have categories.
     const all = await getDocs(collection(db, 'households', householdId, 'stores'));
     for (const store of all.docs) {
-      const sections = (store.data().sections ?? []) as {
-        id: string;
-        name: string;
-        order: number;
-        categoryIds?: string[];
-      }[];
-      const seed = SEED_STORES.find((s) => s.id === store.id);
-      const legacy = V3_SECTIONS[store.id];
+      const data = store.data();
+      if (data.categoryVersion === CATEGORY_VERSION) continue;
       batch.update(store.ref, {
-        sections:
-          seed && legacy && isUneditedSeed(sections, legacy)
-            ? seed.sections.map((s, order) => ({ ...s, order }))
-            : sections.map((s) => ({ ...s, categoryIds: upgradeCategoryIds(s.categoryIds ?? []) })),
+        categoryVersion: CATEGORY_VERSION,
+        sections: upgradedSections(store.id, data.sections ?? []),
       });
     }
   }

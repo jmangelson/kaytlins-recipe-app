@@ -1,4 +1,10 @@
-import { guessCategory, upgradeCategory, type CategoryId } from '@/features/ingredients/categories';
+import {
+  CATEGORY_VERSION,
+  categoryWasChosen,
+  guessCategory,
+  upgradeCategory,
+  type CategoryId,
+} from '@/features/ingredients/categories';
 import { specificOptions } from '@/features/ingredients/generic-ingredients';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import type { Store, StoreSection } from '@/features/stores/store-types';
@@ -23,6 +29,10 @@ export type Ingredient = {
   /** ingredientNameKey of each alias. */
   aliasKeys: string[];
   category: CategoryId;
+  /** She chose the category; the app never changes it on its own. */
+  categorySet: boolean;
+  /** Claude was already asked for an Uncategorized name (asked once). */
+  categoryChecked: boolean;
   /** Stores she buys it at, most preferred first. Empty = her overall store order. */
   storePriority: string[];
   /** Area per store when it differs from the category's usual area. */
@@ -53,7 +63,9 @@ export function ingredientFromData(id: string, data: Record<string, unknown>): I
     nameKey: ingredientNameKey(name),
     aliases,
     aliasKeys: aliases.map(ingredientNameKey),
-    category: upgradeCategory(data.category, name),
+    category: upgradeCategory(data, name),
+    categorySet: categoryWasChosen(data, name),
+    categoryChecked: data.categoryChecked === true,
     storePriority,
     areaOverrides,
     defaultUnit: (data.defaultUnit as string | null) ?? null,
@@ -69,6 +81,9 @@ export function ingredientToData(ingredient: Omit<Ingredient, 'id'>) {
     aliases,
     aliasKeys: aliases.map(ingredientNameKey),
     category: ingredient.category,
+    categoryVersion: CATEGORY_VERSION,
+    categorySet: ingredient.categorySet,
+    categoryChecked: ingredient.categoryChecked,
     storePriority: ingredient.storePriority,
     areaOverrides: ingredient.areaOverrides,
     defaultUnit: ingredient.defaultUnit,
@@ -82,6 +97,8 @@ export function newIngredient(name: string): Omit<Ingredient, 'id'> {
     aliases: [],
     aliasKeys: [],
     category: guessCategory(name),
+    categorySet: false,
+    categoryChecked: false,
     storePriority: [],
     areaOverrides: {},
     defaultUnit: null,

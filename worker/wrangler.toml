@@ -9,6 +9,8 @@ account_id = "2bf60361db78a7b7332a0e218b5fa9b1"
 FIREBASE_PROJECT_ID = "kaytlin-s-recipe-app"
 DAILY_LIMIT_PER_USER = "20"
 DAILY_LIMIT_TOTAL = "50"
+CATEGORIZE_LIMIT_PER_USER = "40"
+CATEGORIZE_LIMIT_TOTAL = "100"
 
 [[kv_namespaces]]
 binding = "SCAN_LIMITS"

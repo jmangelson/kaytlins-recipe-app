@@ -34,7 +34,7 @@ describe('nameProblem', () => {
 
 describe('section edits', () => {
   const sections = [
-    { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce' as const] },
+    { id: 'produce', name: 'Produce', order: 0, categoryIds: ['produce-greens' as const] },
     { id: 'dairy', name: 'Dairy', order: 1, categoryIds: [] },
   ];
 
@@ -50,9 +50,13 @@ describe('section edits', () => {
 
 describe('toggleSectionCategory', () => {
   it('adds and removes a category from one area', () => {
-    const sections = [{ id: 'pantry', name: 'Pantry', order: 0, categoryIds: ['canned' as const] }];
-    const added = toggleSectionCategory(sections, 'pantry', 'baking');
-    expect(added[0].categoryIds).toEqual(['canned', 'baking']);
-    expect(toggleSectionCategory(added, 'pantry', 'canned')[0].categoryIds).toEqual(['baking']);
+    const sections = [
+      { id: 'pantry', name: 'Pantry', order: 0, categoryIds: ['canned-vegetables' as const] },
+    ];
+    const added = toggleSectionCategory(sections, 'pantry', 'flour-sugar');
+    expect(added[0].categoryIds).toEqual(['canned-vegetables', 'flour-sugar']);
+    expect(toggleSectionCategory(added, 'pantry', 'canned-vegetables')[0].categoryIds).toEqual([
+      'flour-sugar',
+    ]);
   });
 });

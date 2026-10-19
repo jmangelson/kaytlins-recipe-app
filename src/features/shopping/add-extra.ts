@@ -1,3 +1,4 @@
+import { categorizeAll } from '@/features/categorize/categorize-service';
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { newIngredientRef, saveIngredient } from '@/features/ingredients/ingredient-repo';
 import type { NewItem } from '@/features/shopping/add-item';
@@ -19,6 +20,11 @@ export function addExtraItem(
   const ingredient = 'id' in item ? item : { ...item, id: newIngredientRef(householdId).id };
   const extra = extraItemFor(text, ingredient, newExtraItemId(householdId));
   if (!extra) return null;
-  if (!('id' in item)) saveIngredient(householdId, ingredient);
+  if (!('id' in item)) {
+    saveIngredient(householdId, ingredient).then(
+      () => ingredient.category === 'uncategorized' && categorizeAll(householdId),
+      () => undefined
+    );
+  }
   return { ingredient, extra };
 }

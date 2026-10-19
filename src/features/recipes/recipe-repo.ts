@@ -1,3 +1,4 @@
+import { categorizeAll } from '@/features/categorize/categorize-service';
 import {
   collection,
   doc,
@@ -135,6 +136,7 @@ export async function saveRecipe(
   }
 
   await commitOrQueue(() => batch.commit());
+  if (newIngredients.length) categorizeAll(householdId);
   return recipeRef.id;
 }
 

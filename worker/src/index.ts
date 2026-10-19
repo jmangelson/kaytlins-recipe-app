@@ -1,5 +1,7 @@
 /**
- * Recipe photo scan: the app posts photos with the signed-in user's Firebase
+ * Recipe photo scan (/scan) and ingredient categories (/categorize).
+ *
+ * Scan: the app posts photos with the signed-in user's Firebase
  * ID token; this Worker checks the token and the allowed list, counts the
  * scan against daily limits, asks Claude to read the recipe into the app's
  * fixed JSON format (structured output), and returns it for her to review.
@@ -13,6 +15,11 @@ import {
   scanJsonSchema,
   type ScanRequest,
 } from '../../src/features/scan/scan-contract';
+import {
+  categorizeRequestProblem,
+  type CategorizeRequest,
+} from '../../src/features/categorize/categorize-contract';
+import { categorizeNames } from './categorize';
 import { readRecipe } from './read-recipe';
 import { limitKeys, scanRequestProblem } from './scan-request';
 
@@ -23,6 +30,9 @@ export interface Env {
   FIREBASE_PROJECT_ID: string;
   DAILY_LIMIT_PER_USER: string;
   DAILY_LIMIT_TOTAL: string;
+  /** Categorize calls per person and overall per day (each is a few names). */
+  CATEGORIZE_LIMIT_PER_USER: string;
+  CATEGORIZE_LIMIT_TOTAL: string;
   SCAN_LIMITS: KVNamespace;
 }
 
@@ -45,8 +55,8 @@ function problem(status: number, error: string, message: string): Response {
   return reply(status, { error, message });
 }
 
-async function scan(request: Request, env: Env): Promise<Response> {
-  // Who is asking: a valid Firebase sign-in for this project, on the list.
+/** Who is asking: a valid Firebase sign-in for this project, on the allowed list. */
+async function authorize(request: Request, env: Env): Promise<{ uid: string } | Response> {
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
   if (!token) return problem(401, 'signed_out', 'Sign in again, then try the scan.');
   let uid: string;
@@ -66,6 +76,13 @@ async function scan(request: Request, env: Env): Promise<Response> {
   if (!allowed.includes(email)) {
     return problem(403, 'not_allowed', 'This account isn’t set up for recipe scanning.');
   }
+  return { uid };
+}
+
+async function scan(request: Request, env: Env): Promise<Response> {
+  const who = await authorize(request, env);
+  if (who instanceof Response) return who;
+  const { uid } = who;
 
   let body: unknown;
   try {
@@ -106,10 +123,54 @@ async function scan(request: Request, env: Env): Promise<Response> {
   return reply(200, outcome.result);
 }
 
+/**
+ * Categories for ingredient names the app's built-in list doesn't know.
+ * Its own daily limits (per person and overall), apart from scans.
+ */
+async function categorize(request: Request, env: Env): Promise<Response> {
+  const who = await authorize(request, env);
+  if (who instanceof Response) return who;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return problem(400, 'bad_request', 'Send names to categorize.');
+  }
+  const invalid = categorizeRequestProblem(body);
+  if (invalid) return problem(400, 'bad_request', invalid);
+  const { names } = body as CategorizeRequest;
+
+  const keys = limitKeys(who.uid, new Date());
+  const userKey = `categorize:${keys.user}`;
+  const totalKey = `categorize:${keys.total}`;
+  const [used, usedTotal] = await Promise.all([
+    env.SCAN_LIMITS.get(userKey).then(Number),
+    env.SCAN_LIMITS.get(totalKey).then(Number),
+  ]);
+  if (
+    used >= Number(env.CATEGORIZE_LIMIT_PER_USER) ||
+    usedTotal >= Number(env.CATEGORIZE_LIMIT_TOTAL)
+  ) {
+    return problem(429, 'daily_limit', 'Try again tomorrow.');
+  }
+  const twoDays = { expirationTtl: 2 * 24 * 60 * 60 };
+  await Promise.all([
+    env.SCAN_LIMITS.put(userKey, String(used + 1), twoDays),
+    env.SCAN_LIMITS.put(totalKey, String(usedTotal + 1), twoDays),
+  ]);
+
+  const outcome = await categorizeNames(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), names);
+  if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
+  return reply(200, outcome.result);
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/scan' && request.method === 'POST') return scan(request, env);
+    if (url.pathname === '/categorize' && request.method === 'POST') {
+      return categorize(request, env);
+    }
     if (url.pathname === '/health') return reply(200, { ok: true });
     return problem(404, 'not_found', 'Not found.');
   },

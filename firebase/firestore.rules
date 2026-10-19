@@ -44,11 +44,12 @@ service cloud.firestore {
     }
 
     function validStore(data) {
-      return data.keys().hasOnly(['name', 'order', 'hidden', 'sections'])
+      return data.keys().hasOnly(['name', 'order', 'hidden', 'sections', 'categoryVersion'])
         && validName(data.name, 60)
         && data.order is int
         && data.hidden is bool
-        && data.sections is list && data.sections.size() <= 40;
+        && data.sections is list && data.sections.size() <= 40
+        && (!('categoryVersion' in data) || data.categoryVersion is int);
     }
 
     function validTag(data) {
@@ -60,7 +61,8 @@ service cloud.firestore {
 
     function validIngredient(data) {
       return data.keys().hasOnly(['name', 'nameKey', 'aliases', 'aliasKeys', 'category',
-          'storePriority', 'areaOverrides', 'defaultUnit'])
+          'storePriority', 'areaOverrides', 'defaultUnit', 'categoryVersion', 'categorySet',
+          'categoryChecked'])
         && validName(data.name, 80)
         && validName(data.nameKey, 80)
         && data.aliases is list && data.aliases.size() <= 30
@@ -68,7 +70,10 @@ service cloud.firestore {
         && data.category is string && data.category.size() <= 40
         && data.storePriority is list && data.storePriority.size() <= 20
         && data.areaOverrides is map && data.areaOverrides.size() <= 20
-        && optionalString(data, 'defaultUnit');
+        && optionalString(data, 'defaultUnit')
+        && (!('categoryVersion' in data) || data.categoryVersion is int)
+        && (!('categorySet' in data) || data.categorySet is bool)
+        && (!('categoryChecked' in data) || data.categoryChecked is bool);
     }
 
     function validRecipe(data) {

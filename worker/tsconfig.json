@@ -12,7 +12,9 @@
   "include": [
     "src/**/*.ts",
     "../src/features/scan/scan-contract.ts",
-    "../src/features/ingredients/units.ts"
+    "../src/features/ingredients/units.ts",
+    "../src/features/categorize/categorize-contract.ts",
+    "../src/features/ingredients/taxonomy.ts"
   ],
   "exclude": ["src/__tests__"]
 }

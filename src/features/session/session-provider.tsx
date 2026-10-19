@@ -15,6 +15,7 @@ import {
   seedHouseholdIfNeeded,
   type Household,
 } from '@/features/household/household-service';
+import { categorizeAll } from '@/features/categorize/categorize-service';
 import { loadCustomUnits } from '@/features/units/unit-repo';
 import { auth } from '@/lib/firebase';
 
@@ -45,6 +46,9 @@ async function resolveSession(user: User | null): Promise<SessionState> {
       // Her own units, so recipes, scans, and lists know them. Offline, the
       // cached copy is used; a failure just leaves the built-in units.
       await loadCustomUnits(household.id).catch((error) => console.warn('Units failed', error));
+      // Not awaited: ask Claude about any ingredient names the built-in list
+      // didn't know (they wait in Uncategorized until then).
+      categorizeAll(household.id);
     }
     return household ? { status: 'ready', user, household } : { status: 'needsHousehold', user };
   } catch (error) {

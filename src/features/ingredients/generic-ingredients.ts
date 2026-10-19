@@ -129,6 +129,11 @@ export function mustChooseForm(name: string): boolean {
   return FORM_KEYS.has(ingredientNameKey(name));
 }
 
+/** Every general name with choices (for tests). */
+export function genericNames(): string[] {
+  return Object.keys(GENERIC);
+}
+
 /** Common specific kinds when the name is too general to shop for, else null. */
 export function specificOptions(name: string): string[] | null {
   return BY_KEY.get(ingredientNameKey(name)) ?? null;

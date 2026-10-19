@@ -132,6 +132,8 @@ export function groupForTrip(
       aliasKeys: [],
       // Not in her list (an item she typed): place it by its likely category.
       category: guessCategory(line.name),
+      categorySet: false,
+      categoryChecked: false,
       storePriority: [],
       areaOverrides: {},
       defaultUnit: null,

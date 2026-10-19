@@ -265,6 +265,31 @@ describe('stores, tags, and ingredients', () => {
     );
   });
 
+  it('accepts the v5 category fields on ingredients and stores, typed', async () => {
+    const db = dbAs('alice');
+    const ingredient = {
+      name: 'Yellow onion',
+      nameKey: 'yellow onion',
+      aliases: [],
+      aliasKeys: [],
+      category: 'produce-roots',
+      categoryVersion: 5,
+      categorySet: true,
+      categoryChecked: false,
+      storePriority: [],
+      areaOverrides: {},
+      defaultUnit: null,
+    };
+    const ref = (id: string) => doc(db, 'households', HID, 'ingredients', id);
+    await assertSucceeds(setDoc(ref('i1'), ingredient));
+    await assertFails(setDoc(ref('i2'), { ...ingredient, categoryVersion: '5' }));
+    await assertFails(setDoc(ref('i3'), { ...ingredient, categorySet: 'yes' }));
+    await assertFails(setDoc(ref('i4'), { ...ingredient, categoryChecked: 1 }));
+    const store = (id: string) => doc(db, 'households', HID, 'stores', id);
+    await assertSucceeds(setDoc(store('s1'), { ...validStore, categoryVersion: 5 }));
+    await assertFails(setDoc(store('s2'), { ...validStore, categoryVersion: 'v5' }));
+  });
+
   it('blocks non-members from stores, tags, and ingredients', async () => {
     const db = dbAs('mallory');
     await assertFails(getDocs(collection(db, 'households', HID, 'stores')));

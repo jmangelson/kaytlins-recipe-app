@@ -158,6 +158,7 @@ export const PANTRY: Partial<Record<CategoryId, string[]>> = {
     'unsweetened cocoa powder',
     'dutch process cocoa',
     'dark cocoa powder',
+    'vanilla',
     'vanilla extract',
     'pure vanilla extract',
     'imitation vanilla',
@@ -437,8 +438,21 @@ export const PANTRY: Partial<Record<CategoryId, string[]>> = {
     'beef base',
     'vegetable base',
     'chicken stock concentrate',
-    // Dried herbs. A bare herb name asks fresh or dried, so only the dried
-    // forms are listed; the fresh forms are under produce.
+    // Spices whose every form (ground, whole, seed, sticks) is in this aisle.
+    // A bare name still asks which form in a recipe, but it shops here.
+    'cumin',
+    'coriander',
+    'cinnamon',
+    'nutmeg',
+    'cloves',
+    'allspice',
+    'cardamom',
+    'anise',
+    'saffron',
+    'mustard seed',
+    'peppercorns',
+    // Dried herbs. A bare herb name asks fresh or dried and is in neither
+    // list (fresh is in produce); only the dried forms are listed here.
     'dried oregano',
     'mexican oregano',
     'dried marjoram',
@@ -807,7 +821,6 @@ export const PANTRY: Partial<Record<CategoryId, string[]>> = {
     'pineapple tidbits',
     'pineapple rings',
     'pineapple chunks canned',
-    'mandarin oranges',
     'canned mandarin oranges',
     'canned cherries',
     'maraschino cherries',
