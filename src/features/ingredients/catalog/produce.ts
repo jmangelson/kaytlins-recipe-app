@@ -270,7 +270,6 @@ export const PRODUCE: Partial<Record<CategoryId, string[]>> = {
     'daikon radish',
     'turnip',
     'parsnip',
-    'fennel',
     'fennel bulb',
     'kohlrabi',
     'okra',

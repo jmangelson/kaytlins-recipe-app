@@ -1,18 +1,19 @@
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 
 /**
- * Herbs: fresh and dried are different ingredients from different aisles,
- * so a bare herb name always asks which one the recipe means, and the bare
- * name itself isn't offered as a new ingredient.
+ * Herbs and spices that come in forms shelved apart: fresh herbs in produce;
+ * dried, ground, and whole spices in spices. A bare name always asks which
+ * form the recipe means, and the bare name itself isn't offered as a new
+ * ingredient.
  */
-const HERBS: Record<string, string[]> = {
+const FORMS: Record<string, string[]> = {
   parsley: ['fresh parsley', 'dried parsley flakes'],
   cilantro: ['fresh cilantro', 'dried cilantro'],
   basil: ['fresh basil', 'dried basil'],
-  thyme: ['fresh thyme', 'dried thyme'],
-  rosemary: ['fresh rosemary', 'dried rosemary'],
-  oregano: ['fresh oregano', 'dried oregano'],
-  sage: ['fresh sage', 'rubbed sage'],
+  thyme: ['fresh thyme', 'dried thyme', 'ground thyme'],
+  rosemary: ['fresh rosemary', 'dried rosemary', 'ground rosemary'],
+  oregano: ['fresh oregano', 'dried oregano', 'ground oregano'],
+  sage: ['fresh sage', 'rubbed sage', 'ground sage'],
   dill: ['fresh dill', 'dried dill weed'],
   mint: ['fresh mint', 'dried mint'],
   chives: ['fresh chives', 'dried chives'],
@@ -20,7 +21,22 @@ const HERBS: Record<string, string[]> = {
   marjoram: ['fresh marjoram', 'dried marjoram'],
   'bay leaf': ['dried bay leaves', 'fresh bay leaves'],
   'bay leaves': ['dried bay leaves', 'fresh bay leaves'],
-  ginger: ['fresh ginger', 'ground ginger'],
+  ginger: ['fresh ginger', 'ground ginger', 'crystallized ginger'],
+  turmeric: ['ground turmeric', 'fresh turmeric root'],
+  fennel: ['fennel bulb', 'fennel seed', 'ground fennel'],
+  cumin: ['ground cumin', 'cumin seed'],
+  coriander: ['ground coriander', 'coriander seed'],
+  cinnamon: ['ground cinnamon', 'cinnamon sticks'],
+  nutmeg: ['ground nutmeg', 'whole nutmeg'],
+  cloves: ['ground cloves', 'whole cloves'],
+  allspice: ['ground allspice', 'whole allspice'],
+  cardamom: ['ground cardamom', 'cardamom pods'],
+  'mustard seed': ['yellow mustard seed', 'brown mustard seed'],
+  vanilla: ['vanilla extract', 'vanilla bean', 'vanilla bean paste'],
+  anise: ['anise seed', 'ground anise', 'star anise'],
+  saffron: ['saffron threads', 'ground saffron'],
+  horseradish: ['prepared horseradish', 'horseradish root'],
+  peppercorns: ['black peppercorns', 'pink peppercorns', 'green peppercorns'],
 };
 
 /**
@@ -29,7 +45,7 @@ const HERBS: Record<string, string[]> = {
  * specific ingredients first and then these common choices.
  */
 const GENERIC: Record<string, string[]> = {
-  ...HERBS,
+  ...FORMS,
   onion: ['yellow onion', 'red onion', 'white onion', 'sweet onion', 'green onions', 'shallots'],
   rice: ['long-grain white rice', 'jasmine rice', 'basmati rice', 'brown rice', 'Calrose rice'],
   beans: [
@@ -95,6 +111,8 @@ const GENERIC: Record<string, string[]> = {
   bread: ['sandwich bread', 'French bread', 'hamburger buns', 'dinner rolls'],
   tortillas: ['flour tortillas', 'corn tortillas'],
   salsa: ['mild salsa', 'medium salsa', 'salsa verde'],
+  paprika: ['sweet paprika', 'smoked paprika', 'Hungarian paprika'],
+  'red pepper': ['red bell pepper', 'crushed red pepper flakes', 'cayenne pepper'],
   mustard: ['yellow mustard', 'Dijon mustard', 'ground mustard'],
   chocolate: ['chocolate chips', 'semi-sweet baking chocolate', 'cocoa powder'],
 };
@@ -104,11 +122,11 @@ const BY_KEY = new Map(
   Object.entries(GENERIC).map(([name, options]) => [ingredientNameKey(name), options])
 );
 
-const HERB_KEYS = new Set(Object.keys(HERBS).map(ingredientNameKey));
+const FORM_KEYS = new Set(Object.keys(FORMS).map(ingredientNameKey));
 
-/** True for a bare herb name, which must be chosen as fresh or dried. */
-export function needsFreshOrDried(name: string): boolean {
-  return HERB_KEYS.has(ingredientNameKey(name));
+/** True for a bare herb or spice name, which must be chosen by form. */
+export function mustChooseForm(name: string): boolean {
+  return FORM_KEYS.has(ingredientNameKey(name));
 }
 
 /** Common specific kinds when the name is too general to shop for, else null. */
