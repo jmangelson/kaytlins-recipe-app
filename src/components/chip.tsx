@@ -20,7 +20,12 @@ export function Chip({ label, selected = false, onPress, accessibilityLabel }: C
     ? { backgroundColor: theme.tint, borderColor: theme.tint }
     : { backgroundColor: theme.backgroundElement, borderColor: theme.border };
   const text = (
-    <ThemedText type="small" style={selected ? { color: theme.onTint } : undefined}>
+    // One line: Android sometimes measures a short label too narrow and wraps
+    // it ("Canned / milk").
+    <ThemedText
+      type="small"
+      numberOfLines={1}
+      style={selected ? { color: theme.onTint } : undefined}>
       {label}
     </ThemedText>
   );

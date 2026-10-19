@@ -261,6 +261,8 @@ appId: com.jmangelson.kaytlinsrecipes
 - tapOn: 'Categories in Bread & bakery.*'
 - scrollUntilVisible:
     element: 'Add area'
+    # Macey's has 27 areas.
+    timeout: 60000
 - takeScreenshot: build/screenshots/26-store-edit-bottom
 - scrollUntilVisible:
     element: 'Reorder areas'
@@ -438,6 +440,5 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Apply to calendar'
 - takeScreenshot: build/screenshots/45-apply-conflict
 - back
-
 # Shopping, photos, scan, round 2, and app version are their own flows
 # (tour/*-only.yaml), run on a second emulator by scripts/screenshots.sh.

@@ -1,0 +1,73 @@
+# Stores, areas, and categories only (quick screenshot review while
+# iterating on layouts or categories): the store list, Macey's areas, an
+# area's category picker, Costco, the ingredient list, and an ingredient's
+# category picker. The full tour covers these too.
+appId: com.jmangelson.kaytlinsrecipes
+---
+- evalScript: ${output.email = 'storestour' + Date.now() + '@test.dev'}
+- runFlow:
+    file: ../subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: recipes
+- runFlow:
+    file: ../subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Stores & aisles'
+- extendedWaitUntil:
+    visible: "Macey's.*"
+    timeout: 15000
+- takeScreenshot: build/screenshots/s1-stores
+- tapOn: "Macey's.*"
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- takeScreenshot: build/screenshots/s2-maceys-top
+- scrollUntilVisible:
+    element: 'Pharmacy · Medicine & health'
+    centerElement: true
+- takeScreenshot: build/screenshots/s3-maceys-pharmacy
+- scrollUntilVisible:
+    element: 'Aisle 7 · Baking & spices'
+    centerElement: true
+- takeScreenshot: build/screenshots/s4-maceys-aisles
+- tapOn: 'Categories in Aisle 7 · Baking & spices.*'
+- scrollUntilVisible:
+    element: 'Spices & seasonings'
+    centerElement: true
+- takeScreenshot: build/screenshots/s5-area-category-picker
+- back
+- tapOn: 'Costco.*'
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Cold produce room'
+    centerElement: true
+- takeScreenshot: build/screenshots/s6-costco-produce
+- back
+- back
+- scrollUntilVisible:
+    element: 'Ingredients'
+    centerElement: true
+- tapOn: 'Ingredients'
+- extendedWaitUntil:
+    visible: 'chicken breasts.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/s7-ingredients
+- tapOn: 'chicken breasts.*'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Meat & seafood, Fresh meat'
+    centerElement: true
+- takeScreenshot: build/screenshots/s8-ingredient-category
+- tapOn: 'Produce'
+- scrollUntilVisible:
+    element: 'Potatoes, onions & garlic'
+    centerElement: true
+- takeScreenshot: build/screenshots/s9-ingredient-category-open

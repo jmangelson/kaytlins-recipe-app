@@ -331,7 +331,12 @@ function AreaRow({
         <TextInput
           accessibilityLabel={`Area ${position} name`}
           value={section.name}
-          onChangeText={onRename}
+          // Wraps so a long name ("Aisle 6 · Cereal, breakfast & coffee") shows
+          // in full; Enter finishes instead of adding a line.
+          multiline
+          submitBehavior="blurAndSubmit"
+          returnKeyType="done"
+          onChangeText={(text) => onRename(text.replace(/\n/g, ' '))}
           maxLength={60}
           style={[
             styles.areaInput,
@@ -438,6 +443,7 @@ const styles = StyleSheet.create({
   areaInput: {
     flex: 1,
     minHeight: 44,
+    textAlignVertical: 'center',
     borderBottomWidth: 1,
     fontSize: 16,
     paddingHorizontal: Spacing.one,
