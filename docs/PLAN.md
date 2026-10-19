@@ -213,3 +213,69 @@ Nothing is saved until she reviews the form and taps Save.
   call the paid API; real-camera check on her phone.
 - **Needs from you at M10:** an Anthropic API account/key and a free
   Cloudflare account.
+
+## Round 2: feedback from daily use (decided 2026-10-19)
+
+Kaytlin's first weeks of real use produced 16 requests. They ship as
+over-the-air updates in five phases, in this order.
+
+### Phase 1: quick fixes
+
+- Size and count words (small, medium, large, extra-large, jumbo) before or
+  after an ingredient go to the note, not the name; "dozen" multiplies by 12.
+- Unit shorthands: "tb", "tbs", "tblsp", "T." → tbsp (and the tsp forms).
+- A number followed by % stays in the name ("1% milk", "85% lean").
+- More units: fillet/filet, breast, thigh, container, piece, carton, tub,
+  loaf, ear, stalk, link, roll.
+- Household units: she adds her own (e.g. "sleeve") in Settings.
+- Photo cropping is back: a crop screen after each photo (taken or chosen),
+  one photo at a time.
+- New list: only calendar days with something planned are listed.
+- Recipes tab: tags grouped by Type, Course, Meal.
+- A fourth tag group, "Other tags", for her own tags ("Camping"); never
+  required.
+- Added items take a store priority (tap stores in order), like ingredients.
+- An unknown category goes to an Uncategorized area at the end of each store,
+  never Household.
+
+### Phase 2: specific categories and real aisles
+
+- About 60 categories that follow how stores shelve things (packaged, fresh,
+  and frozen meat; cheese apart from dairy; PB&J by the bread; baking chips,
+  canned milk, Jell-O, dry soup, Hispanic, Asian, canned meats, condiments,
+  salad dressing, food storage, …).
+- A built-in list of a few thousand ingredients with categories already
+  decided, so Claude is rarely needed. Only names the list doesn't know are
+  categorized by Claude through the Worker (fractions of a cent, when the
+  ingredient is created); offline they go to Uncategorized.
+- Macey's as she walks it: perimeter (produce, bakery, PB&J, packaged meats,
+  cheese, fresh meats, dairy), then aisles 15 → 2, each named "Aisle 7 ·
+  Baking & spices" and holding the categories she listed.
+- Costco, Sam's Club, Walmart, and Smith's: the same categories in a generic
+  order for now; she sends each store's aisle list later.
+- Existing ingredients are recategorized unless she set the category by
+  hand; from now on the app remembers hand-set categories.
+
+### Phase 3: staples and "usually at home"
+
+- A staples list on the Shopping tab. Making a list asks "Add your staples?"
+  (pre-ticked; she can untick some) before the pantry check.
+- An ingredient can be "usually at home" (water): left off shopping lists,
+  included on packing lists.
+
+### Phase 4: import a recipe from a website
+
+- Paste a link on New recipe. The Worker fetches the page and reads the
+  schema.org Recipe data most sites include (free, exact); otherwise Claude
+  reads the page text into the scan format. The form fills in for review,
+  with the link in Notes.
+
+### Phase 5: packing lists
+
+- A list for cooking away from home, from calendar days or a plan: every
+  ingredient with its total amount, grouped by category, with no pantry check
+  (it assumes she has everything), including "usually at home" items such as
+  water.
+- A gear checklist from an editable default (measuring cups, utensils,
+  knives, cutting board, pots, pans, Instant Pot, rags, containers, foil, zip
+  bags, dish soap, water jug).
