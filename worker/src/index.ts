@@ -75,7 +75,7 @@ async function scan(request: Request, env: Env): Promise<Response> {
   }
   const invalid = scanRequestProblem(body);
   if (invalid) return problem(400, 'bad_request', invalid);
-  const { images, tags } = body as ScanRequest;
+  const { images, tags, units } = body as ScanRequest;
 
   // Daily limits, per person and for the whole app (KV; resets at midnight UTC).
   const keys = limitKeys(uid, new Date());
@@ -100,6 +100,7 @@ async function scan(request: Request, env: Env): Promise<Response> {
   const outcome = await readRecipe(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), {
     images,
     tags,
+    units,
   });
   if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
   return reply(200, outcome.result);

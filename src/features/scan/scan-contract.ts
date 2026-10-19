@@ -4,7 +4,7 @@
  * the app (to check the result again before filling the form). No React
  * Native imports: the Worker bundles this file too.
  */
-import { ALL_UNITS, type UnitKey } from '../ingredients/units';
+import { BUILT_IN_UNITS, type UnitKey } from '../ingredients/units';
 
 export type ScanConfidence = 'high' | 'low';
 
@@ -27,11 +27,17 @@ export type ScanResult = {
   warnings: string[];
 };
 
-/** What the app sends: up to MAX_SCAN_IMAGES JPEG pages plus her tags. */
+/** What the app sends: up to MAX_SCAN_IMAGES JPEG pages, her tags, and her own units. */
 export type ScanRequest = {
   images: { media_type: 'image/jpeg'; data: string }[];
   tags: { id: string; name: string; group: string }[];
+  units?: { key: string; singular: string; plural: string }[];
 };
+
+/** The unit keys a scan may use: the built-in ones plus hers. */
+export function scanUnitKeys(request: Pick<ScanRequest, 'units'>): string[] {
+  return [...BUILT_IN_UNITS, ...(request.units ?? []).map((u) => u.key)];
+}
 
 export const MAX_SCAN_IMAGES = 4;
 /** Base64 characters per image (~1.5 MB of JPEG); the phone sends far less. */
@@ -41,7 +47,7 @@ export const MAX_IMAGE_BASE64 = 2_000_000;
  * JSON schema for Claude's structured output. Tags are limited to her own
  * tag ids; units to the app's unit keys (null for plain counts).
  */
-export function scanJsonSchema(tagIds: string[]) {
+export function scanJsonSchema(tagIds: string[], unitKeys: string[] = BUILT_IN_UNITS) {
   return {
     type: 'object',
     additionalProperties: false,
@@ -70,7 +76,7 @@ export function scanJsonSchema(tagIds: string[]) {
           properties: {
             quantity: { type: ['number', 'null'] },
             quantity_max: { type: ['number', 'null'] },
-            unit: { anyOf: [{ type: 'string', enum: ALL_UNITS }, { type: 'null' }] },
+            unit: { anyOf: [{ type: 'string', enum: unitKeys }, { type: 'null' }] },
             name: { type: 'string' },
             note: { type: ['string', 'null'] },
             source_text: { type: 'string' },
@@ -92,14 +98,18 @@ const isStringOrNull = (v: unknown) => v === null || typeof v === 'string';
  * Worker sends). Returns the result, or null if anything is off. Unknown tag
  * ids are dropped rather than rejected.
  */
-export function parseScanResult(value: unknown, tagIds: string[]): ScanResult | null {
+export function parseScanResult(
+  value: unknown,
+  tagIds: string[],
+  unitKeys: string[] = BUILT_IN_UNITS
+): ScanResult | null {
   if (typeof value !== 'object' || value === null) return null;
   const v = value as Record<string, unknown>;
   if (typeof v.title !== 'string') return null;
   if (!(v.servings === null || (typeof v.servings === 'number' && v.servings > 0))) return null;
   if (!Array.isArray(v.suggested_tag_ids) || !Array.isArray(v.ingredients)) return null;
   if (!isStringOrNull(v.notes) || !Array.isArray(v.warnings)) return null;
-  const units = new Set<string>(ALL_UNITS);
+  const units = new Set<string>(unitKeys);
   const ingredients: ScannedIngredient[] = [];
   for (const raw of v.ingredients) {
     if (typeof raw !== 'object' || raw === null) return null;

@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import {
   parseScanResult,
   scanJsonSchema,
+  scanUnitKeys,
   type ScanRequest,
   type ScanResult,
 } from '../../src/features/scan/scan-contract';
@@ -21,6 +22,7 @@ export type ReadOutcome =
 
 export async function readRecipe(client: Anthropic, request: ScanRequest): Promise<ReadOutcome> {
   const tagIds = request.tags.map((t) => t.id);
+  const unitKeys = scanUnitKeys(request);
   let response: Anthropic.Beta.BetaMessage;
   try {
     response = await client.beta.messages.create({
@@ -31,7 +33,7 @@ export async function readRecipe(client: Anthropic, request: ScanRequest): Promi
       fallbacks: 'default',
       output_config: {
         effort: 'medium',
-        format: { type: 'json_schema', schema: scanJsonSchema(tagIds) },
+        format: { type: 'json_schema', schema: scanJsonSchema(tagIds, unitKeys) },
       },
       system: SYSTEM_PROMPT,
       messages: [
@@ -46,7 +48,7 @@ export async function readRecipe(client: Anthropic, request: ScanRequest): Promi
                 data: image.data,
               },
             })),
-            { type: 'text' as const, text: userPrompt(request.tags) },
+            { type: 'text' as const, text: userPrompt(request.tags, request.units) },
           ],
         },
       ],
@@ -91,7 +93,8 @@ export async function readRecipe(client: Anthropic, request: ScanRequest): Promi
   const text = response.content.find((b) => b.type === 'text');
   let result: ScanResult | null = null;
   try {
-    result = text?.type === 'text' ? parseScanResult(JSON.parse(text.text), tagIds) : null;
+    result =
+      text?.type === 'text' ? parseScanResult(JSON.parse(text.text), tagIds, unitKeys) : null;
   } catch {
     result = null;
   }

@@ -3,7 +3,13 @@ import Constants from 'expo-constants';
 
 import { FIXTURE_SCAN } from '@/features/dev/fixture-scan';
 import type { Tag } from '@/features/stores/store-types';
-import { parseScanResult, type ScanRequest, type ScanResult } from '@/features/scan/scan-contract';
+import { getCustomUnits } from '@/features/ingredients/units';
+import {
+  parseScanResult,
+  scanUnitKeys,
+  type ScanRequest,
+  type ScanResult,
+} from '@/features/scan/scan-contract';
 import type { ScanPage } from '@/features/scan/scan-photos';
 import { auth, usingFirebaseEmulators } from '@/lib/firebase';
 
@@ -19,9 +25,11 @@ export class ScanError extends Error {}
  */
 export async function scanRecipe(pages: ScanPage[], tags: Tag[]): Promise<ScanResult> {
   const tagIds = tags.map((t) => t.id);
+  const units = getCustomUnits();
+  const unitKeys = scanUnitKeys({ units });
   if (usingFirebaseEmulators) {
     await new Promise((resolve) => setTimeout(resolve, 800));
-    return parseScanResult(FIXTURE_SCAN, tagIds)!;
+    return parseScanResult(FIXTURE_SCAN, tagIds, unitKeys)!;
   }
   const url = Constants.expoConfig?.extra?.scanUrl as string | undefined;
   const user = auth.currentUser;
@@ -30,6 +38,7 @@ export async function scanRecipe(pages: ScanPage[], tags: Tag[]): Promise<ScanRe
   const body: ScanRequest = {
     images: pages.map((p) => ({ media_type: 'image/jpeg', data: p.base64 })),
     tags: tags.map((t) => ({ id: t.id, name: t.name, group: t.group })),
+    units,
   };
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -58,7 +67,7 @@ export async function scanRecipe(pages: ScanPage[], tags: Tag[]): Promise<ScanRe
     const message = (json as { message?: unknown } | null)?.message;
     throw new ScanError(typeof message === 'string' ? message : 'The recipe couldn’t be read.');
   }
-  const result = parseScanResult(json, tagIds);
+  const result = parseScanResult(json, tagIds, unitKeys);
   if (!result) throw new ScanError('The recipe reader sent something unexpected. Try again.');
   return result;
 }

@@ -10,7 +10,13 @@ import { Spacing } from '@/constants/theme';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
-import { ALL_UNITS, COMMON_UNITS, unitLabel, type UnitKey } from '@/features/ingredients/units';
+import {
+  allUnits,
+  COMMON_UNITS,
+  getCustomUnits,
+  unitLabel,
+  type UnitKey,
+} from '@/features/ingredients/units';
 import {
   amountInputText,
   formatIngredientAmount,
@@ -265,9 +271,11 @@ function RowEditor({
   const theme = useTheme();
   const [amountText, setAmountText] = useState(amountInputText(row));
   const [amountError, setAmountError] = useState<string | null>(null);
-  const [moreUnits, setMoreUnits] = useState(row.unit !== null && !COMMON_UNITS.includes(row.unit));
+  // Her own units sit with the common ones; More units shows everything.
+  const firstUnits: UnitKey[] = [...COMMON_UNITS, ...getCustomUnits().map((u) => u.key)];
+  const [moreUnits, setMoreUnits] = useState(row.unit !== null && !firstUnits.includes(row.unit));
   const [picking, setPicking] = useState(row.link.kind === 'choose');
-  const units = moreUnits ? ALL_UNITS : COMMON_UNITS;
+  const units = moreUnits ? allUnits() : firstUnits;
 
   function changeAmount(text: string) {
     setAmountText(text);

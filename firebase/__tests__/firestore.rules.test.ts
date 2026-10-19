@@ -533,3 +533,26 @@ describe('leaving and deleting a household', () => {
     await assertSucceeds(deleteAll('alice').commit());
   });
 });
+
+describe('household units', () => {
+  beforeEach(seedHousehold);
+
+  const unit = { singular: 'sleeve', plural: 'sleeves', createdAt: serverTimestamp() };
+
+  it('lets members add and remove their own units', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'units', 'custom-sleeve');
+    await assertSucceeds(setDoc(ref, unit));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('rejects bad ids, extra fields, and non-members', async () => {
+    const db = dbAs('alice');
+    await assertFails(setDoc(doc(db, 'households', HID, 'units', 'cup'), unit));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'units', 'custom-sleeve'), { ...unit, toBase: 3 })
+    );
+    await assertFails(
+      setDoc(doc(dbAs('mallory'), 'households', HID, 'units', 'custom-sleeve'), unit)
+    );
+  });
+});

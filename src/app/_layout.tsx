@@ -56,6 +56,7 @@ function RootNavigator() {
         <Stack.Screen name="ingredients" options={{ headerShown: true, title: 'Ingredients' }} />
         <Stack.Screen name="ingredient/[id]" options={{ headerShown: true, title: 'Ingredient' }} />
         <Stack.Screen name="tags" options={{ headerShown: true, title: 'Recipe tags' }} />
+        <Stack.Screen name="units" options={{ headerShown: true, title: 'Your units' }} />
         <Stack.Screen
           name="household"
           options={{ headerShown: true, title: 'Household settings' }}

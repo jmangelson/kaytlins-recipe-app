@@ -21,6 +21,7 @@ import type { Tag } from '@/features/stores/store-types';
 import {
   missingGroups,
   missingGroupsMessage,
+  ENCOURAGED_GROUPS,
   TAG_GROUPS,
   tagsByGroup,
 } from '@/features/stores/tag-groups';
@@ -177,11 +178,12 @@ export function RecipeForm({
               <ThemedText type="smallBold" accessibilityRole="header">
                 {group.name}
               </ThemedText>
-              {!tagGroups[group.id].some((t) => draft.tagIds.includes(t.id)) && (
-                <ThemedText type="small" themeColor="attention">
-                  Not set
-                </ThemedText>
-              )}
+              {ENCOURAGED_GROUPS.includes(group.id) &&
+                !tagGroups[group.id].some((t) => draft.tagIds.includes(t.id)) && (
+                  <ThemedText type="small" themeColor="attention">
+                    Not set
+                  </ThemedText>
+                )}
             </View>
             <ThemedText type="small" themeColor="textSecondary">
               {group.hint}
@@ -249,11 +251,7 @@ export function RecipeForm({
         {photos.length < MAX_PHOTOS ? (
           <>
             <Button label="Take photo" variant="secondary" onPress={() => addPhotos('camera')} />
-            <Button
-              label="Choose photos"
-              variant="secondary"
-              onPress={() => addPhotos('library')}
-            />
+            <Button label="Choose photo" variant="secondary" onPress={() => addPhotos('library')} />
           </>
         ) : (
           <ThemedText type="small" themeColor="textSecondary">

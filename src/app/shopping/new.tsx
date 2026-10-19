@@ -131,7 +131,11 @@ function NewListForm({
   const selected = new Set(choices.map((c) => c.key).filter((k) => !excluded.has(k)));
   const needs = gatherNeeds(itemsFor(choices, selected), recipes);
 
-  const autoName = kind === 'plan' ? (plan?.name ?? '') : formatRange(start, end);
+  // Calendar lists cover only the days with something planned ("Oct 4 – 5").
+  const plannedDates = [...new Set(choices.map((c) => c.key.split(':')[0]))].sort();
+  const from = kind === 'dates' && plannedDates.length ? plannedDates[0] : start;
+  const to = kind === 'dates' && plannedDates.length ? plannedDates[plannedDates.length - 1] : end;
+  const autoName = kind === 'plan' ? (plan?.name ?? '') : formatRange(from, to);
   const listName = (name ?? autoName).trim();
 
   function toggle(key: string) {
@@ -154,7 +158,7 @@ function NewListForm({
     const source: ListSource =
       kind === 'plan' && plan
         ? { kind: 'plan', planId: plan.id, planName: plan.name }
-        : { kind: 'dates', from: start, to: end };
+        : { kind: 'dates', from, to };
     const id = await createShoppingList(household.id, {
       name: listName,
       status: 'pantry',

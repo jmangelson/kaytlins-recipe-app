@@ -21,7 +21,7 @@ export const FIXTURE_RECIPES = [
   {
     name: 'Salsa',
     tagIds: ['vegetarian', 'appetizer', 'lunch'],
-    lines: ['4 roma tomatoes', '1 bunch cilantro'],
+    lines: ['4 roma tomatoes', '1 bunch fresh cilantro'],
   },
   {
     name: 'Pico',

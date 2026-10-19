@@ -20,14 +20,26 @@ const UNITS = {
     toBase: 1,
     singular: 'tsp',
     plural: 'tsp',
-    aliases: ['t', 'tsp', 'tsps', 'teaspoon', 'teaspoons'],
+    aliases: ['t', 'ts', 'tsp', 'tsps', 'tspn', 'teaspoon', 'teaspoons'],
   },
   tbsp: {
     dimension: 'volume',
     toBase: 3,
     singular: 'tbsp',
     plural: 'tbsp',
-    aliases: ['T', 'tbsp', 'tbsps', 'tbs', 'tbl', 'tablespoon', 'tablespoons'],
+    aliases: [
+      'T',
+      'tb',
+      'tbsp',
+      'tbsps',
+      'tbs',
+      'tbl',
+      'tbls',
+      'tblsp',
+      'tblspn',
+      'tablespoon',
+      'tablespoons',
+    ],
   },
   floz: {
     dimension: 'volume',
@@ -181,6 +193,97 @@ const UNITS = {
     plural: 'pinches',
     aliases: ['pinch', 'pinches'],
   },
+  fillet: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'fillet',
+    plural: 'fillets',
+    aliases: ['fillet', 'fillets', 'filet', 'filets'],
+  },
+  breast: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'breast',
+    plural: 'breasts',
+    aliases: ['breast', 'breasts'],
+  },
+  thigh: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'thigh',
+    plural: 'thighs',
+    aliases: ['thigh', 'thighs'],
+  },
+  container: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'container',
+    plural: 'containers',
+    aliases: ['container', 'containers', 'ctn'],
+  },
+  carton: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'carton',
+    plural: 'cartons',
+    aliases: ['carton', 'cartons'],
+  },
+  tub: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'tub',
+    plural: 'tubs',
+    aliases: ['tub', 'tubs'],
+  },
+  piece: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'piece',
+    plural: 'pieces',
+    aliases: ['piece', 'pieces', 'pc', 'pcs'],
+  },
+  loaf: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'loaf',
+    plural: 'loaves',
+    aliases: ['loaf', 'loaves'],
+  },
+  ear: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'ear',
+    plural: 'ears',
+    aliases: ['ear', 'ears'],
+  },
+  stalk: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'stalk',
+    plural: 'stalks',
+    aliases: ['stalk', 'stalks', 'rib', 'ribs'],
+  },
+  link: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'link',
+    plural: 'links',
+    aliases: ['link', 'links'],
+  },
+  roll: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'roll',
+    plural: 'rolls',
+    aliases: ['roll', 'rolls'],
+  },
+  envelope: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'envelope',
+    plural: 'envelopes',
+    aliases: ['envelope', 'envelopes', 'env'],
+  },
   dash: {
     dimension: 'count',
     toBase: 1,
@@ -190,11 +293,30 @@ const UNITS = {
   },
 } as const satisfies Record<string, UnitDefinition>;
 
-export type UnitKey = keyof typeof UNITS;
+export type BuiltInUnit = keyof typeof UNITS;
+/** A built-in unit key, or one of the household's own units ("custom-sleeve"). */
+export type UnitKey = BuiltInUnit | `custom-${string}`;
+
+/** A unit she added in Settings ("sleeve"); counts like can or jar. */
+export type CustomUnit = { key: `custom-${string}`; singular: string; plural: string };
+
+const customUnits = new Map<string, CustomUnit>();
+
+function definition(unit: UnitKey): UnitDefinition {
+  if (unit in UNITS) return UNITS[unit as BuiltInUnit];
+  const custom = customUnits.get(unit);
+  return {
+    dimension: 'count',
+    toBase: 1,
+    singular: custom?.singular ?? unit.replace(/^custom-/, ''),
+    plural: custom?.plural ?? unit.replace(/^custom-/, ''),
+    aliases: [],
+  };
+}
 
 /** Volume units used when choosing how to display a combined amount, largest first. */
-const VOLUME_DISPLAY_UNITS: UnitKey[] = ['gallon', 'quart', 'cup', 'tbsp', 'tsp'];
-const WEIGHT_DISPLAY_UNITS: UnitKey[] = ['lb', 'oz'];
+const VOLUME_DISPLAY_UNITS: BuiltInUnit[] = ['gallon', 'quart', 'cup', 'tbsp', 'tsp'];
+const WEIGHT_DISPLAY_UNITS: BuiltInUnit[] = ['lb', 'oz'];
 
 // "T" (tablespoon) and "t" (teaspoon) are the only case-sensitive aliases;
 // everything else matches case-insensitively, ignoring periods and extra spaces.
@@ -205,10 +327,35 @@ function normalizeUnitText(text: string): string {
 }
 
 const aliasLookup = new Map<string, UnitKey>();
-for (const [key, unit] of Object.entries(UNITS) as [UnitKey, UnitDefinition][]) {
+for (const [key, unit] of Object.entries(UNITS) as [BuiltInUnit, UnitDefinition][]) {
   for (const alias of unit.aliases) {
     if (!(alias in CASE_SENSITIVE_ALIASES)) aliasLookup.set(normalizeUnitText(alias), key);
   }
+}
+const builtInAliases = new Set(aliasLookup.keys());
+
+/**
+ * Makes her own units known everywhere (parser, labels, pickers, scans).
+ * Called when the household's units load or change. A built-in unit's
+ * spelling always wins.
+ */
+export function setCustomUnits(units: CustomUnit[]): void {
+  for (const key of customUnits.keys()) {
+    for (const [alias, owner] of aliasLookup) if (owner === key) aliasLookup.delete(alias);
+  }
+  customUnits.clear();
+  for (const unit of units) {
+    customUnits.set(unit.key, unit);
+    for (const alias of [unit.singular, unit.plural]) {
+      const normalized = normalizeUnitText(alias);
+      if (normalized && !builtInAliases.has(normalized)) aliasLookup.set(normalized, unit.key);
+    }
+  }
+}
+
+/** Her own units, in the order she added them. */
+export function getCustomUnits(): CustomUnit[] {
+  return [...customUnits.values()];
 }
 
 /** Resolves a written unit ("Tbsp.", "cups", "T", "lbs", "fl. oz") to a unit key. */
@@ -218,29 +365,31 @@ export function parseUnit(text: string): UnitKey | null {
 }
 
 export function unitDimension(unit: UnitKey | null): Dimension {
-  return unit ? UNITS[unit].dimension : 'count';
+  return unit ? definition(unit).dimension : 'count';
 }
 
 export function unitLabel(unit: UnitKey, amount: number | null): string {
-  const def = UNITS[unit];
+  const def = definition(unit);
   // "⅓ cup", "1 cup", but "1 ½ cups".
   return amount !== null && amount > 0 && amount <= 1 + 1e-9 ? def.singular : def.plural;
 }
 
 /** Converts an amount between units of the same dimension. */
 export function convert(amount: number, from: UnitKey, to: UnitKey): number {
-  if (UNITS[from].dimension !== UNITS[to].dimension || UNITS[from].dimension === 'count') {
+  const a = definition(from);
+  const b = definition(to);
+  if (a.dimension !== b.dimension || a.dimension === 'count') {
     if (from === to) return amount;
     throw new Error(`Cannot convert ${from} to ${to}`);
   }
-  return (amount * UNITS[from].toBase) / UNITS[to].toBase;
+  return (amount * a.toBase) / b.toBase;
 }
 
 /**
  * Picks a readable unit for a total in base units: the largest familiar US
  * unit that keeps the amount at or above 1 (e.g. 54 tsp → 1⅛ cups).
  */
-export function bestDisplayUnit(dimension: 'volume' | 'weight', baseAmount: number): UnitKey {
+export function bestDisplayUnit(dimension: 'volume' | 'weight', baseAmount: number): BuiltInUnit {
   const candidates = dimension === 'volume' ? VOLUME_DISPLAY_UNITS : WEIGHT_DISPLAY_UNITS;
   for (const unit of candidates) {
     // Prefer cups over quarts/gallons until the amount is genuinely large.
@@ -251,11 +400,11 @@ export function bestDisplayUnit(dimension: 'volume' | 'weight', baseAmount: numb
 }
 
 export function baseAmount(amount: number, unit: UnitKey): number {
-  return amount * UNITS[unit].toBase;
+  return amount * definition(unit).toBase;
 }
 
 /** Units offered first in the unit picker; the rest appear under "More units". */
-export const COMMON_UNITS: UnitKey[] = [
+export const COMMON_UNITS: BuiltInUnit[] = [
   'tsp',
   'tbsp',
   'cup',
@@ -268,4 +417,9 @@ export const COMMON_UNITS: UnitKey[] = [
   'pinch',
 ];
 
-export const ALL_UNITS = Object.keys(UNITS) as UnitKey[];
+export const BUILT_IN_UNITS = Object.keys(UNITS) as BuiltInUnit[];
+
+/** Every unit she can use: the built-in ones, then her own. */
+export function allUnits(): UnitKey[] {
+  return [...BUILT_IN_UNITS, ...customUnits.keys()] as UnitKey[];
+}

@@ -251,6 +251,17 @@ over-the-air updates in five phases, in this order.
 - Macey's as she walks it: perimeter (produce, bakery, PB&J, packaged meats,
   cheese, fresh meats, dairy), then aisles 15 → 2, each named "Aisle 7 ·
   Baking & spices" and holding the categories she listed.
+- Produce in four categories by where it sits: counter fruit (bananas,
+  citrus, avocados, melons), cold fruit (berries, grapes, apples, cut fruit),
+  greens and vegetables with fresh herbs (lettuce, peppers, jalapeños,
+  cilantro, parsley), and potatoes, onions and garlic. Macey's shows them
+  as Fruit, Greens & vegetables, and Potatoes, onions & garlic.
+- Fresh and dried herbs are different ingredients (produce vs. spices).
+  A bare herb name in a recipe ("basil", "thyme", "cilantro", "ginger", …)
+  always asks "fresh or dried?"; "fresh basil" and "dried basil" link
+  directly. Photo scans keep the recipe's "fresh"/"dried" in the name.
+- Costco and Sam's Club: a cold produce room (cold fruit, greens) apart from
+  the open produce bins (counter fruit, potatoes, onions).
 - Costco, Sam's Club, Walmart, and Smith's: the same categories in a generic
   order for now; she sends each store's aisle list later.
 - Existing ingredients are recategorized unless she set the category by

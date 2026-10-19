@@ -40,7 +40,7 @@ const GENERIC: Record<string, string[]> = {
   noodles: ['egg noodles', 'lasagna noodles', 'ramen noodles', 'rice noodles'],
   flour: ['all-purpose flour', 'bread flour', 'whole wheat flour'],
   sugar: ['granulated sugar', 'brown sugar', 'powdered sugar'],
-  milk: ['whole milk', '2% milk', 'skim milk', 'buttermilk'],
+  milk: ['whole milk', '2% milk', '1% milk', 'skim milk', 'buttermilk'],
   cream: ['heavy cream', 'sour cream', 'half-and-half', 'whipping cream'],
   yogurt: ['plain Greek yogurt', 'plain yogurt', 'vanilla yogurt'],
   butter: ['salted butter', 'unsalted butter'],
@@ -73,6 +73,23 @@ const GENERIC: Record<string, string[]> = {
   salsa: ['mild salsa', 'medium salsa', 'salsa verde'],
   mustard: ['yellow mustard', 'Dijon mustard', 'ground mustard'],
   chocolate: ['chocolate chips', 'semi-sweet baking chocolate', 'cocoa powder'],
+  // Herbs: fresh and dried are different ingredients from different aisles,
+  // so a bare herb name always asks which one the recipe means.
+  parsley: ['fresh parsley', 'dried parsley flakes'],
+  cilantro: ['fresh cilantro', 'dried cilantro'],
+  basil: ['fresh basil', 'dried basil'],
+  thyme: ['fresh thyme', 'dried thyme'],
+  rosemary: ['fresh rosemary', 'dried rosemary'],
+  oregano: ['fresh oregano', 'dried oregano'],
+  sage: ['fresh sage', 'rubbed sage'],
+  dill: ['fresh dill', 'dried dill weed'],
+  mint: ['fresh mint', 'dried mint'],
+  chives: ['fresh chives', 'dried chives'],
+  tarragon: ['fresh tarragon', 'dried tarragon'],
+  marjoram: ['fresh marjoram', 'dried marjoram'],
+  'bay leaf': ['dried bay leaves', 'fresh bay leaves'],
+  'bay leaves': ['dried bay leaves', 'fresh bay leaves'],
+  ginger: ['fresh ginger', 'ground ginger'],
 };
 
 // Keyed by the matching key, so "Onions", "onion", and "ONION" all count.

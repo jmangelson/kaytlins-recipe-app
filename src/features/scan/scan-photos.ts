@@ -24,8 +24,10 @@ async function prepare(asset: ImagePicker.ImagePickerAsset): Promise<ScanPage | 
 }
 
 /**
- * Takes one page with the camera, or chooses up to `limit` from the gallery
- * (no cropping, so the whole page is read). Resolves [] if she cancels.
+ * Takes a photo with the camera or chooses one from the gallery, then opens
+ * the crop screen (any shape) so she can trim it to the recipe or the dish.
+ * One photo at a time: Android can't crop several chosen at once. Resolves
+ * [] if she cancels.
  */
 export async function pickScanPages(
   source: 'camera' | 'library',
@@ -35,14 +37,16 @@ export async function pickScanPages(
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) throw new CameraPermissionError();
-    result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 });
+    result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+      allowsEditing: true,
+    });
   } else {
     result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 1,
-      allowsMultipleSelection: limit > 1,
-      selectionLimit: limit,
-      orderedSelection: true,
+      allowsEditing: true,
     });
   }
   if (result.canceled || !result.assets?.length) return [];

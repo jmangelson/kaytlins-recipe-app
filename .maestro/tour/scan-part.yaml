@@ -8,7 +8,13 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/62-scan-empty
 - tapOn: 'Choose from photos'
 - tapOn: 'Photo taken on.*'
-- tapOn: 'Add \(1\)'
+- extendedWaitUntil:
+    visible:
+      id: 'crop_image_menu_crop'
+    timeout: 15000
+- takeScreenshot: build/screenshots/62b-scan-crop
+- tapOn:
+    id: 'crop_image_menu_crop'
 - extendedWaitUntil:
     visible: 'Page 1'
     timeout: 15000

@@ -23,6 +23,22 @@ export function scanRequestProblem(body: unknown): string | null {
     if (image.data.length > MAX_IMAGE_BASE64) return 'A photo is too large.';
     if (!BASE64.test(image.data.slice(0, 1000))) return 'A photo is not valid base64.';
   }
+  const { units } = body as Partial<ScanRequest>;
+  if (units !== undefined) {
+    if (!Array.isArray(units) || units.length > 50) return 'Send at most 50 units.';
+    for (const unit of units) {
+      if (
+        typeof unit?.key !== 'string' ||
+        !/^custom-[a-z0-9-]{1,40}$/.test(unit.key) ||
+        typeof unit.singular !== 'string' ||
+        typeof unit.plural !== 'string' ||
+        unit.singular.length > 40 ||
+        unit.plural.length > 40
+      ) {
+        return 'Units must have a key and names.';
+      }
+    }
+  }
   if (!Array.isArray(tags) || tags.length > 200) return 'Send her tags (up to 200).';
   for (const tag of tags) {
     if (
@@ -57,7 +73,7 @@ What to capture:
 Each ingredient:
 - quantity: the amount as a number, with fractions converted (1 1/2 -> 1.5, ⅓ -> 0.333). For a range ("2-3"), quantity is the low end and quantity_max the high end; otherwise quantity_max is null. null for unmeasured amounts ("salt to taste", "oil for frying").
 - unit: one of the allowed unit keys, mapping what's printed: c./C. -> cup; T/Tbsp./tbs -> tbsp; t/tsp. -> tsp; lbs/# -> lb; oz. -> oz; fl. oz. -> floz; pkg./packet -> package; cloves -> clove; stick(s) -> stick; qt -> quart; pt -> pint; gal -> gallon. Use null for plain counts ("3 eggs", "1 onion"). If a size goes with a container ("1 (15 oz) can black beans"), the unit is can and the size goes in the note ("15 oz"). If the printed unit has no matching key, use null and keep the unit word in the name.
-- name: the ingredient as written, without the amount, unit, or preparation ("shredded Monterey Jack", "black beans"). Keep the recipe's wording and capitalization; don't make it more or less specific.
+- name: the ingredient as written, without the amount, unit, size, or preparation ("shredded Monterey Jack", "black beans"). Sizes such as small, medium, large, extra-large, or jumbo go in the note ("2 large eggs" -> name "eggs", note "large"). "A dozen" or "1 dozen" means a quantity of 12. Keep the recipe's wording and capitalization; don't make it more or less specific. Words that tell fresh from dried or ground ("fresh basil", "dried thyme", "ground ginger", "rubbed sage") stay in the name, not the note; if the recipe doesn't say, don't add one.
 - note: preparation or extra detail after the name ("divided", "diced", "softened", "15 oz", "or to taste"); null if none.
 - source_text: the full line exactly as printed.
 - confidence: "low" when any part of the line was hard to read or you had to infer it (smudged, cut off, unclear handwriting, ambiguous fraction); otherwise "high".
@@ -65,12 +81,16 @@ Each ingredient:
 Only include what is in the photos. If the photos don't show a recipe, return an empty title and ingredients list with a warning saying so.`;
 
 /** The text sent with the photos: her tags, so suggestions use her ids. */
-export function userPrompt(tags: ScanRequest['tags']): string {
+export function userPrompt(tags: ScanRequest['tags'], units: ScanRequest['units'] = []): string {
   const lines = tags.map((t) => `- ${t.id}: ${t.name} (${t.group})`);
+  const own = (units ?? []).map((u) => `- ${u.key}: ${u.singular} / ${u.plural}`);
   return [
     'Read the recipe in these photos. The photos are pages of one recipe, in order.',
     lines.length
       ? `Household tags (suggest by id):\n${lines.join('\n')}`
       : 'The household has no tags.',
+    ...(own.length
+      ? [`The household's own units (use these keys when they fit):\n${own.join('\n')}`]
+      : []),
   ].join('\n\n');
 }

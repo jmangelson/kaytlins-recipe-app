@@ -59,7 +59,10 @@ export function ExtrasSection({
         <View>
           {items.map((item) => {
             const ingredient = known.find((i) => i.id === item.ingredientId);
-            const store = ingredient?.storePriority.map((id) => storeName.get(id)).find(Boolean);
+            const store = (ingredient?.storePriority ?? [])
+              .map((id) => storeName.get(id))
+              .filter(Boolean)
+              .join(' › ');
             const detail = [formatQuantity(item.quantity), store].filter(Boolean).join(' · ');
             return (
               <View key={item.id} style={[styles.row, { borderBottomColor: theme.border }]}>

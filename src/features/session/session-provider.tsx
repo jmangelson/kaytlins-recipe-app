@@ -15,6 +15,7 @@ import {
   seedHouseholdIfNeeded,
   type Household,
 } from '@/features/household/household-service';
+import { loadCustomUnits } from '@/features/units/unit-repo';
 import { auth } from '@/lib/firebase';
 
 export type SessionState =
@@ -39,6 +40,11 @@ async function resolveSession(user: User | null): Promise<SessionState> {
     if (household && needsSeeding(household)) {
       // Not awaited: seeding checks the server first and must not block launch.
       seedHouseholdIfNeeded(household.id).catch((error) => console.warn('Seeding failed', error));
+    }
+    if (household) {
+      // Her own units, so recipes, scans, and lists know them. Offline, the
+      // cached copy is used; a failure just leaves the built-in units.
+      await loadCustomUnits(household.id).catch((error) => console.warn('Units failed', error));
     }
     return household ? { status: 'ready', user, household } : { status: 'needsHousehold', user };
   } catch (error) {

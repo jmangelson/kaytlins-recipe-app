@@ -23,7 +23,7 @@ type Step =
   /** The name shares words with some of hers ("onion"): she picks one or a new item. */
   | { kind: 'choose'; candidates: Ingredient[]; suggestions: string[] }
   /** Not one of hers yet (named as typed, or a suggested kind): which store? */
-  | { kind: 'new'; name: string; storeId: string | null };
+  | { kind: 'new'; name: string; storeIds: string[] };
 
 /**
  * "Add an item" on a shopping list. The item is one of her ingredients: an
@@ -57,11 +57,11 @@ export function AddItem({
     if (match.kind === 'exact') add(match.ingredient);
     else if (match.kind === 'partial') {
       setStep({ kind: 'choose', candidates: match.candidates, suggestions: match.suggestions });
-    } else setStep({ kind: 'new', name: item.name, storeId: null });
+    } else setStep({ kind: 'new', name: item.name, storeIds: [] });
   }
 
-  function addNew(name: string, storeId: string | null) {
-    add({ ...newIngredient(name), storePriority: storeId ? [storeId] : [] });
+  function addNew(name: string, storeIds: string[]) {
+    add({ ...newIngredient(name), storePriority: storeIds });
   }
 
   const newName = step.kind === 'new' ? step.name : null;
@@ -106,13 +106,13 @@ export function AddItem({
                 key={name}
                 label={name}
                 accessibilityLabel={`Use new ${name} for ${item.name}`}
-                onPress={() => setStep({ kind: 'new', name, storeId: null })}
+                onPress={() => setStep({ kind: 'new', name, storeIds: [] })}
               />
             ))}
             <Chip
               label={`New: ${item.name}`}
               accessibilityLabel={`${item.name} is a new item`}
-              onPress={() => setStep({ kind: 'new', name: item.name, storeId: null })}
+              onPress={() => setStep({ kind: 'new', name: item.name, storeIds: [] })}
             />
           </View>
         </View>
@@ -122,23 +122,35 @@ export function AddItem({
         <View style={styles.group}>
           <ThemedText type="small">
             “{step.name}” is new{category ? ` (${category.name})` : ''}. Where do you usually buy
-            it?
+            it? Tap stores in order of preference.
           </ThemedText>
           <View style={styles.chips}>
-            {stores.map((store) => (
-              <Chip
-                key={store.id}
-                label={store.name}
-                accessibilityLabel={`Usually from ${store.name}`}
-                selected={step.storeId === store.id}
-                onPress={() => setStep({ ...step, storeId: store.id })}
-              />
-            ))}
+            {stores.map((store) => {
+              const rank = step.storeIds.indexOf(store.id);
+              return (
+                <Chip
+                  key={store.id}
+                  label={rank >= 0 ? `${rank + 1} · ${store.name}` : store.name}
+                  accessibilityLabel={`Usually from ${store.name}`}
+                  selected={rank >= 0}
+                  onPress={() =>
+                    setStep({
+                      ...step,
+                      // Tap order is her preference; tapping again takes it off.
+                      storeIds:
+                        rank >= 0
+                          ? step.storeIds.filter((id) => id !== store.id)
+                          : [...step.storeIds, store.id],
+                    })
+                  }
+                />
+              );
+            })}
           </View>
           <ThemedText type="small" themeColor="textSecondary">
             Optional. It&apos;s added to your ingredients, where you can change it later.
           </ThemedText>
-          <Button label={`Add ${step.name}`} onPress={() => addNew(step.name, step.storeId)} />
+          <Button label={`Add ${step.name}`} onPress={() => addNew(step.name, step.storeIds)} />
         </View>
       )}
     </View>

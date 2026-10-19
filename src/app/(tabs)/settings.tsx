@@ -69,6 +69,7 @@ export default function SettingsScreen() {
         <ThemedText type="smallBold">Recipe tags</ThemedText>
         <TagList householdId={household.id} />
         <Button label="Manage tags" variant="secondary" onPress={() => router.push('/tags')} />
+        <Button label="Your units" variant="secondary" onPress={() => router.push('/units')} />
       </View>
 
       <View style={styles.section}>

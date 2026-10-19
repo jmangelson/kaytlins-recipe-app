@@ -55,7 +55,7 @@ service cloud.firestore {
       return data.keys().hasOnly(['name', 'order', 'group'])
         && validName(data.name, 40)
         && data.order is int
-        && data.group in ['type', 'course', 'meal'];
+        && data.group in ['type', 'course', 'meal', 'other'];
     }
 
     function validIngredient(data) {
@@ -130,6 +130,15 @@ service cloud.firestore {
         && data.quantity is map
         && data.updatedAt == request.time
         && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // A unit she added ("sleeve"); its id is "custom-" plus a slug.
+    function validUnit(data, unitId) {
+      return unitId.matches('^custom-[a-z0-9-]{1,40}$')
+        && data.keys().hasOnly(['singular', 'plural', 'createdAt'])
+        && validName(data.singular, 40)
+        && validName(data.plural, 40)
+        && data.createdAt is timestamp;
     }
 
     function validHouseholdName(name) {
@@ -239,6 +248,11 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validShoppingList(request.resource.data);
       }
 
+      match /units/{unitId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validUnit(request.resource.data, unitId);
+      }
+
       match /extraItems/{itemId} {
         allow read, delete: if isMember(hid);
         allow create, update: if isMember(hid) && validExtraItem(request.resource.data);
@@ -250,7 +264,7 @@ service cloud.firestore {
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
           && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans',
-              'calendarDays', 'shoppingLists', 'extraItems']);
+              'calendarDays', 'shoppingLists', 'extraItems', 'units']);
       }
     }
   }

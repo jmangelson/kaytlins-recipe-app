@@ -1,4 +1,5 @@
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
+import { splitSize } from '@/features/ingredients/parse-ingredient-line';
 import { DEFAULT_SERVINGS, emptyDraft, rowFromParsed } from '@/features/recipes/recipe-draft';
 import type { RecipeDraft } from '@/features/recipes/recipe-types';
 import type { ScanResult } from '@/features/scan/scan-contract';
@@ -27,14 +28,20 @@ export function scanToDraft(
 ): ScannedDraft {
   const rows = result.ingredients
     .filter((i) => i.name.trim())
-    .map((i) => ({
+    .map((i) => {
+      // A size the reader left in the name ("large eggs") goes to the note.
+      const sized = splitSize(i.name);
+      const note = [sized.size, i.note?.trim()].filter(Boolean).join(', ') || null;
+      return { i, name: sized.name, note };
+    })
+    .map(({ i, name, note }) => ({
       ...rowFromParsed(
         {
           quantity: i.quantity,
           quantityMax: i.quantity_max,
           unit: i.unit,
-          name: i.name.trim(),
-          note: i.note?.trim() || null,
+          name,
+          note,
           raw: i.source_text,
         },
         ingredients

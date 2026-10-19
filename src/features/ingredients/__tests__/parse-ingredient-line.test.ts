@@ -1,4 +1,5 @@
 import {
+  splitSize,
   ingredientNameKey,
   parseAmount,
   parseAmountRange,
@@ -98,5 +99,58 @@ describe('parseAmountRange', () => {
 
   it.each(['abc', '2 cups', '0', '3-2'])('rejects %s', (text) => {
     expect(parseAmountRange(text)).toBeNull();
+  });
+});
+
+describe('sizes, dozens, shorthands, and percentages', () => {
+  const read = (line: string) => {
+    const p = parseIngredientLine(line);
+    return [p.quantity, p.quantityMax, p.unit, p.name, p.note];
+  };
+
+  it.each([
+    ['2 large eggs', [2, null, null, 'eggs', 'large']],
+    ['1 lg onion, diced', [1, null, null, 'onion', 'large, diced']],
+    ['2 med. potatoes', [2, null, null, 'potatoes', 'medium']],
+    ['1 zucchini small', [1, null, null, 'zucchini', 'small']],
+    ['3 x-large eggs', [3, null, null, 'eggs', 'extra-large']],
+    ['1 jumbo sweet onion', [1, null, null, 'sweet onion', 'jumbo']],
+    ['1 medium-sized tomato', [1, null, null, 'tomato', 'medium']],
+    ['small red potatoes', [null, null, null, 'red potatoes', 'small']],
+    ['2 smoked sausages', [2, null, null, 'smoked sausages', null]],
+  ])('moves the size of %s to the note', (line, expected) => {
+    expect(read(line)).toEqual(expected);
+  });
+
+  it.each([
+    ['1 dozen eggs', [12, null, null, 'eggs', null]],
+    ['a dozen large eggs', [12, null, null, 'eggs', 'large']],
+    ['2 dozen rolls', [24, null, null, 'rolls', null]],
+    ['2 rolls paper towels', [2, null, 'roll', 'paper towels', null]],
+    ['half a dozen eggs', [6, null, null, 'eggs', null]],
+    ['1/2 dozen eggs', [6, null, null, 'eggs', null]],
+  ])('counts dozens in %s', (line, expected) => {
+    expect(read(line)).toEqual(expected);
+  });
+
+  it.each([
+    ['2 tb butter', [2, null, 'tbsp', 'butter', null]],
+    ['1 Tbls olive oil', [1, null, 'tbsp', 'olive oil', null]],
+    ['1 tblsp honey', [1, null, 'tbsp', 'honey', null]],
+    ['1/2 ts salt', [0.5, null, 'tsp', 'salt', null]],
+    ['2 salmon fillets', [2, null, null, 'salmon fillets', null]],
+    ['4 filets tilapia', [4, null, 'fillet', 'tilapia', null]],
+    ['1 container sour cream', [1, null, 'container', 'sour cream', null]],
+    ['2 cups 1% milk', [2, null, 'cup', '1% milk', null]],
+    ['1% milk', [null, null, null, '1% milk', null]],
+    ['1 lb 85% lean ground beef', [1, null, 'lb', '85% lean ground beef', null]],
+  ])('reads %s', (line, expected) => {
+    expect(read(line)).toEqual(expected);
+  });
+
+  it('splits a size off a scanned name', () => {
+    expect(splitSize('large eggs')).toEqual({ name: 'eggs', size: 'large' });
+    expect(splitSize('onion medium')).toEqual({ name: 'onion', size: 'medium' });
+    expect(splitSize('large')).toEqual({ name: 'large', size: null });
   });
 });

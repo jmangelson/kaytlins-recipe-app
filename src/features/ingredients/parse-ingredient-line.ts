@@ -44,7 +44,40 @@ const NUMBER_WORDS: Record<string, number> = {
   half: 0.5,
 };
 
-const SIZE_WORDS = ['extra-large', 'extra large', 'large', 'medium', 'small'];
+// Size words, written out or abbreviated, and the word the note uses.
+const SIZES: [RegExp, string][] = [
+  [/^(?:extra[- ]?large|x-?large|xl)$/i, 'extra-large'],
+  [/^jumbo$/i, 'jumbo'],
+  [/^(?:large|lrg|lg)(?:-sized)?$/i, 'large'],
+  [/^(?:medium|med)(?:-sized)?$/i, 'medium'],
+  [/^(?:small|sm)(?:-sized)?$/i, 'small'],
+];
+const SIZE_TEXT = String.raw`extra[- ]?large|x-?large|xl|jumbo|large(?:-sized)?|lrg|lg|medium(?:-sized)?|med|small(?:-sized)?|sm`;
+const LEADING_SIZE = new RegExp(`^(${SIZE_TEXT})\\.?(?=\\s)`, 'i');
+const TRAILING_SIZE = new RegExp(`\\s+(${SIZE_TEXT})\\.?$`, 'i');
+
+function sizeWord(text: string): string {
+  const plain = text.replace(/\.$/, '');
+  return SIZES.find(([pattern]) => pattern.test(plain))?.[1] ?? plain.toLowerCase();
+}
+
+/**
+ * Takes a size off the start or end of an ingredient name: "large eggs" →
+ * eggs (large), "onion, medium" is handled by the comma, "zucchini small"
+ * → zucchini (small). Names that are only a size are left alone.
+ */
+export function splitSize(name: string): { name: string; size: string | null } {
+  const trimmed = name.trim();
+  const leading = trimmed.match(LEADING_SIZE);
+  if (leading) {
+    return { name: trimmed.slice(leading[0].length).trim(), size: sizeWord(leading[1]) };
+  }
+  const trailing = trimmed.match(TRAILING_SIZE);
+  if (trailing && trailing.index! > 0) {
+    return { name: trimmed.slice(0, trailing.index).trim(), size: sizeWord(trailing[1]) };
+  }
+  return { name: trimmed, size: null };
+}
 
 // One amount: "1 1/2", "1-1/2", "1½", "1 ½", "1/2", "1.5", ".5", "2", "½".
 const AMOUNT = `(?:\\d+(?:\\s+|-)\\d+/\\d+|\\d+\\s*[${FRACTION_CHARS}]|\\d+/\\d+|\\d*\\.\\d+|\\d+|[${FRACTION_CHARS}])`;
@@ -134,6 +167,15 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     }
   }
 
+  // "Dozen" multiplies the amount: "1 dozen eggs", "a dozen", "half a dozen".
+  const dozen = rest.match(/^(?:(an?)\s+)?dozens?\b\s*/i);
+  if (dozen) {
+    const times = quantity ?? 1;
+    quantity = times * 12;
+    if (quantityMax !== null) quantityMax *= 12;
+    rest = rest.slice(dozen[0].length);
+  }
+
   // Package size: "(14 oz)", "(8-ounce)".
   let sizeNote: string | null = null;
   const size = rest.match(/^\(([^)]*)\)\s*/);
@@ -145,7 +187,8 @@ export function parseIngredientLine(line: string): ParsedIngredient {
   let unit: UnitKey | null = null;
   if (quantity !== null) {
     const taken = takeUnit(rest);
-    if (taken) {
+    // "4 rolls": the word is the ingredient when nothing else follows.
+    if (taken && taken.rest.replace(/^of\s+/i, '').trim()) {
       unit = taken.unit;
       rest = taken.rest;
     }
@@ -172,14 +215,8 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     rest = rest.replace(parenNote[0], ' ');
   }
 
-  let sizeWord: string | null = null;
-  for (const word of SIZE_WORDS) {
-    if (rest.toLowerCase().startsWith(`${word} `)) {
-      sizeWord = word;
-      rest = rest.slice(word.length);
-      break;
-    }
-  }
+  const sized = splitSize(rest);
+  rest = sized.name;
 
   // Keep her capitalization ("Monterey Jack"); matching uses ingredientNameKey().
   const name = rest.replace(/\s+/g, ' ').trim();
@@ -188,7 +225,7 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     quantityMax,
     unit,
     name,
-    note: joinNotes(sizeNote, sizeWord, inlineNote, commaNote, toTaste),
+    note: joinNotes(sizeNote, sized.size, inlineNote, commaNote, toTaste),
     raw,
   };
 }

@@ -15,7 +15,7 @@ import type { Recipe } from '@/features/recipes/recipe-types';
 import { useHousehold } from '@/features/session/session-provider';
 import { listTags } from '@/features/stores/store-repo';
 import type { Tag } from '@/features/stores/store-types';
-import { TAG_GROUPS, tagsByGroup } from '@/features/stores/tag-groups';
+import { sortTags, TAG_GROUPS, tagsByGroup } from '@/features/stores/tag-groups';
 import { useAsync } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -41,7 +41,7 @@ export default function RecipesScreen() {
     () => (tags.state.status === 'success' ? tags.state.data : []),
     [tags.state]
   );
-  const tagNames = useMemo(() => new Map(tagList.map((t) => [t.id, t.name])), [tagList]);
+  const tagNames = useMemo(() => new Map(tagList.map((t) => [t.id, t])), [tagList]);
   const tagGroups = useMemo(() => tagsByGroup(tagList), [tagList]);
 
   function toggleTag(id: string) {
@@ -199,9 +199,12 @@ export default function RecipesScreen() {
   );
 }
 
-function RecipeRow({ recipe, tagNames }: { recipe: Recipe; tagNames: Map<string, Tag['name']> }) {
+function RecipeRow({ recipe, tagNames }: { recipe: Recipe; tagNames: Map<string, Tag> }) {
   const theme = useTheme();
-  const tags = recipe.tagIds.map((id) => tagNames.get(id)).filter(Boolean);
+  // In group order (Type, Course, Meal, Other), not the order she ticked them.
+  const tags = sortTags(
+    recipe.tagIds.map((id) => tagNames.get(id)).filter((t): t is Tag => !!t)
+  ).map((t) => t.name);
   const count = recipe.ingredients.length;
   const details = [`${count} ${count === 1 ? 'ingredient' : 'ingredients'}`, ...tags].join(' · ');
   return (
