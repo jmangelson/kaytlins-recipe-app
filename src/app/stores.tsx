@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
-import { IconButton } from '@/components/icon-button';
+import { DraggableList } from '@/components/draggable-list';
 import { ListRow } from '@/components/list-row';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
@@ -12,12 +12,11 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useHousehold } from '@/features/session/session-provider';
-import { moveItem, nameProblem } from '@/features/stores/store-edit';
+import { nameProblem } from '@/features/stores/store-edit';
 import { createStore, listStores, reorderStores } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
-import { useTheme } from '@/hooks/use-theme';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
@@ -72,10 +71,6 @@ export default function StoresScreen() {
     : all.filter((s) => !s.hidden);
   const hidden = all.filter((s) => s.hidden);
 
-  function move(index: number, delta: -1 | 1) {
-    setOrder(moveItem(shown, index, delta).map((s) => s.id));
-  }
-
   async function add() {
     const problem = nameProblem(
       newName,
@@ -106,17 +101,35 @@ export default function StoresScreen() {
         />
       )}
 
-      <View>
-        {shown.map((store, index) => (
-          <StoreRow
-            key={store.id}
-            store={store}
-            reordering={!!order}
-            onUp={index > 0 ? () => move(index, -1) : undefined}
-            onDown={index < shown.length - 1 ? () => move(index, 1) : undefined}
+      {order ? (
+        <>
+          <ThemedText type="small" themeColor="textSecondary">
+            Drag ≡ to put the stores in order, then Save order.
+          </ThemedText>
+          <DraggableList
+            items={shown}
+            keyOf={(store) => store.id}
+            labelOf={(store) => store.name}
+            onReorder={(next) => setOrder(next.map((s) => s.id))}
+            renderRow={(store, index) => (
+              <>
+                <ThemedText themeColor="textSecondary" style={styles.position}>
+                  {index + 1}
+                </ThemedText>
+                <ThemedText numberOfLines={1} style={styles.flex}>
+                  {store.name}
+                </ThemedText>
+              </>
+            )}
           />
-        ))}
-      </View>
+        </>
+      ) : (
+        <View>
+          {shown.map((store) => (
+            <StoreRow key={store.id} store={store} />
+          ))}
+        </View>
+      )}
       {order && (
         <View style={styles.group}>
           <Button label="Save order" onPress={saveOrder} disabled={!dirty} />
@@ -164,60 +177,25 @@ export default function StoresScreen() {
   );
 }
 
-function StoreRow({
-  store,
-  reordering,
-  onUp,
-  onDown,
-}: {
-  store: Store;
-  /** Reorder mode: the name and move arrows instead of a link to the store. */
-  reordering: boolean;
-  onUp?: () => void;
-  onDown?: () => void;
-}) {
-  const theme = useTheme();
+function StoreRow({ store }: { store: Store }) {
   const count = store.sections.length;
-  if (!reordering) {
-    return (
-      <ListRow
-        title={store.name}
-        subtitle={count === 0 ? 'No areas yet' : `${count} ${count === 1 ? 'area' : 'areas'}`}
-        subtitleTone={count === 0 ? 'attention' : 'default'}
-        onPress={() => router.push({ pathname: '/store/[id]', params: { id: store.id } })}
-      />
-    );
-  }
   return (
-    <View style={[styles.storeRow, { borderBottomColor: theme.border }]}>
-      <View style={styles.flex}>
-        <ThemedText>{store.name}</ThemedText>
-      </View>
-      <IconButton
-        icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
-        label={`Move ${store.name} up`}
-        onPress={() => onUp?.()}
-        disabled={!onUp}
-      />
-      <IconButton
-        icon={{ android: 'arrow_downward', ios: 'arrow.down' }}
-        label={`Move ${store.name} down`}
-        onPress={() => onDown?.()}
-        disabled={!onDown}
-      />
-    </View>
+    <ListRow
+      title={store.name}
+      subtitle={count === 0 ? 'No areas yet' : `${count} ${count === 1 ? 'area' : 'areas'}`}
+      subtitleTone={count === 0 ? 'attention' : 'default'}
+      onPress={() => router.push({ pathname: '/store/[id]', params: { id: store.id } })}
+    />
   );
 }
 
 const styles = StyleSheet.create({
+  position: {
+    width: 28,
+    paddingLeft: Spacing.two,
+  },
   group: {
     gap: Spacing.two,
-  },
-  storeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   hidden: {
     display: 'none',

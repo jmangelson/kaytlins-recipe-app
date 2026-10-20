@@ -271,7 +271,10 @@ appId: com.jmangelson.kaytlinsrecipes
     timeout: 60000
 - tapOn: 'Reorder areas'
 - takeScreenshot: build/screenshots/26b-store-reorder
-- tapOn: 'Move Bread & bakery down'
+- swipe:
+    from: 'Drag Bread & bakery'
+    direction: DOWN
+    duration: 1500
 - back
 - extendedWaitUntil:
     visible: 'Save your changes?'

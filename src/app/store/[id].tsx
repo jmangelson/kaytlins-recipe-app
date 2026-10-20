@@ -5,6 +5,7 @@ import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
+import { DraggableList } from '@/components/draggable-list';
 import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
@@ -18,7 +19,6 @@ import { CategoryPicker } from '@/features/ingredients/category-picker';
 import { useHousehold } from '@/features/session/session-provider';
 import {
   addSection,
-  moveItem,
   nameProblem,
   removeSection,
   toggleSectionCategory,
@@ -199,10 +199,27 @@ function StoreEditor({
         </View>
         {reordering && (
           <ThemedText type="small" themeColor="textSecondary">
-            Move areas into the order you walk the store. Tap Done, then Save.
+            Drag ≡ to put the areas in the order you walk the store. Tap Done, then Save.
           </ThemedText>
         )}
-        {store.sections.length === 0 ? (
+        {reordering && store.sections.length > 0 ? (
+          <DraggableList
+            items={store.sections}
+            keyOf={(section) => section.id}
+            labelOf={(section) => section.name}
+            onReorder={(sections) => persist({ ...latest.current, sections })}
+            renderRow={(section, index) => (
+              <>
+                <ThemedText themeColor="textSecondary" style={styles.position}>
+                  {index + 1}
+                </ThemedText>
+                <ThemedText numberOfLines={1} style={styles.flex}>
+                  {section.name}
+                </ThemedText>
+              </>
+            )}
+          />
+        ) : store.sections.length === 0 ? (
           <ThemedText themeColor="textSecondary">
             No areas yet. Add the first one below, like Produce.
           </ThemedText>
@@ -212,7 +229,6 @@ function StoreEditor({
               key={section.id}
               section={section}
               position={index + 1}
-              reordering={reordering}
               error={areaErrors[section.id] ?? null}
               onRename={(newName) => {
                 persist({
@@ -223,24 +239,6 @@ function StoreEditor({
                 });
                 setAreaErrors(({ [section.id]: _, ...rest }) => rest);
               }}
-              onUp={
-                index > 0
-                  ? () =>
-                      persist({
-                        ...latest.current,
-                        sections: moveItem(latest.current.sections, index, -1),
-                      })
-                  : undefined
-              }
-              onDown={
-                index < store.sections.length - 1
-                  ? () =>
-                      persist({
-                        ...latest.current,
-                        sections: moveItem(latest.current.sections, index, 1),
-                      })
-                  : undefined
-              }
               onRemove={() => confirmRemove(section)}
               onToggleCategory={(categoryId) =>
                 persist({
@@ -275,52 +273,22 @@ function StoreEditor({
 function AreaRow({
   section,
   position,
-  reordering,
   onRename,
   error,
-  onUp,
-  onDown,
   onRemove,
   onToggleCategory,
 }: {
   section: StoreSection;
   position: number;
-  /** Reorder mode: just the name and move arrows. */
-  reordering: boolean;
   onToggleCategory: (categoryId: CategoryId) => void;
   onRename: (name: string) => void;
   /** Shown after Save when the name needs fixing. */
   error: string | null;
-  onUp?: () => void;
-  onDown?: () => void;
   onRemove: () => void;
 }) {
   const theme = useTheme();
   const [showCategories, setShowCategories] = useState(false);
   const holds = section.categoryIds.map(categoryName).join(', ');
-
-  if (reordering) {
-    return (
-      <View style={[styles.areaRow, styles.reorderRow, { borderBottomColor: theme.border }]}>
-        <ThemedText themeColor="textSecondary" style={styles.position}>
-          {position}
-        </ThemedText>
-        <ThemedText style={styles.flex}>{section.name}</ThemedText>
-        <IconButton
-          icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
-          label={`Move ${section.name} up`}
-          onPress={() => onUp?.()}
-          disabled={!onUp}
-        />
-        <IconButton
-          icon={{ android: 'arrow_downward', ios: 'arrow.down' }}
-          label={`Move ${section.name} down`}
-          onPress={() => onDown?.()}
-          disabled={!onDown}
-        />
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.areaBlock, { borderBottomColor: theme.border }]}>
@@ -404,10 +372,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-  },
-  reorderRow: {
-    minHeight: 52,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   areaBlock: {
     paddingTop: Spacing.one,

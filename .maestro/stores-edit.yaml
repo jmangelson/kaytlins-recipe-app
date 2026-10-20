@@ -38,22 +38,34 @@ tags:
 - scrollUntilVisible:
     element: 'Add area'
 - tapOn: 'Add area'
-# Arrows only show in reorder mode.
-- assertNotVisible: 'Move Bulk up'
+# Drag handles only show in reorder mode.
+- assertNotVisible: 'Drag Bulk'
 - scrollUntilVisible:
     element: 'Reorder areas'
     direction: UP
 - tapOn: 'Reorder areas'
+# Drag Uncategorized to the bottom, below the new Bulk area
 - scrollUntilVisible:
-    element: 'Move Bulk up'
-- tapOn: 'Move Bulk up'
-- assertVisible: 'Move Bulk down'
+    element: 'Drag Uncategorized'
+    centerElement: true
+- swipe:
+    from: 'Drag Uncategorized'
+    direction: DOWN
+    duration: 1500
+- takeScreenshot: build/screenshots/26c-store-drag-reorder
 - scrollUntilVisible:
     element: 'Done reordering'
     direction: UP
 - tapOn: 'Done reordering'
 - scrollUntilVisible:
+    element: 'Uncategorized'
+    centerElement: true
+- assertVisible:
+    text: 'Uncategorized'
+    below: 'Bulk'
+- scrollUntilVisible:
     element: 'Remove Pantry'
+    direction: UP
 - tapOn: 'Remove Pantry'
 - tapOn: 'REMOVE|Remove'
 - assertNotVisible: 'Remove Pantry'
@@ -108,17 +120,26 @@ tags:
 - back
 - scrollUntilVisible:
     element: "Trader Joe's.*"
-# Store order changes in reorder mode, saved with Save order.
-- assertNotVisible: 'Move Trader Joe.s up'
+# Store order changes by dragging in reorder mode, saved with Save order.
+- assertNotVisible: 'Drag Trader Joe.s'
 - scrollUntilVisible:
     element: 'Reorder stores'
     direction: UP
 - tapOn: 'Reorder stores'
 - scrollUntilVisible:
-    element: 'Move Trader Joe.s up'
-- tapOn: 'Move Trader Joe.s up'
+    element: 'Drag Trader Joe.s'
+    centerElement: true
+- swipe:
+    from: 'Drag Trader Joe.s'
+    direction: UP
+    duration: 1500
+- takeScreenshot: build/screenshots/24c-stores-drag-reorder
 - scrollUntilVisible:
     element: 'Save order'
 - tapOn: 'Save order'
-- assertNotVisible: 'Move Trader Joe.s up'
+- assertNotVisible: 'Drag Trader Joe.s'
 - assertVisible: 'Reorder stores'
+# Trader Joe's moved up above Macey's
+- assertVisible:
+    text: "Macey's.*"
+    below: "Trader Joe's.*"
