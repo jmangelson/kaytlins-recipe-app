@@ -1,0 +1,74 @@
+# Find duplicate ingredients (tests use a stand-in for Claude that pairs
+# near-identical spellings), review the suggestion, and merge it.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - ingredients
+---
+- evalScript: ${output.email = 'dupes' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: recipes
+# Two ingredients that are one thing: zucchini, and a typo of it
+- tapOn: 'Shopping'
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'zucchini'
+- scrollUntilVisible:
+    element: 'Add zucchini'
+    centerElement: true
+- tapOn: 'Add zucchini'
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'zucchinni'
+- runFlow:
+    when:
+      visible: 'Which .* do you mean.*'
+    commands:
+      - tapOn: 'zucchinni is a new item'
+- scrollUntilVisible:
+    element: 'Add zucchinni'
+    centerElement: true
+- tapOn: 'Add zucchinni'
+
+- tapOn: 'Settings'
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Ingredients'
+- tapOn: 'Find duplicates with Claude'
+- extendedWaitUntil:
+    visible: '.*looks over your .* ingredients.*'
+    timeout: 15000
+- tapOn: 'Find duplicates with Claude'
+- extendedWaitUntil:
+    visible: 'Spelled almost the same'
+    timeout: 15000
+- takeScreenshot: build/screenshots/100-duplicates
+- scrollUntilVisible:
+    element:
+      id: 'duplicate-final-name'
+    centerElement: true
+# She sets the final name (the category stays as suggested)
+- tapOn:
+    id: 'duplicate-final-name'
+- eraseText: 20
+- inputText: 'zucchini squash'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Merge zucchinni into zucchini'
+    centerElement: true
+- takeScreenshot: build/screenshots/101-duplicates-final-name
+- tapOn: 'Merge zucchinni into zucchini'
+- extendedWaitUntil:
+    visible: 'Merged.'
+    timeout: 15000
+- back
+- scrollUntilVisible:
+    element: 'zucchini squash, Greens & vegetables.*'
+    centerElement: true
+- assertNotVisible: 'zucchinni.*'
+- assertNotVisible: 'zucchini, .*'

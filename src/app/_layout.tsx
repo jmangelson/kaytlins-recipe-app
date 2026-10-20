@@ -54,6 +54,10 @@ function RootNavigator() {
         <Stack.Screen name="stores" options={{ headerShown: true, title: 'Stores & aisles' }} />
         <Stack.Screen name="store/[id]" options={{ headerShown: true, title: 'Store' }} />
         <Stack.Screen name="ingredients" options={{ headerShown: true, title: 'Ingredients' }} />
+        <Stack.Screen
+          name="ingredient-duplicates"
+          options={{ headerShown: true, title: 'Find duplicates' }}
+        />
         <Stack.Screen name="ingredient/[id]" options={{ headerShown: true, title: 'Ingredient' }} />
         <Stack.Screen name="tags" options={{ headerShown: true, title: 'Recipe tags' }} />
         <Stack.Screen name="units" options={{ headerShown: true, title: 'Your units' }} />

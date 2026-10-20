@@ -1,6 +1,6 @@
 /**
  * Recipe photo scan (/scan), recipe import from a web page (/import), and
- * ingredient categories (/categorize).
+ * ingredient categories (/categorize), and duplicate ingredients (/duplicates).
  *
  * Scan: the app posts photos with the signed-in user's Firebase
  * ID token; this Worker checks the token and the allowed list, counts the
@@ -28,7 +28,12 @@ import {
   type ImportRequest,
   type ImportResponse,
 } from '../../src/features/import/recipe-page';
+import {
+  duplicatesRequestProblem,
+  type DuplicatesRequest,
+} from '../../src/features/duplicates/duplicates-contract';
 import { categorizeNames } from './categorize';
+import { findDuplicates } from './duplicates';
 import { readRecipe } from './read-recipe';
 import { limitKeys, scanRequestProblem } from './scan-request';
 
@@ -260,11 +265,52 @@ async function importRecipe(request: Request, env: Env): Promise<Response> {
   return reply(200, { kind: 'read', url, result: outcome.result } satisfies ImportResponse);
 }
 
+/** Suggested duplicate ingredients to merge (counted with categorize calls). */
+async function duplicates(request: Request, env: Env): Promise<Response> {
+  const who = await authorize(request, env);
+  if (who instanceof Response) return who;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return problem(400, 'bad_request', 'Send the ingredient list.');
+  }
+  const invalid = duplicatesRequestProblem(body);
+  if (invalid) return problem(400, 'bad_request', invalid);
+  const keys = limitKeys(who.uid, new Date());
+  const userKey = `categorize:${keys.user}`;
+  const totalKey = `categorize:${keys.total}`;
+  const [used, usedTotal] = await Promise.all([
+    env.SCAN_LIMITS.get(userKey).then(Number),
+    env.SCAN_LIMITS.get(totalKey).then(Number),
+  ]);
+  if (
+    used >= Number(env.CATEGORIZE_LIMIT_PER_USER) ||
+    usedTotal >= Number(env.CATEGORIZE_LIMIT_TOTAL)
+  ) {
+    return problem(429, 'daily_limit', 'That’s enough checks for today. Try again tomorrow.');
+  }
+  const twoDays = { expirationTtl: 2 * 24 * 60 * 60 };
+  await Promise.all([
+    env.SCAN_LIMITS.put(userKey, String(used + 1), twoDays),
+    env.SCAN_LIMITS.put(totalKey, String(usedTotal + 1), twoDays),
+  ]);
+  const outcome = await findDuplicates(
+    new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }),
+    body as DuplicatesRequest
+  );
+  if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
+  return reply(200, outcome.result);
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/scan' && request.method === 'POST') return scan(request, env);
     if (url.pathname === '/import' && request.method === 'POST') return importRecipe(request, env);
+    if (url.pathname === '/duplicates' && request.method === 'POST') {
+      return duplicates(request, env);
+    }
     if (url.pathname === '/categorize' && request.method === 'POST') {
       return categorize(request, env);
     }

@@ -15,7 +15,8 @@
     "../src/features/ingredients/units.ts",
     "../src/features/categorize/categorize-contract.ts",
     "../src/features/ingredients/taxonomy.ts",
-    "../src/features/import/recipe-page.ts"
+    "../src/features/import/recipe-page.ts",
+    "../src/features/duplicates/duplicates-contract.ts"
   ],
   "exclude": ["src/__tests__"]
 }

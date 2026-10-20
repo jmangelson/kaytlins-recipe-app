@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { ListRow } from '@/components/list-row';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
@@ -75,6 +76,11 @@ export default function IngredientsScreen() {
 
   return (
     <Screen edges={HEADER_EDGES}>
+      <Button
+        label="Find duplicates with Claude"
+        variant="secondary"
+        onPress={() => router.push('/ingredient-duplicates')}
+      />
       <ThemedText themeColor="textSecondary">
         One entry per ingredient, used by every recipe. Set where you buy each one once; its area in
         each store follows from its category.
