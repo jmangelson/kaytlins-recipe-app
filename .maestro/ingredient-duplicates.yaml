@@ -43,6 +43,21 @@ tags:
     element: 'Add zucchinni'
     centerElement: true
 - tapOn: 'Add zucchinni'
+# Plain garlic already exists, so tidying "minced garlic" merges into it
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'garlic'
+- tapOn: 'New: garlic'
+# (a known name adds right away; a new one asks first)
+- runFlow:
+    when:
+      visible: 'Add garlic'
+    commands:
+      - scrollUntilVisible:
+          element: 'Add garlic'
+          centerElement: true
+      - tapOn: 'Add garlic'
 
 - tapOn: 'Settings'
 - runFlow:
@@ -81,6 +96,16 @@ tags:
 - extendedWaitUntil:
     visible: 'Merged.'
     timeout: 15000
+# Running it again uses the ingredients as they are now: no repeat
+- scrollUntilVisible:
+    element: 'Run the audit again'
+    direction: UP
+- tapOn: 'Run the audit again'
+- extendedWaitUntil:
+    visible: 'Run the audit again'
+    timeout: 15000
+- assertNotVisible: 'Merge zucchinni into.*'
+- assertNotVisible: 'Spelled almost the same'
 - back
 - scrollUntilVisible:
     element: 'zucchini squash, Greens & vegetables.*'
@@ -107,13 +132,16 @@ tags:
 - scrollUntilVisible:
     element: '“minced” moves to the notes in minced garlic’s recipes.'
     centerElement: true
+- scrollUntilVisible:
+    element: 'You already have “garlic”. minced garlic will merge into it.'
+    centerElement: true
 - takeScreenshot: build/screenshots/102-tidy-name
 - scrollUntilVisible:
-    element: 'Tidy minced garlic'
+    element: 'Merge minced garlic into garlic'
     centerElement: true
-- tapOn: 'Tidy minced garlic'
+- tapOn: 'Merge minced garlic into garlic'
 - extendedWaitUntil:
-    visible: 'Tidied.'
+    visible: 'Merged.'
     timeout: 15000
 - back
 - back

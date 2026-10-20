@@ -31,54 +31,61 @@ const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
 
 type Status = 'open' | 'merging' | 'merged' | 'skipped';
 
+type AuditData = { ingredients: Ingredient[]; uses: Map<string, number> };
+
+/** Her ingredients now, and how many recipes use each. */
+async function loadAuditData(householdId: string): Promise<AuditData> {
+  const [ingredients, recipes] = await Promise.all([
+    listIngredients(householdId),
+    listRecipes(householdId),
+  ]);
+  const uses = new Map<string, number>();
+  for (const recipe of recipes) {
+    for (const id of new Set(recipe.ingredients.map((l) => l.ingredientId))) {
+      uses.set(id, (uses.get(id) ?? 0) + 1);
+    }
+  }
+  return { ingredients, uses };
+}
+
 /**
  * Claude looks over her ingredient list for entries that are the same thing
  * to buy and suggests merges; she merges or skips each one.
  */
 export default function IngredientDuplicatesScreen() {
   const { household } = useHousehold();
-  const data = useAsync(async () => {
-    const [ingredients, recipes] = await Promise.all([
-      listIngredients(household.id),
-      listRecipes(household.id),
-    ]);
-    const uses = new Map<string, number>();
-    for (const recipe of recipes) {
-      for (const id of new Set(recipe.ingredients.map((l) => l.ingredientId))) {
-        uses.set(id, (uses.get(id) ?? 0) + 1);
-      }
-    }
-    return { ingredients, uses };
-  }, [household.id]);
+  const data = useAsync(() => loadAuditData(household.id), [household.id]);
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading ingredients" />;
   if (data.state.status === 'error') {
     return <ErrorScreen message={`Couldn't load. ${data.state.message}`} onRetry={data.reload} />;
   }
-  return <Review householdId={household.id} {...data.state.data} />;
+  return <Review householdId={household.id} initial={data.state.data} />;
 }
 
-function Review({
-  householdId,
-  ingredients,
-  uses,
-}: {
-  householdId: string;
-  ingredients: Ingredient[];
-  uses: Map<string, number>;
-}) {
+function Review({ householdId, initial }: { householdId: string; initial: AuditData }) {
+  // Kept current as she merges, and reloaded before each audit, so a second
+  // run (or a merge) never works from names that are already gone.
+  const [{ ingredients, uses }, setData] = useState(initial);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [groups, setGroups] = useState<DuplicateGroup[] | null>(null);
   const [status, setStatus] = useState<Record<number, Status>>({});
+  // What a merged card showed, since its merged-away ones are gone now.
+  const [shown, setShown] = useState<Record<number, { keep: Ingredient; merges: Ingredient[] }>>(
+    {}
+  );
   const byId = new Map(ingredients.map((i) => [i.id, i]));
 
   async function check() {
     setChecking(true);
     setError(null);
     try {
-      setGroups(await findDuplicates(ingredients));
+      const fresh = await loadAuditData(householdId);
+      setData(fresh);
+      setGroups(await findDuplicates(fresh.ingredients));
       setStatus({});
+      setShown({});
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The check didn’t work.');
     }
@@ -88,6 +95,17 @@ function Review({
   /** Merges the group, then gives the kept one the final name and category she chose. */
   async function merge(index: number, group: DuplicateGroup, name: string, category: CategoryId) {
     setStatus((s) => ({ ...s, [index]: 'merging' }));
+    const before = {
+      keep: byId.get(group.keepId)!,
+      merges: group.mergeIds.map((id) => byId.get(id)).filter((i): i is Ingredient => !!i),
+    };
+    setShown((s) => ({ ...s, [index]: before }));
+    // A final name another ingredient already has ("small red peppers" →
+    // "red peppers"): the whole group merges into that one.
+    const owner = nameOwner(group, name);
+    const into = owner
+      ? { keepId: owner.id, mergeIds: [group.keepId, ...group.mergeIds] }
+      : { keepId: group.keepId, mergeIds: group.mergeIds };
     // Words the final name leaves out ("minced") go to each one's recipe notes
     // first, while its recipe lines still point at it.
     for (const id of [group.keepId, ...group.mergeIds]) {
@@ -95,8 +113,8 @@ function Review({
       const dropped = member ? droppedWords(member.name, name) : null;
       if (dropped) await addNoteToRecipeLines(householdId, id, dropped);
     }
-    let target = byId.get(group.keepId)!;
-    for (const id of group.mergeIds) {
+    let target = byId.get(into.keepId)!;
+    for (const id of into.mergeIds) {
       const source = byId.get(id);
       if (!source) continue;
       await mergeIngredients(householdId, source, target);
@@ -118,17 +136,36 @@ function Review({
     } else {
       await saveIngredient(householdId, final);
     }
+    const gone = new Set(into.mergeIds);
+    const keptUses = [into.keepId, ...into.mergeIds].reduce((n, id) => n + (uses.get(id) ?? 0), 0);
+    setData({
+      ingredients: ingredients
+        .filter((i) => !gone.has(i.id))
+        .map((i) =>
+          i.id === final.id
+            ? {
+                ...final,
+                nameKey: finalKey,
+                aliasKeys: [...final.aliases, target.name]
+                  .map(ingredientNameKey)
+                  .filter((k) => k !== finalKey),
+              }
+            : i
+        ),
+      uses: new Map(uses).set(into.keepId, keptUses),
+    });
     setStatus((s) => ({ ...s, [index]: 'merged' }));
   }
 
-  /** A final name another ingredient (outside the group) already uses. */
-  function nameTaken(group: DuplicateGroup, name: string): string | null {
+  /** Another ingredient (outside the group) that already has this name. */
+  function nameOwner(group: DuplicateGroup, name: string): Ingredient | null {
     const key = ingredientNameKey(name);
     const members = new Set([group.keepId, ...group.mergeIds]);
-    const owner = ingredients.find(
-      (i) => !members.has(i.id) && (i.nameKey === key || i.aliasKeys.includes(key))
+    return (
+      ingredients.find(
+        (i) => !members.has(i.id) && (i.nameKey === key || i.aliasKeys.includes(key))
+      ) ?? null
     );
-    return owner ? `“${owner.name}” already uses this name.` : null;
   }
 
   function keepInstead(index: number, id: string) {
@@ -176,8 +213,10 @@ function Review({
         <ThemedText>No duplicates found. Your ingredient list looks tidy.</ThemedText>
       )}
       {groups?.map((group, index) => {
-        const keep = byId.get(group.keepId);
-        const merges = group.mergeIds.map((id) => byId.get(id)).filter((i): i is Ingredient => !!i);
+        const keep = shown[index]?.keep ?? byId.get(group.keepId);
+        const merges =
+          shown[index]?.merges ??
+          group.mergeIds.map((id) => byId.get(id)).filter((i): i is Ingredient => !!i);
         if (!keep || (merges.length === 0 && group.mergeIds.length > 0)) return null;
         const state = status[index] ?? 'open';
         return (
@@ -190,7 +229,7 @@ function Review({
             describe={describe}
             suggestedName={group.name || keep.name}
             suggestedCategory={group.category === 'uncategorized' ? keep.category : group.category}
-            nameProblem={(name) => nameTaken(group, name)}
+            nameOwner={(name) => nameOwner(group, name)}
             onMerge={(name, category) => merge(index, group, name, category)}
             onSkip={() => setStatus((s) => ({ ...s, [index]: 'skipped' }))}
             onKeepInstead={(id) => keepInstead(index, id)}
@@ -209,7 +248,7 @@ function DuplicateCard({
   describe,
   suggestedName,
   suggestedCategory,
-  nameProblem,
+  nameOwner,
   onMerge,
   onSkip,
   onKeepInstead,
@@ -221,7 +260,8 @@ function DuplicateCard({
   describe: (i: Ingredient) => string;
   suggestedName: string;
   suggestedCategory: CategoryId;
-  nameProblem: (name: string) => string | null;
+  /** Another ingredient that already has this name (they merge into it). */
+  nameOwner: (name: string) => Ingredient | null;
   onMerge: (name: string, category: CategoryId) => void;
   onSkip: () => void;
   onKeepInstead: (id: string) => void;
@@ -230,8 +270,10 @@ function DuplicateCard({
   const done = state === 'merged' || state === 'skipped';
   const [name, setName] = useState(suggestedName);
   const [category, setCategory] = useState(suggestedCategory);
-  const problem = name.trim() ? nameProblem(name) : 'Enter a name.';
-  const tidy = merges.length === 0;
+  const problem = name.trim() ? null : 'Enter a name.';
+  const owner = name.trim() ? nameOwner(name) : null;
+  // A tidy whose name is taken merges into the one that has it.
+  const tidy = merges.length === 0 && !owner;
   // What each one's recipes will get as a note when the name drops it.
   const moves = [keep, ...merges]
     .map((i) => ({ i, words: droppedWords(i.name, name) }))
@@ -247,13 +289,13 @@ function DuplicateCard({
         },
       ]}>
       <ThemedText type="small" themeColor="textSecondary">
-        {tidy ? 'Tidy the name' : 'Keep'}
+        {merges.length === 0 ? 'Tidy the name' : 'Keep'}
       </ThemedText>
       <ThemedText type="smallBold">{keep.name}</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         {describe(keep)}
       </ThemedText>
-      {!tidy && (
+      {merges.length > 0 && (
         <ThemedText type="small" themeColor="textSecondary" style={styles.gap}>
           Merge into it
         </ThemedText>
@@ -288,6 +330,12 @@ function DuplicateCard({
               maxLength={80}
             />
             <CategoryField value={category} onChange={setCategory} />
+            {owner && (
+              <ThemedText type="small" themeColor="attention">
+                You already have “{owner.name}”. {[keep, ...merges].map((i) => i.name).join(', ')}{' '}
+                will merge into it.
+              </ThemedText>
+            )}
             {moves.map(({ i, words }) => (
               <ThemedText key={i.id} type="small" themeColor="textSecondary">
                 “{words}” moves to the notes in {i.name}’s recipes.
@@ -313,7 +361,9 @@ function DuplicateCard({
                 accessibilityLabel={
                   tidy
                     ? `Tidy ${keep.name}`
-                    : `Merge ${merges.map((m) => m.name).join(', ')} into ${keep.name}`
+                    : owner
+                      ? `Merge ${[keep, ...merges].map((m) => m.name).join(', ')} into ${owner.name}`
+                      : `Merge ${merges.map((m) => m.name).join(', ')} into ${keep.name}`
                 }
                 onPress={() => onMerge(name, category)}
                 disabled={!!problem}

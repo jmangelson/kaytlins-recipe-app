@@ -474,6 +474,14 @@ From the full check on her phone:
 
 ## Important bugs and resolutions
 
+- **AI-Assisted Cleanup re-suggested merges she'd already made (2026-10-20).**
+  The screen loaded ingredients once, so "Run the audit again" sent the old
+  list, and merging a repeat could rewrite ingredients from stale copies
+  (even bring back one already merged away). Each run now reloads
+  ingredients, and merges update the screen's copy. Also, a final name
+  another ingredient already has ("small red peppers" → "red peppers") now
+  merges into that one instead of being blocked.
+
 | Bug                                                                    | Root cause                                                                                                                                                                                                                                         | Fix                                                                                                                                                              |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Gradle: "SDK directory is not writable" (NDK install)                  | DevPod remaps the container user's UID (1000 → 1001) at create time; only `$HOME` is re-owned, so `/opt/android-sdk` stayed owned by the old UID                                                                                                   | `.devcontainer/fix-android-sdk-owner.sh` re-owns the SDK from `postCreateCommand`                                                                                |
