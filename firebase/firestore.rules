@@ -119,7 +119,7 @@ service cloud.firestore {
       return data.keys().hasOnly(['name', 'status', 'source', 'tripStoreIds', 'lines',
           'createdAt', 'updatedAt'])
         && validName(data.name, 80)
-        && data.status in ['pantry', 'ready']
+        && data.status in ['pantry', 'ready', 'done']
         && data.source is map
         && data.tripStoreIds is list && data.tripStoreIds.size() <= 20
         && data.lines is list && data.lines.size() <= 300

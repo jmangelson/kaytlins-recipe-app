@@ -480,12 +480,13 @@ describe('shopping lists', () => {
     const ref = doc(dbAs('alice'), 'households', HID, 'shoppingLists', 'l1');
     await assertSucceeds(setDoc(ref, list));
     await assertSucceeds(updateDoc(ref, { status: 'ready', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { status: 'done', updatedAt: serverTimestamp() }));
     await assertSucceeds(deleteDoc(ref));
   });
 
   it('rejects malformed lists and non-members', async () => {
     const ref = doc(dbAs('alice'), 'households', HID, 'shoppingLists', 'l1');
-    await assertFails(setDoc(ref, { ...list, status: 'done' }));
+    await assertFails(setDoc(ref, { ...list, status: 'finished' }));
     await assertFails(setDoc(ref, { ...list, extra: 1 }));
     await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'shoppingLists', 'l1'), list));
   });

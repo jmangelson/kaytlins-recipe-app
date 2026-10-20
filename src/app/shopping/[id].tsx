@@ -12,8 +12,8 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import type { Ingredient } from '@/features/ingredients/ingredient-model';
-import { listIngredients } from '@/features/ingredients/ingredient-repo';
+import { areaForStore, type Ingredient } from '@/features/ingredients/ingredient-model';
+import { listIngredients, saveIngredient } from '@/features/ingredients/ingredient-repo';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import { formatAmount, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import { unitLabel } from '@/features/ingredients/units';
@@ -22,6 +22,7 @@ import { addExtraItem } from '@/features/shopping/add-extra';
 import { AddItem, type NewItem } from '@/features/shopping/add-item';
 import { CheckRow } from '@/features/shopping/check-row';
 import { deleteExtraItem, listExtraItems, saveExtraItem } from '@/features/shopping/extra-repo';
+import { FixAisle, type AisleFix } from '@/features/shopping/fix-aisle';
 import {
   extraItemFromLine,
   groupReadyList,
@@ -165,7 +166,7 @@ function ListEditor({
     const nextKnown = new Map(known).set(added.ingredient.id, added.ingredient);
     setKnown(nextKnown);
     const next = withExtras(list, [added.extra], nextKnown, stores);
-    if (list.status === 'ready') commit(next);
+    if (list.status !== 'pantry') commit(next);
     else setList(next);
   }
 
@@ -243,12 +244,23 @@ function ListEditor({
         <ReadyList
           list={list}
           stores={stores}
+          ingredients={known}
+          onIngredientChange={(ingredient) => {
+            setKnown(new Map(known).set(ingredient.id, ingredient));
+            saveIngredient(householdId, ingredient).catch((error) =>
+              console.warn('Ingredient not saved', error)
+            );
+          }}
           addItem={addItemField}
           onChange={commit}
+          onDoneShopping={(finished) => {
+            commit({ ...finished, status: 'done' });
+            router.back();
+          }}
           onBack={() => switchTo({ ...list, status: 'pantry' })}
         />
       )}
-      {list.status === 'ready' && nameField}
+      {list.status !== 'pantry' && nameField}
       <Button label="Delete list" variant="danger" onPress={confirmDelete} />
     </Screen>
   );
@@ -472,17 +484,27 @@ function HaveInput({
 function ReadyList({
   list,
   stores,
+  ingredients,
+  onIngredientChange,
   addItem,
   onChange,
+  onDoneShopping,
   onBack,
 }: {
   list: ShoppingList;
   stores: Store[];
+  ingredients: Map<string, Ingredient>;
+  onIngredientChange: (ingredient: Ingredient) => void;
   addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
+  /** Gets the list as it is after the last check (not this render's copy). */
+  onDoneShopping: (list: ShoppingList) => void;
   onBack: () => void;
 }) {
   const [hideChecked, setHideChecked] = useState(false);
+  // "Fix an item's aisle": the next item she taps opens the fix (one item).
+  const [pickingFix, setPickingFix] = useState(false);
+  const [fixingKey, setFixingKey] = useState<string | null>(null);
   const groups = groupReadyList(list, stores);
   const lines = new Map(list.lines.map((l) => [l.key, l]));
   const items = groups.flatMap((g) => g.sections.flatMap((s) => s.items));
@@ -490,10 +512,49 @@ function ReadyList({
   const showing = (key: string) => !(hideChecked && lines.get(key)?.checked);
 
   function toggle(key: string) {
+    const wasChecked = !!lines.get(key)?.checked;
+    const next: ShoppingList = {
+      ...list,
+      // Unchecking something on a finished trip opens it again.
+      status: wasChecked && list.status === 'done' ? 'ready' : list.status,
+      lines: list.lines.map((l) => (l.key === key ? { ...l, checked: !l.checked } : l)),
+    };
+    onChange(next);
+    const allChecked = items.every((i) =>
+      i.ingredientId === key ? !wasChecked : lines.get(i.ingredientId)?.checked
+    );
+    if (!wasChecked && allChecked && list.status !== 'done') {
+      Alert.alert('Everything’s in the cart', 'Done shopping, or are a few more things needed?', [
+        { text: 'Need more items', style: 'cancel' },
+        { text: 'Done shopping', onPress: () => onDoneShopping(next) },
+      ]);
+    }
+  }
+
+  function tapItem(key: string) {
+    if (pickingFix) {
+      setPickingFix(false);
+      setFixingKey(key);
+    } else toggle(key);
+  }
+
+  /** Saves the fix to the ingredient (unless it's a typed item) and moves this line. */
+  function applyFix(key: string, store: Store, fix: AisleFix) {
+    const ingredient =
+      fix.kind === 'area' && fix.ingredient
+        ? {
+            ...fix.ingredient,
+            areaOverrides: { ...fix.ingredient.areaOverrides, [store.id]: fix.sectionId },
+          }
+        : fix.ingredient;
+    if (ingredient) onIngredientChange(ingredient);
+    const sectionId =
+      fix.kind === 'area' ? fix.sectionId : (areaForStore(fix.ingredient, store)?.id ?? null);
     onChange({
       ...list,
-      lines: list.lines.map((l) => (l.key === key ? { ...l, checked: !l.checked } : l)),
+      lines: list.lines.map((l) => (l.key === key ? { ...l, sectionId } : l)),
     });
+    setFixingKey(null);
   }
 
   return (
@@ -520,7 +581,19 @@ function ReadyList({
             onPress={() => setHideChecked(!hideChecked)}
           />
         )}
+        <Chip
+          label={pickingFix ? 'Cancel fix' : 'Fix an item’s aisle'}
+          accessibilityLabel={pickingFix ? 'Cancel fixing an aisle' : 'Fix an item’s aisle'}
+          selected={pickingFix}
+          onPress={() => {
+            setPickingFix(!pickingFix);
+            setFixingKey(null);
+          }}
+        />
       </View>
+      {pickingFix && (
+        <ThemedText themeColor="attention">Tap the item that’s in the wrong place.</ThemedText>
+      )}
       {groups.map((group) => {
         const sections = group.sections
           .map((section) => ({
@@ -549,23 +622,37 @@ function ReadyList({
                   ]
                     .filter(Boolean)
                     .join(' · ');
+                  const store = stores.find((s) => s.id === group.storeId)!;
                   return (
-                    <CheckRow
-                      key={item.ingredientId}
-                      title={item.name}
-                      detail={detail}
-                      checked={!!line?.checked}
-                      dimWhenChecked
-                      onToggle={() => toggle(item.ingredientId)}
-                      trailing={
-                        line?.manual ? (
-                          <RemoveButton
-                            name={item.name}
-                            onPress={() => onChange(removeLine(list, item.ingredientId))}
-                          />
-                        ) : null
-                      }
-                    />
+                    <View key={item.ingredientId}>
+                      <CheckRow
+                        title={item.name}
+                        detail={detail}
+                        checked={!!line?.checked}
+                        dimWhenChecked
+                        onToggle={() => tapItem(item.ingredientId)}
+                        trailing={
+                          line?.manual ? (
+                            <RemoveButton
+                              name={item.name}
+                              onPress={() => onChange(removeLine(list, item.ingredientId))}
+                            />
+                          ) : null
+                        }
+                      />
+                      {fixingKey === item.ingredientId && (
+                        <FixAisle
+                          name={item.name}
+                          ingredient={
+                            line?.ingredientId ? (ingredients.get(line.ingredientId) ?? null) : null
+                          }
+                          store={store}
+                          sectionId={item.sectionId}
+                          onFix={(fix) => applyFix(item.ingredientId, store, fix)}
+                          onCancel={() => setFixingKey(null)}
+                        />
+                      )}
+                    </View>
                   );
                 })}
               </View>

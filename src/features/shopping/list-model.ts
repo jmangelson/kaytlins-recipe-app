@@ -54,7 +54,8 @@ export type ExtraItem = {
 export type ShoppingList = {
   id: string;
   name: string;
-  status: 'pantry' | 'ready';
+  /** "done" once she finishes the trip (everything checked, then Done shopping). */
+  status: 'pantry' | 'ready' | 'done';
   source: ListSource;
   tripStoreIds: string[];
   lines: ListLine[];
@@ -224,6 +225,8 @@ export function withExtras(
   ingredients: Map<string, Ingredient>,
   storesInOrder: Store[]
 ): ShoppingList {
+  // A finished trip doesn't pick up new items.
+  if (list.status === 'done') return list;
   const present = new Set(list.lines.map((l) => l.extraId).filter(Boolean));
   const added = items.filter((i) => !present.has(i.id)).map(lineForExtra);
   if (added.length === 0) return list;

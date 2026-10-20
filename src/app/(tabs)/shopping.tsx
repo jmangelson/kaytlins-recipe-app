@@ -21,6 +21,7 @@ function listSummary(list: ShoppingList): string {
   if (list.status === 'pantry') {
     return `Checking pantry · ${list.lines.length} ${list.lines.length === 1 ? 'ingredient' : 'ingredients'}`;
   }
+  if (list.status === 'done') return 'Done shopping';
   const items = toBuy(list);
   const done = items.filter((l) => l.checked).length;
   return done === 0 ? `${items.length} to buy` : `${done} of ${items.length} in the cart`;
@@ -97,9 +98,24 @@ export default function ShoppingScreen() {
 }
 
 function ListOfLists({ lists }: { lists: ShoppingList[] }) {
+  const active = lists.filter((l) => l.status !== 'done');
+  const finished = lists.filter((l) => l.status === 'done');
   return (
     <View>
-      {lists.map((list) => (
+      {active.map((list) => (
+        <ListRow
+          key={list.id}
+          title={list.name}
+          subtitle={listSummary(list)}
+          onPress={() => router.push({ pathname: '/shopping/[id]', params: { id: list.id } })}
+        />
+      ))}
+      {finished.length > 0 && (
+        <ThemedText type="smallBold" themeColor="textSecondary" style={styles.finished}>
+          Finished trips
+        </ThemedText>
+      )}
+      {finished.map((list) => (
         <ListRow
           key={list.id}
           title={list.name}
@@ -112,6 +128,9 @@ function ListOfLists({ lists }: { lists: ShoppingList[] }) {
 }
 
 const styles = StyleSheet.create({
+  finished: {
+    marginTop: Spacing.four,
+  },
   fill: {
     flex: 1,
   },

@@ -25,7 +25,7 @@ function listFromData(
   return {
     id,
     name: (data.name as string) ?? 'Shopping list',
-    status: data.status === 'ready' ? 'ready' : 'pantry',
+    status: data.status === 'ready' || data.status === 'done' ? data.status : 'pantry',
     source: data.source as ShoppingList['source'],
     tripStoreIds: (data.tripStoreIds as string[]) ?? [],
     lines: (data.lines as ListLine[]) ?? [],

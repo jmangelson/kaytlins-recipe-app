@@ -1,0 +1,118 @@
+# In the store: fix one item's aisle (this store only, then its category),
+# then check everything off and finish the trip.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - shopping
+---
+- evalScript: ${output.email = 'done' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: week
+- tapOn: 'Shopping'
+- tapOn: 'New list'
+- extendedWaitUntil:
+    visible: '.*Dinner, Chicken Enchiladas, Pico'
+    timeout: 15000
+# Just the enchiladas and pico: 5 items
+- tapOn: '.*Dinner, Veggie Pasta'
+- scrollUntilVisible:
+    element: 'Save list'
+- tapOn: 'Save list'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Shop at Macey.s'
+- tapOn: 'Shop at Macey.s'
+- scrollUntilVisible:
+    element: 'Make list'
+- tapOn: 'Make list'
+- extendedWaitUntil:
+    visible: '5 to buy at .*'
+    timeout: 15000
+
+# The fix is out of the way until she asks for it
+- assertNotVisible: 'Where does .* go\?'
+- tapOn: 'Fix an item’s aisle'
+- assertVisible: 'Tap the item that’s in the wrong place.'
+- takeScreenshot: build/screenshots/80-fix-aisle-picking
+- tapOn: 'lime.*'
+# Tapping picked it for the fix instead of checking it off
+- assertVisible:
+    text: 'lime.*'
+    checked: false
+- assertVisible: 'Where does lime go\?'
+- takeScreenshot: build/screenshots/81-fix-aisle-choices
+- tapOn: 'Different area at Macey.s'
+- scrollUntilVisible:
+    element: 'PB&J'
+    centerElement: true
+- takeScreenshot: build/screenshots/82-fix-aisle-areas
+- tapOn: 'PB&J'
+- assertNotVisible: 'Where does lime go\?'
+- assertVisible: 'PB&J'
+
+# Its category, fixed everywhere (the button is at the top of the list)
+- scrollUntilVisible:
+    element: 'Fix an item’s aisle'
+    direction: UP
+- tapOn: 'Fix an item’s aisle'
+- tapOn: 'flour tortillas.*'
+- tapOn: 'Its category is wrong'
+- takeScreenshot: build/screenshots/83-fix-aisle-category
+- scrollUntilVisible:
+    element: 'Dairy, cheese & eggs'
+    centerElement: true
+- tapOn: 'Dairy, cheese & eggs'
+- tapOn: 'Refrigerated dough & dips'
+- assertNotVisible: 'Where does flour tortillas go\?'
+
+# Everything in the cart: done shopping?
+- scrollUntilVisible:
+    element: 'Fix an item’s aisle'
+    direction: UP
+- scrollUntilVisible:
+    element: 'lime.*'
+    centerElement: true
+- tapOn: 'lime.*'
+- scrollUntilVisible:
+    element: 'chicken breasts.*'
+    centerElement: true
+- tapOn: 'chicken breasts.*'
+- scrollUntilVisible:
+    element: 'red enchilada sauce.*'
+    centerElement: true
+- tapOn: 'red enchilada sauce.*'
+- scrollUntilVisible:
+    element: 'flour tortillas.*'
+    centerElement: true
+- tapOn: 'flour tortillas.*'
+- scrollUntilVisible:
+    element: 'plum tomatoes.*'
+    centerElement: true
+- tapOn: 'plum tomatoes.*'
+- extendedWaitUntil:
+    visible: 'Everything’s in the cart'
+    timeout: 5000
+- takeScreenshot: build/screenshots/84-done-shopping-prompt
+- tapOn: 'NEED MORE ITEMS|Need more items'
+- scrollUntilVisible:
+    element: '5 of 5 in the cart.*'
+    direction: UP
+# Unchecking and checking again asks again
+- scrollUntilVisible:
+    element: 'plum tomatoes.*'
+    centerElement: true
+- tapOn: 'plum tomatoes.*'
+- tapOn: 'plum tomatoes.*'
+- extendedWaitUntil:
+    visible: 'Everything’s in the cart'
+    timeout: 5000
+- tapOn: 'DONE SHOPPING|Done shopping'
+- extendedWaitUntil:
+    visible: 'Finished trips'
+    timeout: 15000
+- assertVisible: '.*Done shopping'
+- takeScreenshot: build/screenshots/85-finished-trips
