@@ -77,7 +77,7 @@ export default function IngredientsScreen() {
   return (
     <Screen edges={HEADER_EDGES}>
       <Button
-        label="Find duplicates with Claude"
+        label="AI-Assisted Cleanup"
         variant="secondary"
         onPress={() => router.push('/ingredient-duplicates')}
       />

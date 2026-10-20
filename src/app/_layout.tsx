@@ -56,7 +56,7 @@ function RootNavigator() {
         <Stack.Screen name="ingredients" options={{ headerShown: true, title: 'Ingredients' }} />
         <Stack.Screen
           name="ingredient-duplicates"
-          options={{ headerShown: true, title: 'Find duplicates' }}
+          options={{ headerShown: true, title: 'AI-Assisted Cleanup' }}
         />
         <Stack.Screen name="ingredient/[id]" options={{ headerShown: true, title: 'Ingredient' }} />
         <Stack.Screen name="tags" options={{ headerShown: true, title: 'Recipe tags' }} />

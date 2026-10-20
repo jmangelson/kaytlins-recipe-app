@@ -15,7 +15,8 @@ export type DuplicatesRequest = {
 
 /**
  * Keep one ingredient and fold the others into it, under the final name and
- * category (Claude's suggestion; she can change both before merging).
+ * category (Claude's suggestion; she can change both before merging). With
+ * no others, it's a tidy-up of one name ("minced garlic" → "garlic").
  */
 export type DuplicateGroup = {
   keepId: string;
@@ -83,6 +84,10 @@ Never group things bought differently, even when the words overlap:
 When unsure, leave it out: a missed duplicate is fine, a wrong merge isn't. For each group, choose which id to keep (the one with the clearest name), and give the final name and category for the merged ingredient:
 - name: the clearest, most specific name a shopper and the recipes would use, in plain lowercase except proper names ("Monterey Jack", "Rotel"); correct typos; it may be a tidied version of one of the names.
 - category: the aisle category id from the list where it's sold.
+The final name leaves out preparation, size, and fat/lean notes (minced, chopped, sliced, medium, large, 85% lean, boneless): the app moves them into the recipes' notes. But keep words that are part of what's bought (diced tomatoes, ground beef, shredded cheese, crushed red pepper, sliced almonds, whole milk).
+
+Also suggest tidying a single ingredient whose name carries such a note ("minced garlic" -> "garlic"): a group with that ingredient as keepId, no mergeIds, and the tidy name. Only when the name really changes.
+
 Use only the ids given. Give a short reason a person can check (e.g. "plural of the same item").`;
 
 export function duplicatesUserPrompt(request: DuplicatesRequest): string {
@@ -106,7 +111,8 @@ export function parseDuplicatesResult(value: unknown, ids: string[]): Duplicates
     const members = [g.keepId, ...g.mergeIds].filter((id): id is string => typeof id === 'string');
     if (!members.every((id) => known.has(id) && !used.has(id))) continue;
     const mergeIds = [...new Set(members.slice(1))].filter((id) => id !== g.keepId);
-    if (mergeIds.length === 0) continue;
+    // No others: a tidy-up of one name, which needs a name.
+    if (mergeIds.length === 0 && !(typeof g.name === 'string' && g.name.trim())) continue;
     members.forEach((id) => used.add(id));
     const name = typeof g.name === 'string' ? g.name.trim().slice(0, 80) : '';
     result.push({

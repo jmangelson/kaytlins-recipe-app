@@ -25,11 +25,12 @@ import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import {
   getIngredient,
   listIngredients,
+  addNoteToRecipeLines,
   mergeIngredients,
   renameIngredient,
   saveIngredient,
 } from '@/features/ingredients/ingredient-repo';
-import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
+import { ingredientNameKey, droppedWords } from '@/features/ingredients/parse-ingredient-line';
 import { useHousehold } from '@/features/session/session-provider';
 import { moveItem } from '@/features/stores/store-edit';
 import { listStores } from '@/features/stores/store-repo';
@@ -157,6 +158,9 @@ function IngredientEditor({
     setSaving(true);
     // A new name goes to every recipe using it; the old one stays as another name.
     if (canonicalName(ingredient.name) !== canonicalName(initial.name)) {
+      // "minced garlic" → "garlic": "minced" goes to its recipes' notes.
+      const dropped = droppedWords(initial.name, ingredient.name);
+      if (dropped) await addNoteToRecipeLines(householdId, ingredient.id, dropped);
       await renameIngredient(householdId, ingredient, initial.name);
     } else {
       await saveIngredient(householdId, ingredient);

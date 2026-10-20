@@ -157,6 +157,22 @@ function amountLast(text: string): string | null {
   return null;
 }
 
+/**
+ * Words a rename drops from a name that contains all of the new name's
+ * words ("minced garlic" → "garlic" drops "minced"; "boneless skinless
+ * chicken breast" → "chicken breasts" drops "boneless skinless"). Null when
+ * the new name isn't inside the old one (a different or corrected name).
+ */
+export function droppedWords(oldName: string, newName: string): string | null {
+  const key = (w: string) => ingredientNameKey(w);
+  const oldWords = oldName.trim().split(/\s+/);
+  const newKeys = newName.trim().split(/\s+/).map(key);
+  const oldKeys = oldWords.map(key);
+  if (!newKeys.every((k) => oldKeys.includes(k))) return null;
+  const extra = oldWords.filter((_, i) => !newKeys.includes(oldKeys[i]));
+  return extra.length ? extra.join(' ').replace(/[,;]+$/, '') : null;
+}
+
 /** Preparation words: a note, not part of the ingredient's name. */
 const PREP_WORDS = new Set(
   (

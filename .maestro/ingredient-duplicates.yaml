@@ -10,6 +10,16 @@ tags:
     env:
       EMAIL: ${output.email}
       FIXTURE: recipes
+# A recipe whose ingredient name carries a note ("minced garlic")
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Garlic bread'
+      TAG: 'Vegetarian'
+      LINE1: '2 cloves minced garlic'
+      LINE2: '1 loaf French bread'
+- back
+
 # Two ingredients that are one thing: zucchini, and a typo of it
 - tapOn: 'Shopping'
 - runFlow:
@@ -39,14 +49,19 @@ tags:
     file: subflows/open-settings-item.yaml
     env:
       ITEM: 'Ingredients'
-- tapOn: 'Find duplicates with Claude'
+- tapOn: 'AI-Assisted Cleanup'
 - extendedWaitUntil:
     visible: '.*looks over your .* ingredients.*'
     timeout: 15000
-- tapOn: 'Find duplicates with Claude'
+# Nothing goes to Claude until she runs the audit
+- assertVisible: 'Uses Claude.*Nothing is sent until you tap it.'
+- tapOn: 'Run Automatic Ingredient Audit'
 - extendedWaitUntil:
-    visible: 'Spelled almost the same'
+    visible: 'Run the audit again'
     timeout: 15000
+- scrollUntilVisible:
+    element: 'Spelled almost the same'
+    centerElement: true
 - takeScreenshot: build/screenshots/100-duplicates
 - scrollUntilVisible:
     element:
@@ -72,3 +87,38 @@ tags:
     centerElement: true
 - assertNotVisible: 'zucchinni.*'
 - assertNotVisible: 'zucchini, .*'
+
+# Tidy "minced garlic": "minced" moves into the recipe's note (still on
+# the Ingredients screen)
+- scrollUntilVisible:
+    element: 'AI-Assisted Cleanup'
+    direction: UP
+- tapOn: 'AI-Assisted Cleanup'
+- extendedWaitUntil:
+    visible: '.*looks over your .* ingredients.*'
+    timeout: 15000
+- tapOn: 'Run Automatic Ingredient Audit'
+- extendedWaitUntil:
+    visible: 'Run the audit again'
+    timeout: 15000
+- scrollUntilVisible:
+    element: '“minced” is how to prepare it'
+    centerElement: true
+- scrollUntilVisible:
+    element: '“minced” moves to the notes in minced garlic’s recipes.'
+    centerElement: true
+- takeScreenshot: build/screenshots/102-tidy-name
+- scrollUntilVisible:
+    element: 'Tidy minced garlic'
+    centerElement: true
+- tapOn: 'Tidy minced garlic'
+- extendedWaitUntil:
+    visible: 'Tidied.'
+    timeout: 15000
+- back
+- back
+- tapOn: 'Recipes'
+- tapOn: 'Garlic bread.*'
+- extendedWaitUntil:
+    visible: 'garlic, minced'
+    timeout: 15000

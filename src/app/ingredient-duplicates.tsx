@@ -15,12 +15,13 @@ import { categoryName, type CategoryId } from '@/features/ingredients/categories
 import { CategoryField } from '@/features/ingredients/category-field';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import {
+  addNoteToRecipeLines,
   listIngredients,
   mergeIngredients,
   renameIngredient,
   saveIngredient,
 } from '@/features/ingredients/ingredient-repo';
-import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
+import { droppedWords, ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import { listRecipes } from '@/features/recipes/recipe-repo';
 import { useHousehold } from '@/features/session/session-provider';
 import { useAsync } from '@/hooks/use-async';
@@ -87,6 +88,13 @@ function Review({
   /** Merges the group, then gives the kept one the final name and category she chose. */
   async function merge(index: number, group: DuplicateGroup, name: string, category: CategoryId) {
     setStatus((s) => ({ ...s, [index]: 'merging' }));
+    // Words the final name leaves out ("minced") go to each one's recipe notes
+    // first, while its recipe lines still point at it.
+    for (const id of [group.keepId, ...group.mergeIds]) {
+      const member = byId.get(id);
+      const dropped = member ? droppedWords(member.name, name) : null;
+      if (dropped) await addNoteToRecipeLines(householdId, id, dropped);
+    }
     let target = byId.get(group.keepId)!;
     for (const id of group.mergeIds) {
       const source = byId.get(id);
@@ -142,8 +150,9 @@ function Review({
     <Screen edges={HEADER_EDGES}>
       <ThemedText themeColor="textSecondary">
         Claude looks over your {ingredients.length} ingredients for ones that are the same thing to
-        buy, like a typo or a plural. Nothing changes until you merge; recipes follow the merge and
-        the old name becomes another name for it.
+        buy (a typo, a plural) and names that carry a note (“minced garlic”). Nothing changes until
+        you merge or tidy; recipes follow, notes like “minced” move into them, and old names stay as
+        other names.
       </ThemedText>
       {checking ? (
         <View style={styles.checking} accessibilityLiveRegion="polite">
@@ -152,12 +161,15 @@ function Review({
         </View>
       ) : (
         <Button
-          label={groups ? 'Check again' : 'Find duplicates with Claude'}
+          label={groups ? 'Run the audit again' : 'Run Automatic Ingredient Audit'}
           variant={groups ? 'secondary' : 'primary'}
           onPress={check}
           disabled={ingredients.length < 2}
         />
       )}
+      <ThemedText type="small" themeColor="textSecondary">
+        Uses Claude (a few cents). Nothing is sent until you tap it.
+      </ThemedText>
       {error && <ThemedText themeColor="danger">{error}</ThemedText>}
 
       {groups && groups.length === 0 && (
@@ -166,7 +178,7 @@ function Review({
       {groups?.map((group, index) => {
         const keep = byId.get(group.keepId);
         const merges = group.mergeIds.map((id) => byId.get(id)).filter((i): i is Ingredient => !!i);
-        if (!keep || merges.length === 0) return null;
+        if (!keep || (merges.length === 0 && group.mergeIds.length > 0)) return null;
         const state = status[index] ?? 'open';
         return (
           <DuplicateCard
@@ -219,6 +231,11 @@ function DuplicateCard({
   const [name, setName] = useState(suggestedName);
   const [category, setCategory] = useState(suggestedCategory);
   const problem = name.trim() ? nameProblem(name) : 'Enter a name.';
+  const tidy = merges.length === 0;
+  // What each one's recipes will get as a note when the name drops it.
+  const moves = [keep, ...merges]
+    .map((i) => ({ i, words: droppedWords(i.name, name) }))
+    .filter((m): m is { i: Ingredient; words: string } => !!m.words);
   return (
     <View
       style={[
@@ -230,15 +247,17 @@ function DuplicateCard({
         },
       ]}>
       <ThemedText type="small" themeColor="textSecondary">
-        Keep
+        {tidy ? 'Tidy the name' : 'Keep'}
       </ThemedText>
       <ThemedText type="smallBold">{keep.name}</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
         {describe(keep)}
       </ThemedText>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.gap}>
-        Merge into it
-      </ThemedText>
+      {!tidy && (
+        <ThemedText type="small" themeColor="textSecondary" style={styles.gap}>
+          Merge into it
+        </ThemedText>
+      )}
       {merges.map((m) => (
         <View key={m.id}>
           <ThemedText type="smallBold">{m.name}</ThemedText>
@@ -252,7 +271,9 @@ function DuplicateCard({
           {reason}
         </ThemedText>
       ) : null}
-      {state === 'merged' && <ThemedText type="smallBold">Merged.</ThemedText>}
+      {state === 'merged' && (
+        <ThemedText type="smallBold">{tidy ? 'Tidied.' : 'Merged.'}</ThemedText>
+      )}
       {state === 'skipped' && <ThemedText type="small">Skipped.</ThemedText>}
       {state === 'merging' && <ActivityIndicator />}
       {state === 'open' && (
@@ -267,14 +288,20 @@ function DuplicateCard({
               maxLength={80}
             />
             <CategoryField value={category} onChange={setCategory} />
+            {moves.map(({ i, words }) => (
+              <ThemedText key={i.id} type="small" themeColor="textSecondary">
+                “{words}” moves to the notes in {i.name}’s recipes.
+              </ThemedText>
+            ))}
           </View>
           <View style={styles.chips}>
-            {merges.length === 1 && (
+            {merges.map((m) => (
               <Chip
-                label={`Keep “${merges[0].name}” instead`}
-                onPress={() => onKeepInstead(merges[0].id)}
+                key={m.id}
+                label={`Keep “${m.name}” instead`}
+                onPress={() => onKeepInstead(m.id)}
               />
-            )}
+            ))}
           </View>
           <View style={styles.actions}>
             <View style={styles.flex}>
@@ -282,8 +309,12 @@ function DuplicateCard({
             </View>
             <View style={styles.flex}>
               <Button
-                label="Merge"
-                accessibilityLabel={`Merge ${merges.map((m) => m.name).join(', ')} into ${keep.name}`}
+                label={tidy ? 'Tidy' : 'Merge'}
+                accessibilityLabel={
+                  tidy
+                    ? `Tidy ${keep.name}`
+                    : `Merge ${merges.map((m) => m.name).join(', ')} into ${keep.name}`
+                }
                 onPress={() => onMerge(name, category)}
                 disabled={!!problem}
               />

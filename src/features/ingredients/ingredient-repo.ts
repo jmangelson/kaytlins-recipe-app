@@ -50,6 +50,38 @@ export function newIngredientRef(householdId: string) {
 }
 
 /**
+ * Adds words taken out of an ingredient's name ("minced") to the note of
+ * every recipe line that uses it, so the recipes still say it.
+ */
+export async function addNoteToRecipeLines(
+  householdId: string,
+  ingredientId: string,
+  words: string
+): Promise<void> {
+  const recipes = await getDocs(collection(db, 'households', householdId, 'recipes'));
+  const batch = writeBatch(db);
+  let changed = false;
+  for (const recipe of recipes.docs) {
+    const lines = (recipe.data().ingredients ?? []) as {
+      ingredientId: string;
+      note?: string | null;
+    }[];
+    if (!lines.some((line) => line.ingredientId === ingredientId)) continue;
+    changed = true;
+    batch.update(recipe.ref, {
+      updatedAt: serverTimestamp(),
+      ingredients: lines.map((line) => {
+        if (line.ingredientId !== ingredientId) return line;
+        const note = line.note?.trim();
+        if (note && note.toLowerCase().includes(words.toLowerCase())) return line;
+        return { ...line, note: note ? `${words}, ${note}` : words };
+      }),
+    });
+  }
+  if (changed) await commitOrQueue(() => batch.commit());
+}
+
+/**
  * Saves a renamed ingredient: every recipe line using it shows the new name,
  * and the old name stays as another name for it (so a recipe that says it
  * still links). Shopping lists already made keep their names (snapshots).

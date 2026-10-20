@@ -40,6 +40,26 @@ describe('duplicates contract', () => {
     expect(parseDuplicatesResult({}, ids)).toBeNull();
   });
 
+  it('accepts a tidy-up of one name, which needs a name', () => {
+    expect(
+      parseDuplicatesResult(
+        {
+          groups: [
+            {
+              keepId: 'a',
+              mergeIds: [],
+              name: 'garlic',
+              category: 'produce-roots',
+              reason: 'minced is prep',
+            },
+            { keepId: 'b', mergeIds: [], name: '', category: 'produce-roots', reason: 'no name' },
+          ],
+        },
+        ids
+      )?.groups.map((g) => g.keepId)
+    ).toEqual(['a']);
+  });
+
   it('checks requests and lists ingredients with their other names', () => {
     expect(duplicatesRequestProblem({ ingredients: [] })).toMatch(/Send 2/);
     const request = {

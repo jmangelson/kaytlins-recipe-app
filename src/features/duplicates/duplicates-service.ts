@@ -8,6 +8,7 @@ import {
   type DuplicatesRequest,
 } from '@/features/duplicates/duplicates-contract';
 import { editDistance, type Ingredient } from '@/features/ingredients/ingredient-model';
+import { prepWordsInName, withoutPrepWord } from '@/features/ingredients/parse-ingredient-line';
 import { auth, usingFirebaseEmulators } from '@/lib/firebase';
 
 const TIMEOUT_MS = 90_000;
@@ -32,6 +33,19 @@ function testSuggestions(ingredients: Ingredient[]): DuplicateGroup[] {
       });
       used.add(a.id).add(b.id);
     }
+  }
+  // And names carrying a prep word ("minced garlic").
+  for (const i of ingredients) {
+    if (used.has(i.id)) continue;
+    const word = prepWordsInName(i.name)[0];
+    if (!word) continue;
+    groups.push({
+      keepId: i.id,
+      mergeIds: [],
+      name: withoutPrepWord(i.name, word),
+      category: i.category,
+      reason: `“${word}” is how to prepare it`,
+    });
   }
   return groups;
 }

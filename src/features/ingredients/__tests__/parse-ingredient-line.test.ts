@@ -1,4 +1,5 @@
 import {
+  droppedWords,
   buyingNote,
   splitSize,
   ingredientNameKey,
@@ -232,5 +233,19 @@ describe('buyingNote', () => {
     [null, null],
   ])('%s → %s', (note, expected) => {
     expect(buyingNote(note)).toBe(expected);
+  });
+});
+
+describe('droppedWords', () => {
+  it.each([
+    ['minced garlic', 'garlic', 'minced'],
+    ['85% lean ground beef', 'ground beef', '85% lean'],
+    ['boneless skinless chicken breast', 'chicken breasts', 'boneless skinless'],
+    ['medium yellow onions', 'yellow onion', 'medium'],
+    ['zucchinni', 'zucchini', null],
+    ['Hortels tomatoes w/ chile', 'Rotel', null],
+    ['garlic', 'garlic', null],
+  ])('%s → %s drops %s', (from, to, dropped) => {
+    expect(droppedWords(from, to)).toBe(dropped);
   });
 });
