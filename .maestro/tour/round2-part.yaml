@@ -82,13 +82,16 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Cleaning & dish soap'
     centerElement: true
 - tapOn: 'Cleaning & dish soap'
+# The category list closes on a pick, so the Add button is above now.
 - scrollUntilVisible:
     element: 'Add zorbleberry spray'
+    direction: UP
     centerElement: true
 - takeScreenshot: build/screenshots/74c-item-category-chosen
 - tapOn: 'Add zorbleberry spray'
 - scrollUntilVisible:
     element: 'zorbleberry spray, Cleaning & dish soap'
+    direction: UP
     centerElement: true
 - takeScreenshot: build/screenshots/74d-extras-with-categories
 

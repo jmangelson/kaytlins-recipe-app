@@ -6,7 +6,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/46-shopping-empty
 - tapOn: 'New list'
 - extendedWaitUntil:
-    visible: '.* · .* items?\..*'
+    visible: '.*Dinner, .*'
     timeout: 15000
 - takeScreenshot: build/screenshots/47-new-list
 - scrollUntilVisible:

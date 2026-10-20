@@ -95,7 +95,13 @@ export function AddItem({
         autoCorrect={false}
       />
       {step.kind === 'typing' && (
-        <Button label="Add to list" variant="secondary" onPress={submit} disabled={!item} />
+        <Button
+          label="Add to list"
+          variant="secondary"
+          onPress={submit}
+          disabled={!item}
+          testID={`${testID}-submit`}
+        />
       )}
 
       {step.kind === 'choose' && item && (

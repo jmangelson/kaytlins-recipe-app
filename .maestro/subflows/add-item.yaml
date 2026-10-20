@@ -10,7 +10,10 @@ appId: com.jmangelson.kaytlinsrecipes
     id: 'add-item'
 - inputText: ${TEXT}
 - hideKeyboard
+# Its own button (the Staples section has another "Add to list").
 - scrollUntilVisible:
-    element: 'Add to list'
+    element:
+      id: 'add-item-submit'
     centerElement: true
-- tapOn: 'Add to list'
+- tapOn:
+    id: 'add-item-submit'

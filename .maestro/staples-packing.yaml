@@ -22,11 +22,11 @@ tags:
 - inputText: '1 gallon whole milk'
 - hideKeyboard
 - scrollUntilVisible:
-    element: 'Add to list'
+    element:
+      id: 'add-staple-submit'
     centerElement: true
 - tapOn:
-    text: 'Add to list'
-    index: 1
+    id: 'add-staple-submit'
 - scrollUntilVisible:
     element: 'Add whole milk'
     centerElement: true

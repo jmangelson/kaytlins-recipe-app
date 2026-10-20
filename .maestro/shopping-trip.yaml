@@ -28,7 +28,10 @@ onFlowComplete:
     element: 'Add paper towels'
     centerElement: true
 - tapOn: 'Add paper towels'
-- assertVisible: 'paper towels, Paper towels & tissue · Costco'
+# Staples and packing lists sit below, so scroll back up to the new item
+- scrollUntilVisible:
+    element: 'paper towels, Paper towels & tissue · Costco'
+    direction: UP
 - runFlow:
     file: subflows/add-item.yaml
     env:
@@ -39,7 +42,9 @@ onFlowComplete:
     element: 'Add whole milk'
     centerElement: true
 - tapOn: 'Add whole milk'
-- assertVisible: 'whole milk, 1 gallon · Milk & dairy'
+- scrollUntilVisible:
+    element: 'whole milk, 1 gallon · Milk & dairy'
+    direction: UP
 - tapOn: 'Remove whole milk'
 - assertNotVisible: 'whole milk, 1 gallon · Milk & dairy'
 
