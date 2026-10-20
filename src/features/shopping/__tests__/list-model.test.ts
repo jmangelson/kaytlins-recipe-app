@@ -5,6 +5,7 @@ import {
   groupReadyList,
   listAsText,
   linesFromNeeds,
+  mergeLines,
   placeLines,
   remaining,
   removeLine,
@@ -231,5 +232,42 @@ describe('replaceAtStore', () => {
   it('leaves other stores alone', () => {
     const next = replaceAtStore(lines, stores[1], ingredients);
     expect(next).toEqual(lines);
+  });
+});
+
+describe('mergeLines', () => {
+  it('adds up what is left to buy and combines recipes and notes', () => {
+    const lines = linesFromNeeds([
+      {
+        ingredientId: 'plum',
+        name: 'plum tomatoes',
+        quantities: [{ amount: 3, unit: null }],
+        recipeNames: ['Pico'],
+        notes: ['ripe'],
+      },
+      {
+        ingredientId: 'roma',
+        name: 'roma tomatoes',
+        quantities: [{ amount: 2, unit: null }],
+        recipeNames: ['Salsa'],
+      },
+    ]).map((l) => (l.key === 'plum' ? { ...l, have: [1] } : l));
+    const list: ShoppingList = {
+      id: 'l',
+      name: 'L',
+      status: 'ready',
+      source: { kind: 'dates', from: '2026-10-18', to: '2026-10-19' },
+      tripStoreIds: [],
+      lines,
+    };
+    const merged = mergeLines(list, 'roma', 'plum', 'roma tomatoes');
+    expect(merged.lines).toHaveLength(1);
+    expect(merged.lines[0]).toMatchObject({
+      key: 'roma',
+      name: 'roma tomatoes',
+      needed: [{ amount: 4, unit: null }],
+      recipeNames: ['Salsa', 'Pico'],
+      notes: ['ripe'],
+    });
   });
 });

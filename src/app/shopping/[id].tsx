@@ -12,9 +12,20 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import type { Ingredient } from '@/features/ingredients/ingredient-model';
-import { listIngredients, saveIngredient } from '@/features/ingredients/ingredient-repo';
-import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
+import type { CategoryId } from '@/features/ingredients/categories';
+import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
+import {
+  addNoteToRecipeLines,
+  listIngredients,
+  mergeIngredients,
+  renameIngredient,
+  saveIngredient,
+} from '@/features/ingredients/ingredient-repo';
+import {
+  droppedWords,
+  ingredientNameKey,
+  parseAmountRange,
+} from '@/features/ingredients/parse-ingredient-line';
 import { formatAmount, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import { unitLabel } from '@/features/ingredients/units';
 import { useHousehold } from '@/features/session/session-provider';
@@ -23,12 +34,14 @@ import { AddItem, type NewItem } from '@/features/shopping/add-item';
 import { CheckRow } from '@/features/shopping/check-row';
 import { deleteExtraItem, listExtraItems, saveExtraItem } from '@/features/shopping/extra-repo';
 import { FixAisle, type AisleFix } from '@/features/shopping/fix-aisle';
+import { MergeItems } from '@/features/shopping/merge-items';
 import {
   extraItemFromLine,
   groupReadyList,
   listAsText,
   placeLines,
   remaining,
+  mergeLines,
   removeLine,
   replaceAtStore,
   toBuy,
@@ -174,6 +187,60 @@ function ListEditor({
     else setList(next);
   }
 
+  /**
+   * Two list items that are the same: one ingredient everywhere (recipes
+   * follow; words the name drops go to recipe notes), one line on this list.
+   */
+  async function mergeItems(keepKey: string, dropKey: string, name: string, category: CategoryId) {
+    const keepLine = list.lines.find((l) => l.key === keepKey);
+    const dropLine = list.lines.find((l) => l.key === dropKey);
+    if (!keepLine || !dropLine) return;
+    const nextKnown = new Map(known);
+    const keepIng = keepLine.ingredientId ? known.get(keepLine.ingredientId) : undefined;
+    const dropIng = dropLine.ingredientId ? known.get(dropLine.ingredientId) : undefined;
+    const finalName = canonicalName(name);
+    if (keepIng) {
+      for (const ing of [keepIng, dropIng]) {
+        const dropped = ing ? droppedWords(ing.name, finalName) : null;
+        if (ing && dropped) await addNoteToRecipeLines(householdId, ing.id, dropped);
+      }
+      let target = keepIng;
+      if (dropIng && dropIng.id !== keepIng.id) {
+        await mergeIngredients(householdId, dropIng, keepIng);
+        target = { ...keepIng, aliases: [...keepIng.aliases, dropIng.name, ...dropIng.aliases] };
+        nextKnown.delete(dropIng.id);
+      }
+      const finalKey = ingredientNameKey(finalName);
+      const final = {
+        ...target,
+        name: finalName,
+        category,
+        categorySet: true,
+        aliases: target.aliases.filter((a) => ingredientNameKey(a) !== finalKey),
+      };
+      if (finalName !== keepIng.name) await renameIngredient(householdId, final, keepIng.name);
+      else await saveIngredient(householdId, final);
+      nextKnown.set(final.id, final);
+    }
+    setKnown(nextKnown);
+    let next = mergeLines(list, keepKey, dropKey, finalName);
+    const store = stores.find((s) => s.id === keepLine.storeId);
+    if (store) next = { ...next, lines: replaceAtStore(next.lines, store, nextKnown) };
+    commit(next);
+  }
+
+  /** A final name another ingredient (not these two) already uses. */
+  function mergeNameProblem(keepKey: string, dropKey: string, name: string): string | null {
+    const ids = new Set(
+      [keepKey, dropKey].map((k) => list.lines.find((l) => l.key === k)?.ingredientId)
+    );
+    const key = ingredientNameKey(name);
+    const owner = [...known.values()].find(
+      (i) => !ids.has(i.id) && (i.nameKey === key || i.aliasKeys.includes(key))
+    );
+    return owner ? `“${owner.name}” already uses this name.` : null;
+  }
+
   const addItemField = (
     <AddItem
       ingredients={[...known.values()]}
@@ -261,6 +328,8 @@ function ListEditor({
           }}
           addItem={addItemField}
           onChange={commit}
+          onMergeItems={mergeItems}
+          mergeNameProblem={mergeNameProblem}
           onDoneShopping={(finished) => {
             commit({ ...finished, status: 'done' });
             router.back();
@@ -495,6 +564,8 @@ function ReadyList({
   ingredients,
   onIngredientChange,
   onStoreChange,
+  onMergeItems,
+  mergeNameProblem,
   addItem,
   onChange,
   onDoneShopping,
@@ -505,6 +576,8 @@ function ReadyList({
   ingredients: Map<string, Ingredient>;
   onIngredientChange: (ingredient: Ingredient) => void;
   onStoreChange: (store: Store) => void;
+  onMergeItems: (keepKey: string, dropKey: string, name: string, category: CategoryId) => void;
+  mergeNameProblem: (keepKey: string, dropKey: string, name: string) => string | null;
   addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
   /** Gets the list as it is after the last check (not this render's copy). */
@@ -514,6 +587,8 @@ function ReadyList({
   const [hideChecked, setHideChecked] = useState(false);
   // "Fix an item's aisle": the next item she taps opens the fix (one item).
   const [pickingFix, setPickingFix] = useState(false);
+  // "Merge two items": the items she's tapped (null when not merging).
+  const [mergePicks, setMergePicks] = useState<string[] | null>(null);
   const [fixingKey, setFixingKey] = useState<string | null>(null);
   const groups = groupReadyList(list, stores);
   const lines = new Map(list.lines.map((l) => [l.key, l]));
@@ -559,6 +634,10 @@ function ReadyList({
   }
 
   function tapItem(key: string) {
+    if (mergePicks) {
+      if (mergePicks.length < 2 && !mergePicks.includes(key)) setMergePicks([...mergePicks, key]);
+      return;
+    }
     if (pickingFix) {
       setPickingFix(false);
       setFixingKey(key);
@@ -629,11 +708,42 @@ function ReadyList({
           onPress={() => {
             setPickingFix(!pickingFix);
             setFixingKey(null);
+            setMergePicks(null);
+          }}
+        />
+        <Chip
+          label={mergePicks ? 'Cancel merge' : 'Merge two items'}
+          selected={!!mergePicks}
+          onPress={() => {
+            setMergePicks(mergePicks ? null : []);
+            setPickingFix(false);
+            setFixingKey(null);
           }}
         />
       </View>
       {pickingFix && (
         <ThemedText themeColor="attention">Tap the item that’s in the wrong place.</ThemedText>
+      )}
+      {mergePicks && mergePicks.length < 2 && (
+        <ThemedText themeColor="attention">
+          {mergePicks.length === 0
+            ? 'Tap the two items that are the same thing.'
+            : `“${lines.get(mergePicks[0])?.name}” picked. Tap the other one.`}
+        </ThemedText>
+      )}
+      {mergePicks?.length === 2 && (
+        <MergeItems
+          key={mergePicks.join('|')}
+          first={{ name: lines.get(mergePicks[0])?.name ?? '' }}
+          second={{ name: lines.get(mergePicks[1])?.name ?? '' }}
+          firstIngredient={ingredients.get(lines.get(mergePicks[0])?.ingredientId ?? '') ?? null}
+          nameProblem={(name) => mergeNameProblem(mergePicks[0], mergePicks[1], name)}
+          onMerge={(name, category) => {
+            onMergeItems(mergePicks[0], mergePicks[1], name, category);
+            setMergePicks(null);
+          }}
+          onCancel={() => setMergePicks(null)}
+        />
       )}
       {groups.map((group) => {
         const sections = group.sections

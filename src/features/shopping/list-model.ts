@@ -1,6 +1,6 @@
 import { areaForStore, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { parseIngredientLine } from '@/features/ingredients/parse-ingredient-line';
-import { formatQuantity, type Quantity } from '@/features/ingredients/quantity';
+import { combineQuantities, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import {
   groupForTrip,
   remainingAfterPantry,
@@ -304,4 +304,37 @@ export function replaceAtStore(
     if (line.storeId !== store.id || !ingredient) return line;
     return { ...line, sectionId: areaForStore(ingredient, store)?.id ?? null };
   });
+}
+
+/**
+ * Two lines that are the same thing, as one: what's left to buy of each
+ * adds up (amounts she said she had are already taken off), recipes and
+ * notes combine, and it's checked only if both were.
+ */
+export function mergeLines(
+  list: ShoppingList,
+  keepKey: string,
+  dropKey: string,
+  name: string
+): ShoppingList {
+  const keep = list.lines.find((l) => l.key === keepKey);
+  const drop = list.lines.find((l) => l.key === dropKey);
+  if (!keep || !drop) return list;
+  const needed = combineQuantities([...remaining(keep), ...remaining(drop)]);
+  const merged: ListLine = {
+    ...keep,
+    name,
+    needed,
+    have: needed.map(() => null),
+    haveIt: false,
+    recipeNames: [...new Set([...keep.recipeNames, ...drop.recipeNames])],
+    notes: [...new Set([...(keep.notes ?? []), ...(drop.notes ?? [])])],
+    checked: keep.checked && drop.checked,
+    manual: keep.manual && drop.manual,
+    extraId: keep.extraId ?? drop.extraId ?? null,
+  };
+  return {
+    ...list,
+    lines: list.lines.filter((l) => l.key !== dropKey).map((l) => (l.key === keepKey ? merged : l)),
+  };
 }
