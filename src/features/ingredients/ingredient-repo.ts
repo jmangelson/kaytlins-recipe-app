@@ -50,6 +50,42 @@ export function newIngredientRef(householdId: string) {
 }
 
 /**
+ * Saves a renamed ingredient: every recipe line using it shows the new name,
+ * and the old name stays as another name for it (so a recipe that says it
+ * still links). Shopping lists already made keep their names (snapshots).
+ */
+export async function renameIngredient(
+  householdId: string,
+  ingredient: Ingredient,
+  oldName: string
+): Promise<void> {
+  const recipes = await getDocs(collection(db, 'households', householdId, 'recipes'));
+  const batch = writeBatch(db);
+  for (const recipe of recipes.docs) {
+    const lines = (recipe.data().ingredients ?? []) as { ingredientId: string; name: string }[];
+    if (!lines.some((line) => line.ingredientId === ingredient.id)) continue;
+    batch.update(recipe.ref, {
+      updatedAt: serverTimestamp(),
+      ingredients: lines.map((line) =>
+        line.ingredientId === ingredient.id ? { ...line, name: ingredient.name } : line
+      ),
+    });
+  }
+  const oldKey = ingredientNameKey(oldName);
+  const keepOld =
+    oldKey !== ingredientNameKey(ingredient.name) &&
+    !ingredient.aliases.some((a) => ingredientNameKey(a) === oldKey);
+  batch.set(
+    doc(ingredientsCollection(householdId), ingredient.id),
+    ingredientToData({
+      ...ingredient,
+      aliases: keepOld ? [...ingredient.aliases, oldName] : ingredient.aliases,
+    })
+  );
+  await commitOrQueue(() => batch.commit());
+}
+
+/**
  * Folds `source` into `target`: every recipe line linked to the source is
  * re-linked to the target, the source's name and aliases become aliases of
  * the target, and the source is deleted. Target settings win.

@@ -130,6 +130,95 @@ function takeUnit(text: string): { unit: UnitKey; rest: string } | null {
   return null;
 }
 
+/**
+ * "flour 2 cups", "chicken breasts, 2 lbs", "eggs 3": the amount (and unit)
+ * after the name, rewritten amount-first. Null when the line doesn't end
+ * that way.
+ */
+function amountLast(text: string): string | null {
+  const words = text.split(/\s+/);
+  if (words.length < 2) return null;
+  const name = (n: number) =>
+    words
+      .slice(0, words.length - n)
+      .join(' ')
+      .replace(/[\s,:;–—-]+$/, '');
+  for (const unitWords of [2, 1, 0]) {
+    if (unitWords > 0 && !parseUnit(words.slice(words.length - unitWords).join(' '))) continue;
+    for (const amountWords of [2, 1]) {
+      const used = unitWords + amountWords;
+      if (words.length <= used) continue;
+      const amount = words.slice(words.length - used, words.length - unitWords).join(' ');
+      if (!parseAmountRange(amount)?.quantity || !name(used)) continue;
+      const unit = words.slice(words.length - unitWords).join(' ');
+      return [amount, unit, name(used)].filter(Boolean).join(' ');
+    }
+  }
+  return null;
+}
+
+/** Preparation words: a note, not part of the ingredient's name. */
+const PREP_WORDS = new Set(
+  (
+    'chopped diced minced sliced cubed grated shredded crushed peeled seeded cored trimmed ' +
+    'halved quartered julienned mashed melted softened beaten divided drained rinsed thawed ' +
+    'sifted toasted deveined pitted zested juiced torn crumbled hulled stemmed cut room-temperature'
+  ).split(' ')
+);
+const PREP_ADVERBS = new Set(
+  'finely roughly coarsely thinly thickly freshly lightly well very and'.split(' ')
+);
+
+/** "onion chopped", "garlic finely minced", "carrots peeled and diced": the trailing prep. */
+function trailingPrep(text: string): { name: string; prep: string | null } {
+  const words = text.trim().split(/\s+/);
+  let cut = words.length;
+  let sawPrep = false;
+  while (cut > 1) {
+    const word = words[cut - 1].toLowerCase().replace(/[,;.]$/, '');
+    if (PREP_WORDS.has(word)) sawPrep = true;
+    else if (!(PREP_ADVERBS.has(word) && sawPrep)) break;
+    cut -= 1;
+  }
+  if (!sawPrep || cut === words.length) return { name: text, prep: null };
+  return { name: words.slice(0, cut).join(' '), prep: words.slice(cut).join(' ') };
+}
+
+/** "finely chopped onion": an adverb makes a leading prep unmistakably a note. */
+function leadingPrepPhrase(text: string): { name: string; prep: string | null } {
+  const match = text.match(
+    /^((?:finely|roughly|coarsely|thinly|freshly|lightly)\s+(\S+))\s+(.+)$/i
+  );
+  if (match && PREP_WORDS.has(match[2].toLowerCase())) return { name: match[3], prep: match[1] };
+  return { name: text, prep: null };
+}
+
+/**
+ * Prep words left at the front of a name ("chopped onion"), for the recipe
+ * form to offer moving to the note. Some are real product names ("diced
+ * tomatoes", "sliced almonds"), so the parser doesn't move them on its own.
+ */
+export function prepWordsInName(name: string): string[] {
+  return name
+    .split(/\s+/)
+    .map((w) => w.toLowerCase().replace(/[,;.]$/, ''))
+    .filter((w) => PREP_WORDS.has(w));
+}
+
+/** The name without one prep word (and an adverb just before it). */
+export function withoutPrepWord(name: string, word: string): string {
+  return name
+    .replace(
+      new RegExp(
+        `(?:\\b(?:finely|roughly|coarsely|thinly|freshly|lightly)\\s+)?\\b${word}\\b`,
+        'i'
+      ),
+      ' '
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function joinNotes(...notes: (string | null | undefined)[]): string | null {
   const parts = notes.map((n) => n?.trim()).filter((n): n is string => !!n);
   return parts.length ? parts.join(', ') : null;
@@ -142,10 +231,15 @@ function joinNotes(...notes: (string | null | undefined)[]): string | null {
  *   "2 (14 oz) cans diced tomatoes"     → 2 can "diced tomatoes" (14 oz)
  *   "3 large eggs"                      → 3 "eggs" (large)
  *   "Salt and pepper to taste"          → "salt and pepper" (to taste)
+ *   "flour 2 cups"                      → 2 cup "flour"
+ *   "garlic finely minced"              → "garlic" (finely minced)
+ *   "chicken breast - cubed"            → "chicken breast" (cubed)
  */
 export function parseIngredientLine(line: string): ParsedIngredient {
   const raw = line.trim();
   let rest = raw.replace(/^[-•*▢□◦·]\s*/, '').trim();
+  // "flour 2 cups": the amount after the name reads the same as before it.
+  if (!AMOUNT_RANGE.test(rest) && !NUMBER_WORD.test(rest)) rest = amountLast(rest) ?? rest;
 
   let quantity: number | null = null;
   let quantityMax: number | null = null;
@@ -203,6 +297,8 @@ export function parseIngredientLine(line: string): ParsedIngredient {
   }
 
   let commaNote: string | null = null;
+  // "chicken breast halves - cubed": a spaced dash works like a comma.
+  rest = rest.replace(/\s+[-–—]\s+/, ', ');
   const comma = rest.indexOf(',');
   if (comma >= 0) {
     commaNote = rest.slice(comma + 1);
@@ -217,6 +313,10 @@ export function parseIngredientLine(line: string): ParsedIngredient {
 
   const sized = splitSize(rest);
   rest = sized.name;
+  const trailing = trailingPrep(rest);
+  rest = trailing.name;
+  const leading = leadingPrepPhrase(rest);
+  rest = leading.name;
 
   // Keep her capitalization ("Monterey Jack"); matching uses ingredientNameKey().
   const name = rest.replace(/\s+/g, ' ').trim();
@@ -225,7 +325,15 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     quantityMax,
     unit,
     name,
-    note: joinNotes(sizeNote, sized.size, inlineNote, commaNote, toTaste),
+    note: joinNotes(
+      sizeNote,
+      sized.size,
+      leading.prep,
+      trailing.prep,
+      inlineNote,
+      commaNote,
+      toTaste
+    ),
     raw,
   };
 }

@@ -8,12 +8,18 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { categoryName, guessCategory, type CategoryId } from '@/features/ingredients/categories';
+import { CATALOG_BY_KEY } from '@/features/ingredients/catalog';
 import { CategoryField } from '@/features/ingredients/category-field';
 import { mustChooseForm } from '@/features/ingredients/generic-ingredients';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { saveIngredient } from '@/features/ingredients/ingredient-repo';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
-import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
+import {
+  ingredientNameKey,
+  parseAmountRange,
+  prepWordsInName,
+  withoutPrepWord,
+} from '@/features/ingredients/parse-ingredient-line';
 import {
   allUnits,
   COMMON_UNITS,
@@ -24,6 +30,7 @@ import {
 import {
   amountInputText,
   formatIngredientAmount,
+  linkFor,
   rowsFromText,
 } from '@/features/recipes/recipe-draft';
 import type { DraftRow, RowLink } from '@/features/recipes/recipe-types';
@@ -157,6 +164,7 @@ export function IngredientRowsEditor({
                   ingredients={ingredients}
                   onEdit={() => setEditingKey(row.key)}
                   onLink={(link) => update(row.key, { link })}
+                  onChange={(change) => update(row.key, change)}
                 />
               </View>
             )
@@ -222,12 +230,19 @@ function RowSummary({
   ingredients,
   onEdit,
   onLink,
+  onChange,
 }: {
   row: DraftRow;
   ingredients: Ingredient[];
   onEdit: () => void;
   onLink: (link: RowLink) => void;
+  onChange: (change: Partial<DraftRow>) => void;
 }) {
+  // "chopped onion": offer moving prep words to the note, unless the whole
+  // name is a product ("diced tomatoes", "sliced almonds").
+  const prepWords = CATALOG_BY_KEY.has(ingredientNameKey(row.writtenName))
+    ? []
+    : prepWordsInName(row.writtenName);
   const theme = useTheme();
   const amount = formatIngredientAmount(row);
   const name = linkName(row);
@@ -304,6 +319,33 @@ function RowSummary({
             />
           )}
           <Chip label="Other…" onPress={onEdit} />
+        </View>
+      )}
+      {prepWords.length > 0 && (
+        <View style={styles.choices}>
+          <ThemedText type="small" themeColor="attention" style={styles.fullWidth}>
+            Is “{prepWords.join('”, “')}” how to prepare it? Notes keep the name clean.
+          </ThemedText>
+          {prepWords.map((word) => (
+            <Chip
+              key={word}
+              label={`Move “${word}” to note`}
+              onPress={() => {
+                const writtenName = withoutPrepWord(row.writtenName, word);
+                const adverb = row.writtenName
+                  .toLowerCase()
+                  .match(
+                    new RegExp(`\\b(finely|roughly|coarsely|thinly|freshly|lightly)\\s+${word}\\b`)
+                  );
+                const moved = adverb ? `${adverb[1]} ${word}` : word;
+                onChange({
+                  writtenName,
+                  note: row.note ? `${moved}, ${row.note}` : moved,
+                  link: linkFor(writtenName, ingredients),
+                });
+              }}
+            />
+          ))}
         </View>
       )}
     </View>
@@ -478,6 +520,9 @@ function RowEditor({
 }
 
 const styles = StyleSheet.create({
+  fullWidth: {
+    width: '100%',
+  },
   group: {
     gap: Spacing.two,
   },

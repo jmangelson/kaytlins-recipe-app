@@ -91,3 +91,42 @@ tags:
 - extendedWaitUntil:
     visible: 'roma tomatoes'
     timeout: 15000
+
+# Renaming an ingredient renames it in its recipes; the old name stays as
+# another name for it.
+- back
+- tapOn: 'Settings'
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Ingredients'
+- scrollUntilVisible:
+    element: 'lime.*'
+    centerElement: true
+- tapOn: 'lime.*'
+- extendedWaitUntil:
+    visible:
+      id: 'ingredient-name'
+    timeout: 15000
+- tapOn:
+    id: 'ingredient-name'
+- eraseText: 10
+- inputText: 'Key limes'
+- hideKeyboard
+- tapOn: 'Save'
+- extendedWaitUntil:
+    visible: 'Key limes.*'
+    timeout: 15000
+- tapOn: 'Key limes.*'
+- scrollUntilVisible:
+    element: 'Remove lime'
+    centerElement: true
+- back
+- back
+- tapOn: 'Recipes'
+- scrollUntilVisible:
+    element: 'Pico'
+- tapOn: 'Pico'
+- extendedWaitUntil:
+    visible: 'Key limes'
+    timeout: 15000

@@ -26,6 +26,7 @@ import {
   getIngredient,
   listIngredients,
   mergeIngredients,
+  renameIngredient,
   saveIngredient,
 } from '@/features/ingredients/ingredient-repo';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
@@ -154,7 +155,12 @@ function IngredientEditor({
     setNameError(problem);
     if (problem) return false;
     setSaving(true);
-    await saveIngredient(householdId, ingredient);
+    // A new name goes to every recipe using it; the old one stays as another name.
+    if (canonicalName(ingredient.name) !== canonicalName(initial.name)) {
+      await renameIngredient(householdId, ingredient, initial.name);
+    } else {
+      await saveIngredient(householdId, ingredient);
+    }
     setSaving(false);
     return true;
   }

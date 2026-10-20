@@ -4,6 +4,8 @@ import {
   parseAmount,
   parseAmountRange,
   parseIngredientLine,
+  prepWordsInName,
+  withoutPrepWord,
 } from '@/features/ingredients/parse-ingredient-line';
 
 describe('parseAmount', () => {
@@ -167,5 +169,47 @@ describe('cube and container units', () => {
 
   it('keeps "cubes" in the name when it is the item itself', () => {
     expect(parseIngredientLine('4 bouillon cubes')).toMatchObject({ quantity: 4, unit: null });
+  });
+});
+
+describe('amount after the name, and notes', () => {
+  it.each([
+    ['flour 2 cups', 2, 'cup', 'flour', null],
+    ['chicken breasts 2 lbs', 2, 'lb', 'chicken breasts', null],
+    ['chicken breasts, 1 1/2 lb', 1.5, 'lb', 'chicken breasts', null],
+    ['eggs 3', 3, null, 'eggs', null],
+    ['water 1/2 cup', 0.5, 'cup', 'water', null],
+    ['onion chopped', null, null, 'onion', 'chopped'],
+    ['1 onion chopped', 1, null, 'onion', 'chopped'],
+    ['3 cloves garlic finely minced', 3, 'clove', 'garlic', 'finely minced'],
+    ['2 carrots peeled and diced', 2, null, 'carrots', 'peeled and diced'],
+    ['1 lb ground beef (85% lean)', 1, 'lb', 'ground beef', '85% lean'],
+    ['1 pound chicken breast halves - cubed', 1, 'lb', 'chicken breast halves', 'cubed'],
+    ['1 cup finely chopped onion', 1, 'cup', 'onion', 'finely chopped'],
+  ])('%s', (line, quantity, unit, name, note) => {
+    expect(parseIngredientLine(line)).toMatchObject({ quantity, unit, name, note });
+  });
+
+  it('leaves product names that start with a prep word alone', () => {
+    expect(parseIngredientLine('1 can diced tomatoes').name).toBe('diced tomatoes');
+    expect(parseIngredientLine('1/2 cup sliced almonds').name).toBe('sliced almonds');
+    expect(parseIngredientLine('2 cups shredded cheddar').name).toBe('shredded cheddar');
+  });
+
+  it('keeps numbers that belong to the name', () => {
+    expect(parseIngredientLine('1 gallon 2% milk')).toMatchObject({ quantity: 1, name: '2% milk' });
+    expect(parseIngredientLine('2 (9 inch) pie crusts')).toMatchObject({
+      quantity: 2,
+      note: '9 inch',
+    });
+  });
+});
+
+describe('prep words left in a name', () => {
+  it('finds them, and removes one (with its adverb)', () => {
+    expect(prepWordsInName('chopped onion')).toEqual(['chopped']);
+    expect(withoutPrepWord('finely chopped onion', 'chopped')).toBe('onion');
+    expect(withoutPrepWord('chopped onion', 'chopped')).toBe('onion');
+    expect(prepWordsInName('yellow onion')).toEqual([]);
   });
 });

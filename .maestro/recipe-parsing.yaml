@@ -1,0 +1,46 @@
+# Ingredient lines: the amount after the name reads the same, preparation
+# after the name goes to the note, and a prep word at the front is offered
+# as a note (one tap).
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - recipes
+---
+- evalScript: ${output.email = 'parsing' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: 'recipe-add-ingredients'
+- tapOn:
+    id: 'recipe-add-ingredients'
+- inputText: 'flour 2 cups'
+- pressKey: Enter
+- inputText: '1 garlic clove finely minced'
+- pressKey: Enter
+- inputText: '1 cup chopped carrots'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Edit 2 cups flour'
+    direction: UP
+    centerElement: true
+- assertVisible: 'Edit 1 garlic clove, finely minced'
+- scrollUntilVisible:
+    element: 'Move “chopped” to note'
+    centerElement: true
+- takeScreenshot: build/screenshots/99-move-prep-to-note
+- tapOn: 'Move “chopped” to note'
+- assertVisible: 'Edit 1 cup carrots, chopped'
+- assertNotVisible: 'Move “chopped” to note'
+- back
+- tapOn: 'DISCARD|Discard'
