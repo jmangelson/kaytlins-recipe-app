@@ -606,7 +606,7 @@ function RowEditor({
 }
 
 /**
- * "Or instead": other ingredients the recipe takes in place of this one
+ * "Other options": other ingredients the recipe takes in place of this one
  * ("iceberg or romaine lettuce"). A list buys the first unless it already
  * has one of the others.
  */
@@ -626,11 +626,9 @@ function OrInstead({
   }
   return (
     <View style={styles.group}>
-      <ThemedText type="smallBold">Or instead</ThemedText>
+      <ThemedText type="smallBold">Other options</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {alternates.length
-          ? 'Lists buy the first, unless one of these is already on the list.'
-          : 'For a recipe that takes either one, like iceberg or romaine lettuce.'}
+        You can optionally specify another option for this ingredient by selecting it below
       </ThemedText>
       {alternates.map((alt, i) => {
         const name = alt.link.kind === 'choose' ? alt.writtenName : alt.link.name;
@@ -682,7 +680,7 @@ function OrInstead({
           }}
         />
       ) : (
-        <Chip label="Add a choice" onPress={() => setAdding(true)} />
+        <Chip label="Add an option" onPress={() => setAdding(true)} />
       )}
     </View>
   );

@@ -22,7 +22,7 @@ tags:
 - assertVisible: 'white rice or brown rice'
 - takeScreenshot: build/screenshots/110-recipe-choices
 
-# In the editor: the other choice under the line, and "Or instead"
+# In the editor: the other choice under the line, and "Other options"
 - tapOn: 'Edit recipe'
 - scrollUntilVisible:
     element: 'Edit 1 head iceberg lettuce or romaine lettuce'
@@ -30,7 +30,7 @@ tags:
 - takeScreenshot: build/screenshots/111-edit-choices
 - tapOn: 'Edit 1 head iceberg lettuce or romaine lettuce'
 - scrollUntilVisible:
-    element: 'Or instead'
+    element: 'Other options'
     centerElement: true
 - takeScreenshot: build/screenshots/112-or-instead
 # Typing in Note, then adding a choice: typing goes to the search, not the
@@ -50,7 +50,7 @@ tags:
 - swipe:
     start: 50%, 55%
     end: 50%, 25%
-- tapOn: 'Add a choice'
+- tapOn: 'Add an option'
 - inputText: 'green leaf lettuce'
 - takeScreenshot: build/screenshots/114-add-choice-typing
 - assertVisible:

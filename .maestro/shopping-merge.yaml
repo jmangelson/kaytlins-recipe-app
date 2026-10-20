@@ -69,7 +69,7 @@ tags:
 - assertNotVisible: 'plum tomatoes.*'
 - takeScreenshot: build/screenshots/104-merged-item
 
-# Name and notes: "chopped" leaves the name, and a note for this trip
+# Its name: changes it everywhere ("roma" leaves the name)
 - scrollUntilVisible:
     element: 'Fix an item'
     direction: UP
@@ -78,36 +78,56 @@ tags:
     element: 'roma tomatoes, 5.*'
     centerElement: true
 - tapOn: 'roma tomatoes, 5.*'
+- takeScreenshot: build/screenshots/80c-fix-item-five-choices
 - scrollUntilVisible:
-    element: 'Its name or notes'
+    element: 'Its name'
     centerElement: true
-- tapOn: 'Its name or notes'
-# (the label focuses the field with the cursor at the end of the name)
+- tapOn: 'Its name'
+# (the hint focuses the field with the cursor at the end of the name)
 - tapOn: 'Changes it in every recipe.*'
 - eraseText: 20
 - inputText: 'tomatoes'
+# Typing near the bottom of the list: the field and its Save stay above the keyboard
+- takeScreenshot: build/screenshots/115-typing-above-keyboard
+- assertVisible: 'Save name'
 - hideKeyboard
+- takeScreenshot: build/screenshots/105-fix-name
 - scrollUntilVisible:
-    element:
-      id: 'fix-item-notes'
+    element: 'Save name'
     centerElement: true
+- tapOn: 'Save name'
+- scrollUntilVisible:
+    element: 'tomatoes, 5.*'
+    direction: UP
+    centerElement: true
+- assertNotVisible: 'roma tomatoes.*'
+
+# A note for this trip: only on this list
+- scrollUntilVisible:
+    element: 'Fix an item'
+    direction: UP
+- tapOn: 'Fix an item'
+- scrollUntilVisible:
+    element: 'tomatoes, 5.*'
+    centerElement: true
+- tapOn: 'tomatoes, 5.*'
+- scrollUntilVisible:
+    element: 'A note for this trip'
+    centerElement: true
+- tapOn: 'A note for this trip'
 - tapOn:
     id: 'fix-item-notes'
 - inputText: 'ripe'
-# Typing near the bottom of the list: the field and its Save stay above the keyboard
-- takeScreenshot: build/screenshots/115-typing-above-keyboard
-- assertVisible: 'Save name and notes'
 - hideKeyboard
-- takeScreenshot: build/screenshots/105-fix-name-notes
+- takeScreenshot: build/screenshots/105b-fix-note
 - scrollUntilVisible:
-    element: 'Save name and notes'
+    element: 'Save note'
     centerElement: true
-- tapOn: 'Save name and notes'
+- tapOn: 'Save note'
 - scrollUntilVisible:
     element: 'tomatoes, 5.*'
     direction: UP
     centerElement: true
 - assertVisible: 'tomatoes, 5.*Notes: ripe'
 - assertNotVisible: '.*Recipe notes: ripe'
-- assertNotVisible: 'roma tomatoes.*'
 - takeScreenshot: build/screenshots/106-fixed-name-notes

@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-export type FixAction = 'aisle' | 'merge' | 'name';
+export type FixAction = 'aisle' | 'merge' | 'name' | 'note';
 
 /** The boxed panel every "Fix an item" step uses. */
 export function FixBox({ children }: { children: React.ReactNode }) {
@@ -43,7 +43,8 @@ export function FixChooser({
         variant="secondary"
         onPress={() => onChoose('merge')}
       />
-      <Button label="Its name or notes" variant="secondary" onPress={() => onChoose('name')} />
+      <Button label="Its name" variant="secondary" onPress={() => onChoose('name')} />
+      <Button label="A note for this trip" variant="secondary" onPress={() => onChoose('note')} />
       <Button label="Cancel" variant="secondary" onPress={onCancel} />
     </FixBox>
   );
@@ -60,30 +61,26 @@ export function PickOther({ name, onCancel }: { name: string; onCancel: () => vo
 }
 
 /**
- * The item's name (changed everywhere; words it drops move into its
- * recipes' notes) and its notes on this list.
+ * "Its name": the ingredient's name everywhere (every recipe and list);
+ * words it drops move into its recipes' notes.
  */
-export function NameNotes({
+export function NameFix({
   name: initialName,
-  notes: initialNotes,
   nameProblem,
   onSave,
   onCancel,
 }: {
   name: string;
-  notes: string;
   nameProblem: (name: string) => string | null;
-  onSave: (name: string, notes: string) => void;
+  onSave: (name: string) => void;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(initialName);
-  const [notes, setNotes] = useState(initialNotes);
   const problem = name.trim() ? nameProblem(name) : 'Enter a name.';
   return (
     <FixBox>
-      <ThemedText type="smallBold">Name and notes</ThemedText>
       <TextField
-        label="Name"
+        label="Its name"
         hint="Changes it in every recipe and list. Words you take out (like “minced”) move into its recipes’ notes."
         testID="fix-item-name"
         autoCorrect={false}
@@ -92,28 +89,62 @@ export function NameNotes({
         error={problem ?? undefined}
         maxLength={80}
       />
+      <SaveCancel
+        saveLabel="Save name"
+        onSave={() => onSave(name)}
+        disabled={!!problem}
+        onCancel={onCancel}
+      />
+    </FixBox>
+  );
+}
+
+/** "A note for this trip": only on this list, under the item. */
+export function NoteFix({
+  notes: initialNotes,
+  onSave,
+  onCancel,
+}: {
+  notes: string;
+  onSave: (notes: string) => void;
+  onCancel: () => void;
+}) {
+  const [notes, setNotes] = useState(initialNotes);
+  return (
+    <FixBox>
       <TextField
-        label="Notes for this trip"
-        hint="Like “85% lean” or “medium”. Shown under the item on this list."
+        label="A note for this trip"
+        hint="Like “ripe” or “85% lean”. Only on this list, under the item; your recipes don’t change."
         testID="fix-item-notes"
         value={notes}
         onChangeText={setNotes}
         maxLength={200}
       />
-      <View style={styles.actions}>
-        <View style={styles.flex}>
-          <Button label="Cancel" variant="secondary" onPress={onCancel} />
-        </View>
-        <View style={styles.flex}>
-          <Button
-            label="Save"
-            accessibilityLabel="Save name and notes"
-            onPress={() => onSave(name, notes)}
-            disabled={!!problem}
-          />
-        </View>
-      </View>
+      <SaveCancel saveLabel="Save note" onSave={() => onSave(notes)} onCancel={onCancel} />
     </FixBox>
+  );
+}
+
+function SaveCancel({
+  saveLabel,
+  onSave,
+  onCancel,
+  disabled = false,
+}: {
+  saveLabel: string;
+  onSave: () => void;
+  onCancel: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.actions}>
+      <View style={styles.flex}>
+        <Button label="Cancel" variant="secondary" onPress={onCancel} />
+      </View>
+      <View style={styles.flex}>
+        <Button label="Save" accessibilityLabel={saveLabel} onPress={onSave} disabled={disabled} />
+      </View>
+    </View>
   );
 }
 

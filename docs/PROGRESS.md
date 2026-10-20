@@ -393,7 +393,7 @@ From the full check on her phone:
 - Shopping list: one "Fix an item" button. She taps the item, then picks
   where it is in the store (the three aisle choices), that it's the same as
   another item (tap it, then the merge's final name and category), or its
-  name and notes (the name changes everywhere; her own notes show as
+  name or a note for this trip, as separate choices (the name changes everywhere; her own notes show as
   "Notes:", recipe ones as "Recipe notes:").
 - One-day ranges read "Oct 18", not "Oct 18 – 18".
 - Cleanup remembers her choices: "Keep both" (kept apart) and "Keep name"

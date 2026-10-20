@@ -34,7 +34,13 @@ import { AddItem, type NewItem } from '@/features/shopping/add-item';
 import { CheckRow } from '@/features/shopping/check-row';
 import { deleteExtraItem, listExtraItems, saveExtraItem } from '@/features/shopping/extra-repo';
 import { FixAisle, type AisleFix } from '@/features/shopping/fix-aisle';
-import { FixChooser, NameNotes, PickOther, type FixAction } from '@/features/shopping/fix-item';
+import {
+  FixChooser,
+  NameFix,
+  NoteFix,
+  PickOther,
+  type FixAction,
+} from '@/features/shopping/fix-item';
 import { MergeItems } from '@/features/shopping/merge-items';
 import {
   extraItemFromLine,
@@ -235,7 +241,8 @@ function ListEditor({
    * "Its name or notes": the ingredient's name everywhere (words it drops go
    * to its recipes' notes) and this item's notes on this list.
    */
-  async function renameItem(key: string, name: string, notes: string) {
+  /** "Its name": the ingredient's name everywhere (words it drops go to its recipes' notes). */
+  async function renameItem(key: string, name: string) {
     const line = list.lines.find((l) => l.key === key);
     if (!line) return;
     const finalName = canonicalName(name);
@@ -247,6 +254,14 @@ function ListEditor({
       await renameIngredient(householdId, renamed, ing.name);
       setKnown(new Map(known).set(renamed.id, renamed));
     }
+    commit({
+      ...list,
+      lines: list.lines.map((l) => (l.key === key ? { ...l, name: finalName } : l)),
+    });
+  }
+
+  /** "A note for this trip": this item's notes on this list only. */
+  function setItemNotes(key: string, notes: string) {
     const noteList = notes
       .split(',')
       .map((n) => n.trim())
@@ -254,7 +269,7 @@ function ListEditor({
     commit({
       ...list,
       lines: list.lines.map((l) =>
-        l.key === key ? { ...l, name: finalName, notes: noteList, notesEdited: true } : l
+        l.key === key ? { ...l, notes: noteList, notesEdited: true } : l
       ),
     });
   }
@@ -360,6 +375,7 @@ function ListEditor({
           onChange={commit}
           onMergeItems={mergeItems}
           onRenameItem={renameItem}
+          onItemNotes={setItemNotes}
           mergeNameProblem={mergeNameProblem}
           onDoneShopping={(finished) => {
             commit({ ...finished, status: 'done' });
@@ -600,6 +616,7 @@ function ReadyList({
   onStoreChange,
   onMergeItems,
   onRenameItem,
+  onItemNotes,
   mergeNameProblem,
   addItem,
   onChange,
@@ -612,7 +629,8 @@ function ReadyList({
   onIngredientChange: (ingredient: Ingredient) => void;
   onStoreChange: (store: Store) => void;
   onMergeItems: (keepKey: string, dropKey: string, name: string, category: CategoryId) => void;
-  onRenameItem: (key: string, name: string, notes: string) => void;
+  onRenameItem: (key: string, name: string) => void;
+  onItemNotes: (key: string, notes: string) => void;
   mergeNameProblem: (keepKey: string, dropKey: string, name: string) => string | null;
   addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
@@ -840,14 +858,23 @@ function ReadyList({
                         />
                       )}
                       {fixingKey === item.ingredientId && fixAction === 'name' && (
-                        <NameNotes
+                        <NameFix
                           name={item.name}
-                          notes={(line?.notes ?? []).join(', ')}
                           nameProblem={(name) =>
                             mergeNameProblem(item.ingredientId, item.ingredientId, name)
                           }
-                          onSave={(name, notes) => {
-                            onRenameItem(item.ingredientId, name, notes);
+                          onSave={(name) => {
+                            onRenameItem(item.ingredientId, name);
+                            endFix();
+                          }}
+                          onCancel={endFix}
+                        />
+                      )}
+                      {fixingKey === item.ingredientId && fixAction === 'note' && (
+                        <NoteFix
+                          notes={(line?.notes ?? []).join(', ')}
+                          onSave={(notes) => {
+                            onItemNotes(item.ingredientId, notes);
                             endFix();
                           }}
                           onCancel={endFix}
