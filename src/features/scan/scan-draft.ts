@@ -13,6 +13,8 @@ export type ScannedDraft = {
   servingsMissing: boolean;
   /** The scanned pages (base64 JPEG), saved with the recipe as its photos. */
   pages: string[];
+  /** Where it came from: a photo scan (the default) or a website import. */
+  from?: 'photo' | 'website';
 };
 
 /**
@@ -56,6 +58,7 @@ export function scanToDraft(
       tagIds: result.suggested_tag_ids,
       rows,
       notes: result.notes?.trim() ?? '',
+      link: '',
     },
     warnings: result.warnings,
     servingsMissing: result.servings === null,

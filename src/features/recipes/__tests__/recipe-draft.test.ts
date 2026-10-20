@@ -23,6 +23,7 @@ function recipe(overrides: Partial<Recipe>): Recipe {
     servings: 4,
     tagIds: [],
     notes: '',
+    link: '',
     hasPhoto: false,
     photoIds: [],
     ingredients: [],

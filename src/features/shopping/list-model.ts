@@ -10,7 +10,17 @@ import {
 import type { Store } from '@/features/stores/store-types';
 
 export type ListSource =
-  { kind: 'dates'; from: string; to: string } | { kind: 'plan'; planId: string; planName: string };
+  | { kind: 'dates'; from: string; to: string }
+  | { kind: 'plan'; planId: string; planName: string }
+  /** Any mix of calendar days, meal plans, and recipes added one by one. */
+  | {
+      kind: 'mix';
+      from: string | null;
+      to: string | null;
+      planIds: string[];
+      planNames: string[];
+      recipeNames: string[];
+    };
 
 /** One line of a saved list: what's needed, what she has, and where to buy the rest. */
 export type ListLine = {
@@ -59,6 +69,11 @@ export type ShoppingList = {
   source: ListSource;
   tripStoreIds: string[];
   lines: ListLine[];
+  /**
+   * Usually-at-home items the meals need (water), left off this list but
+   * kept for a packing list made from it.
+   */
+  atHome?: { ingredientId: string; name: string; quantities: Quantity[] }[];
 };
 
 export function linesFromNeeds(needs: NeedLine[]): ListLine[] {

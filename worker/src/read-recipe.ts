@@ -20,7 +20,14 @@ export type ReadOutcome =
   | { ok: true; result: ScanResult; usage: Anthropic.Beta.BetaUsage }
   | { ok: false; status: number; error: string; message: string };
 
-export async function readRecipe(client: Anthropic, request: ScanRequest): Promise<ReadOutcome> {
+/**
+ * Reads photos (a scan) or, with `pageText`, the text of a recipe web page
+ * that has no recipe data of its own (an import).
+ */
+export async function readRecipe(
+  client: Anthropic,
+  request: ScanRequest & { pageText?: string }
+): Promise<ReadOutcome> {
   const tagIds = request.tags.map((t) => t.id);
   const unitKeys = scanUnitKeys(request);
   let response: Anthropic.Beta.BetaMessage;
@@ -48,7 +55,18 @@ export async function readRecipe(client: Anthropic, request: ScanRequest): Promi
                 data: image.data,
               },
             })),
-            { type: 'text' as const, text: userPrompt(request.tags, request.units) },
+            ...(request.pageText
+              ? [
+                  {
+                    type: 'text' as const,
+                    text: `The text of a recipe web page:\n\n${request.pageText}`,
+                  },
+                ]
+              : []),
+            {
+              type: 'text' as const,
+              text: userPrompt(request.tags, request.units, request.pageText ? 'page' : 'photos'),
+            },
           ],
         },
       ],

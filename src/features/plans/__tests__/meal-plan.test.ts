@@ -25,6 +25,7 @@ function recipe(id: string, name: string, tagIds: string[]): Recipe {
     servings: 4,
     tagIds,
     notes: '',
+    link: '',
     hasPhoto: false,
     photoIds: [],
     ingredients: [],

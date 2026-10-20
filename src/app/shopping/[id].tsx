@@ -718,6 +718,11 @@ function ReadyList({
         />
       )}
       <Button label="Back to pantry check" variant="secondary" onPress={onBack} />
+      <Button
+        label="Make a packing list"
+        variant="secondary"
+        onPress={() => router.push({ pathname: '/packing/new', params: { fromList: list.id } })}
+      />
     </>
   );
 }

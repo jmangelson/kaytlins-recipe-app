@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Edge } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
@@ -11,6 +11,7 @@ import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { normalizeUrl } from '@/features/import/recipe-page';
 import { categoryName } from '@/features/ingredients/categories';
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { formatIngredientAmount } from '@/features/recipes/recipe-draft';
@@ -166,6 +167,19 @@ export default function RecipeDetailScreen() {
           })
         )}
       </View>
+
+      {recipe.link ? (
+        <Button
+          label="View the original recipe"
+          variant="secondary"
+          accessibilityHint={`Opens ${recipe.link}`}
+          onPress={() =>
+            Linking.openURL(normalizeUrl(recipe.link) ?? recipe.link).catch(() =>
+              Alert.alert('Couldn’t open the link', recipe.link)
+            )
+          }
+        />
+      ) : null}
 
       {recipe.notes ? (
         <View style={styles.group}>

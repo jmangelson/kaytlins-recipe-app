@@ -62,7 +62,7 @@ service cloud.firestore {
     function validIngredient(data) {
       return data.keys().hasOnly(['name', 'nameKey', 'aliases', 'aliasKeys', 'category',
           'storePriority', 'areaOverrides', 'defaultUnit', 'categoryVersion', 'categorySet',
-          'categoryChecked'])
+          'categoryChecked', 'usuallyAtHome'])
         && validName(data.name, 80)
         && validName(data.nameKey, 80)
         && data.aliases is list && data.aliases.size() <= 30
@@ -73,16 +73,18 @@ service cloud.firestore {
         && optionalString(data, 'defaultUnit')
         && (!('categoryVersion' in data) || data.categoryVersion is int)
         && (!('categorySet' in data) || data.categorySet is bool)
-        && (!('categoryChecked' in data) || data.categoryChecked is bool);
+        && (!('categoryChecked' in data) || data.categoryChecked is bool)
+        && (!('usuallyAtHome' in data) || data.usuallyAtHome is bool);
     }
 
     function validRecipe(data) {
-      return data.keys().hasOnly(['name', 'servings', 'tagIds', 'notes', 'hasPhoto',
+      return data.keys().hasOnly(['name', 'servings', 'tagIds', 'notes', 'link', 'hasPhoto',
           'photoIds', 'ingredients', 'createdAt', 'updatedAt'])
         && validName(data.name, 120)
         && data.servings is number && data.servings > 0 && data.servings <= 100
         && data.tagIds is list && data.tagIds.size() <= 20
         && data.notes is string && data.notes.size() <= 5000
+        && (!('link' in data) || (data.link is string && data.link.size() <= 2000))
         && data.hasPhoto is bool
         && (!('photoIds' in data) || (data.photoIds is list && data.photoIds.size() <= 12))
         && data.ingredients is list && data.ingredients.size() <= 100
@@ -117,14 +119,33 @@ service cloud.firestore {
 
     function validShoppingList(data) {
       return data.keys().hasOnly(['name', 'status', 'source', 'tripStoreIds', 'lines',
-          'createdAt', 'updatedAt'])
+          'atHome', 'createdAt', 'updatedAt'])
         && validName(data.name, 80)
         && data.status in ['pantry', 'ready', 'done']
         && data.source is map
         && data.tripStoreIds is list && data.tripStoreIds.size() <= 20
         && data.lines is list && data.lines.size() <= 300
+        && (!('atHome' in data) || (data.atHome is list && data.atHome.size() <= 100))
         && data.updatedAt == request.time
         && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // Food and gear for cooking away from home.
+    function validPackingList(data) {
+      return data.keys().hasOnly(['name', 'source', 'items', 'gear', 'createdAt', 'updatedAt'])
+        && validName(data.name, 80)
+        && data.source is map
+        && data.items is list && data.items.size() <= 300
+        && data.gear is list && data.gear.size() <= 100
+        && data.updatedAt == request.time
+        && (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // The gear every new packing list starts with.
+    function validPackingGear(data) {
+      return data.keys().hasOnly(['items', 'updatedAt'])
+        && data.items is list && data.items.size() <= 100
+        && data.updatedAt == request.time;
     }
 
     // Something to buy on the next trips until it's checked off (paper towels).
@@ -258,6 +279,23 @@ service cloud.firestore {
         allow create, update: if isMember(hid) && validUnit(request.resource.data, unitId);
       }
 
+      match /packingLists/{listId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validPackingList(request.resource.data);
+      }
+
+      match /packingGear/{docId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && docId == 'default'
+          && validPackingGear(request.resource.data);
+      }
+
+      // Bought most trips (milk, bread); making a list asks to add them.
+      match /staples/{itemId} {
+        allow read, delete: if isMember(hid);
+        allow create, update: if isMember(hid) && validExtraItem(request.resource.data);
+      }
+
       match /extraItems/{itemId} {
         allow read, delete: if isMember(hid);
         allow create, update: if isMember(hid) && validExtraItem(request.resource.data);
@@ -269,7 +307,8 @@ service cloud.firestore {
       match /{collection}/{document=**} {
         allow read, write: if isMember(hid)
           && !(collection in ['stores', 'tags', 'ingredients', 'recipes', 'recipePhotos', 'mealPlans',
-              'calendarDays', 'shoppingLists', 'extraItems', 'units']);
+              'calendarDays', 'shoppingLists', 'extraItems', 'units', 'staples',
+              'packingLists', 'packingGear']);
       }
     }
   }

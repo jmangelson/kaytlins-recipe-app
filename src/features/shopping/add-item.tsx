@@ -42,10 +42,12 @@ export function AddItem({
   ingredients,
   stores,
   onAdd,
+  testID = 'add-item',
 }: {
   ingredients: Ingredient[];
   stores: Store[];
   onAdd: (text: string, ingredient: Ingredient | NewItem) => void;
+  testID?: string;
 }) {
   const [text, setText] = useState('');
   const [step, setStep] = useState<Step>({ kind: 'typing' });
@@ -81,7 +83,7 @@ export function AddItem({
       <TextField
         label="Add an item"
         hint="Like “paper towels” or “2 gallons milk”"
-        testID="add-item"
+        testID={testID}
         value={text}
         onChangeText={(next) => {
           setText(next);

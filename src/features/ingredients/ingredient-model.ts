@@ -33,6 +33,8 @@ export type Ingredient = {
   categorySet: boolean;
   /** Claude was already asked for an Uncategorized name (asked once). */
   categoryChecked: boolean;
+  /** Usually at home (water): left off shopping lists, still on packing lists. */
+  usuallyAtHome: boolean;
   /** Stores she buys it at, most preferred first. Empty = her overall store order. */
   storePriority: string[];
   /** Area per store when it differs from the category's usual area. */
@@ -66,6 +68,7 @@ export function ingredientFromData(id: string, data: Record<string, unknown>): I
     category: upgradeCategory(data, name),
     categorySet: categoryWasChosen(data, name),
     categoryChecked: data.categoryChecked === true,
+    usuallyAtHome: data.usuallyAtHome === true,
     storePriority,
     areaOverrides,
     defaultUnit: (data.defaultUnit as string | null) ?? null,
@@ -84,6 +87,7 @@ export function ingredientToData(ingredient: Omit<Ingredient, 'id'>) {
     categoryVersion: CATEGORY_VERSION,
     categorySet: ingredient.categorySet,
     categoryChecked: ingredient.categoryChecked,
+    usuallyAtHome: ingredient.usuallyAtHome,
     storePriority: ingredient.storePriority,
     areaOverrides: ingredient.areaOverrides,
     defaultUnit: ingredient.defaultUnit,
@@ -99,6 +103,7 @@ export function newIngredient(name: string): Omit<Ingredient, 'id'> {
     category: guessCategory(name),
     categorySet: false,
     categoryChecked: false,
+    usuallyAtHome: false,
     storePriority: [],
     areaOverrides: {},
     defaultUnit: null,

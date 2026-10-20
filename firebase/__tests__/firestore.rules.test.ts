@@ -517,6 +517,104 @@ describe('extra items', () => {
   });
 });
 
+describe('round 2 phase 3–5 data', () => {
+  beforeEach(seedHousehold);
+  const ts = { createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+
+  it('validates staples like other things to buy', async () => {
+    const ref = doc(dbAs('alice'), 'households', HID, 'staples', 's1');
+    const staple = {
+      name: 'milk',
+      ingredientId: 'milk',
+      quantity: { amount: 1, unit: 'gallon' },
+      ...ts,
+    };
+    await assertSucceeds(setDoc(ref, staple));
+    await assertFails(setDoc(ref, { ...staple, name: '' }));
+    await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'staples', 's2'), staple));
+  });
+
+  it('validates packing lists and the default gear', async () => {
+    const db = dbAs('alice');
+    const list = {
+      name: 'Camping',
+      source: { kind: 'shopping', listId: 'l1', listName: 'Trip' },
+      items: [
+        {
+          key: 'w',
+          ingredientId: 'w',
+          name: 'water',
+          quantities: [],
+          category: 'water',
+          checked: false,
+        },
+      ],
+      gear: [{ key: 'g', name: 'Foil', checked: false }],
+      ...ts,
+    };
+    const ref = doc(db, 'households', HID, 'packingLists', 'p1');
+    await assertSucceeds(setDoc(ref, list));
+    await assertFails(setDoc(ref, { ...list, name: '' }));
+    await assertFails(setDoc(ref, { ...list, extra: true }));
+    const gear = doc(db, 'households', HID, 'packingGear', 'default');
+    await assertSucceeds(setDoc(gear, { items: ['Foil'], updatedAt: serverTimestamp() }));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'packingGear', 'other'), {
+        items: [],
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await assertFails(setDoc(doc(dbAs('mallory'), 'households', HID, 'packingLists', 'p2'), list));
+  });
+
+  it('accepts a recipe link, a usually-at-home ingredient, and at-home items on a list', async () => {
+    const db = dbAs('alice');
+    const recipe = {
+      name: 'Fajitas',
+      servings: 4,
+      tagIds: [],
+      notes: '',
+      link: 'https://example.com/fajitas',
+      hasPhoto: false,
+      ingredients: [],
+      ...ts,
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'recipes', 'r1'), recipe));
+    await assertFails(setDoc(doc(db, 'households', HID, 'recipes', 'r2'), { ...recipe, link: 5 }));
+    const ingredient = {
+      name: 'Water',
+      nameKey: 'water',
+      aliases: [],
+      aliasKeys: [],
+      category: 'water',
+      usuallyAtHome: true,
+      storePriority: [],
+      areaOverrides: {},
+      defaultUnit: null,
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'ingredients', 'w'), ingredient));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'ingredients', 'w2'), {
+        ...ingredient,
+        usuallyAtHome: 'yes',
+      })
+    );
+    const list = {
+      name: 'Week',
+      status: 'pantry',
+      source: { kind: 'mix', from: null, to: null, planIds: [], planNames: [], recipeNames: [] },
+      tripStoreIds: [],
+      lines: [],
+      atHome: [{ ingredientId: 'w', name: 'water', quantities: [] }],
+      ...ts,
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'shoppingLists', 'l1'), list));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'shoppingLists', 'l2'), { ...list, atHome: 'water' })
+    );
+  });
+});
+
 describe('leaving and deleting a household', () => {
   beforeEach(async () => {
     await createHouseholdBatch('alice', HID, CODE).commit();

@@ -20,9 +20,14 @@ tags:
 - extendedWaitUntil:
     visible: '.*Dinner, Chicken Enchiladas, Pico'
     timeout: 15000
-- assertVisible: '2 meals · 7 ingredients.*'
+- scrollUntilVisible:
+    element: '2 meals · 7 items.*'
+- scrollUntilVisible:
+    element: '.*Dinner, Veggie Pasta'
+    direction: UP
 - tapOn: '.*Dinner, Veggie Pasta'
-- assertVisible: '1 meal · 5 ingredients.*'
+- scrollUntilVisible:
+    element: '1 meal · 5 items.*'
 - scrollUntilVisible:
     element: 'Save list'
 - tapOn: 'Save list'
@@ -78,13 +83,34 @@ tags:
 
 # From a meal plan instead
 - tapOn: 'New list'
-- tapOn: 'A meal plan'
-- tapOn: 'Shop for Week A'
+# (any mix: calendar off, a plan, plus a recipe from the drop-down)
 - extendedWaitUntil:
-    visible: '2 meals · 7 ingredients.*'
+    visible: '.*Dinner, Chicken Enchiladas, Pico'
     timeout: 15000
-- assertVisible:
-    id: 'new-list-name'
+- tapOn: 'Use calendar days'
+- assertNotVisible: '.*Dinner, Chicken Enchiladas, Pico'
+- scrollUntilVisible:
+    element: 'Shop for Week A'
+- tapOn: 'Shop for Week A'
+- scrollUntilVisible:
+    element: '2 meals · 7 items.*'
+- scrollUntilVisible:
+    element: 'Add a recipe'
+    centerElement: true
+- tapOn: 'Add a recipe'
+- tapOn:
+    id: 'add-recipe-search'
+- inputText: 'sal'
+- hideKeyboard
+- takeScreenshot: build/screenshots/88-add-recipe-dropdown
+- tapOn: 'Add Salsa'
+- scrollUntilVisible:
+    element: '2 meals \+ 1 recipe · 9 items.*'
+- assertVisible: 'Remove Salsa'
+- scrollUntilVisible:
+    element:
+      id: 'new-list-name'
+- assertVisible: 'Week A \+ Salsa'
 # Leaving a list she set up asks first
 - back
 - tapOn: 'DISCARD|Discard'

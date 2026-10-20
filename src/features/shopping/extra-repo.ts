@@ -11,13 +11,22 @@ import type { ExtraItem } from '@/features/shopping/list-model';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
-function itemsCollection(householdId: string) {
-  return collection(db, 'households', householdId, 'extraItems');
+/**
+ * Other things to buy ("extraItems", on every list until checked off) and
+ * staples ("staples", offered each time she makes a list) share a shape.
+ */
+export type ItemCollection = 'extraItems' | 'staples';
+
+function itemsCollection(householdId: string, name: ItemCollection = 'extraItems') {
+  return collection(db, 'households', householdId, name);
 }
 
 /** Things to buy on the next trips, oldest first. */
-export async function listExtraItems(householdId: string): Promise<ExtraItem[]> {
-  const snapshot = await getDocs(itemsCollection(householdId));
+export async function listExtraItems(
+  householdId: string,
+  from: ItemCollection = 'extraItems'
+): Promise<ExtraItem[]> {
+  const snapshot = await getDocs(itemsCollection(householdId, from));
   return snapshot.docs
     .map((d) => {
       const data = d.data();
@@ -41,9 +50,13 @@ export function newExtraItemId(householdId: string): string {
 }
 
 /** Adds an item (or puts one back after it was unchecked). */
-export async function saveExtraItem(householdId: string, item: ExtraItem): Promise<void> {
+export async function saveExtraItem(
+  householdId: string,
+  item: ExtraItem,
+  to: ItemCollection = 'extraItems'
+): Promise<void> {
   await commitOrQueue(() =>
-    setDoc(doc(itemsCollection(householdId), item.id), {
+    setDoc(doc(itemsCollection(householdId, to), item.id), {
       name: item.name,
       ingredientId: item.ingredientId,
       quantity: item.quantity,
@@ -54,6 +67,10 @@ export async function saveExtraItem(householdId: string, item: ExtraItem): Promi
 }
 
 /** Bought (checked off) or no longer needed. */
-export async function deleteExtraItem(householdId: string, itemId: string): Promise<void> {
-  await commitOrQueue(() => deleteDoc(doc(itemsCollection(householdId), itemId)));
+export async function deleteExtraItem(
+  householdId: string,
+  itemId: string,
+  from: ItemCollection = 'extraItems'
+): Promise<void> {
+  await commitOrQueue(() => deleteDoc(doc(itemsCollection(householdId, from), itemId)));
 }

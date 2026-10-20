@@ -1,5 +1,6 @@
 /**
- * Recipe photo scan (/scan) and ingredient categories (/categorize).
+ * Recipe photo scan (/scan), recipe import from a web page (/import), and
+ * ingredient categories (/categorize).
  *
  * Scan: the app posts photos with the signed-in user's Firebase
  * ID token; this Worker checks the token and the allowed list, counts the
@@ -19,6 +20,13 @@ import {
   categorizeRequestProblem,
   type CategorizeRequest,
 } from '../../src/features/categorize/categorize-contract';
+import {
+  normalizeUrl,
+  pageText,
+  recipeFromHtml,
+  type ImportRequest,
+  type ImportResponse,
+} from '../../src/features/import/recipe-page';
 import { categorizeNames } from './categorize';
 import { readRecipe } from './read-recipe';
 import { limitKeys, scanRequestProblem } from './scan-request';
@@ -164,10 +172,92 @@ async function categorize(request: Request, env: Env): Promise<Response> {
   return reply(200, outcome.result);
 }
 
+/** Pages larger than this aren't read (most recipe pages are 0.2–2 MB). */
+const MAX_PAGE_BYTES = 5_000_000;
+
+/**
+ * A recipe from a web page: the page's own recipe data when it has it
+ * (free), else Claude reads the page text (counts as a scan).
+ */
+async function importRecipe(request: Request, env: Env): Promise<Response> {
+  const who = await authorize(request, env);
+  if (who instanceof Response) return who;
+  let body: ImportRequest;
+  try {
+    body = (await request.json()) as ImportRequest;
+  } catch {
+    return problem(400, 'bad_request', 'Send the link to the recipe.');
+  }
+  const url = typeof body?.url === 'string' ? normalizeUrl(body.url) : null;
+  if (!url) return problem(400, 'bad_url', 'That doesn’t look like a web link.');
+  const invalid = scanRequestProblem(
+    { images: [], tags: body.tags ?? [], units: body.units },
+    true
+  );
+  if (invalid) return problem(400, 'bad_request', invalid);
+
+  let html: string;
+  try {
+    const page = await fetch(url, {
+      headers: {
+        'user-agent':
+          'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Mobile Safari/537.36',
+        accept: 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!page.ok) {
+      return problem(502, 'page_error', `The site answered with an error (${page.status}).`);
+    }
+    const length = Number(page.headers.get('content-length') ?? 0);
+    if (length > MAX_PAGE_BYTES) return problem(413, 'too_big', 'That page is too big to read.');
+    html = (await page.text()).slice(0, MAX_PAGE_BYTES);
+  } catch {
+    return problem(502, 'page_error', 'Couldn’t open that page. Check the link and try again.');
+  }
+
+  const recipe = recipeFromHtml(html);
+  if (recipe) return reply(200, { kind: 'page', url, recipe } satisfies ImportResponse);
+
+  const text = pageText(html);
+  if (text.length < 200) {
+    return problem(422, 'no_recipe', 'That page doesn’t have a recipe the app can read.');
+  }
+  // Claude reads the page: counted with scans.
+  const keys = limitKeys(who.uid, new Date());
+  const [used, usedTotal] = await Promise.all([
+    env.SCAN_LIMITS.get(keys.user).then(Number),
+    env.SCAN_LIMITS.get(keys.total).then(Number),
+  ]);
+  const perUser = Number(env.DAILY_LIMIT_PER_USER);
+  if (used >= perUser || usedTotal >= Number(env.DAILY_LIMIT_TOTAL)) {
+    return problem(
+      429,
+      'daily_limit',
+      `That’s the limit of ${perUser} scans for today. Try again tomorrow.`
+    );
+  }
+  const twoDays = { expirationTtl: 2 * 24 * 60 * 60 };
+  await Promise.all([
+    env.SCAN_LIMITS.put(keys.user, String(used + 1), twoDays),
+    env.SCAN_LIMITS.put(keys.total, String(usedTotal + 1), twoDays),
+  ]);
+  const outcome = await readRecipe(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), {
+    images: [],
+    tags: body.tags ?? [],
+    units: body.units,
+    pageText: text,
+  });
+  if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
+  return reply(200, { kind: 'read', url, result: outcome.result } satisfies ImportResponse);
+}
+
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === '/scan' && request.method === 'POST') return scan(request, env);
+    if (url.pathname === '/import' && request.method === 'POST') return importRecipe(request, env);
     if (url.pathname === '/categorize' && request.method === 'POST') {
       return categorize(request, env);
     }

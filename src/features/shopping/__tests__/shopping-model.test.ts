@@ -27,6 +27,7 @@ const tacos: Recipe = {
   servings: 4,
   tagIds: [],
   notes: '',
+  link: '',
   hasPhoto: false,
   photoIds: [],
   ingredients: [
@@ -42,6 +43,7 @@ const chili: Recipe = {
   servings: 6,
   tagIds: [],
   notes: '',
+  link: '',
   hasPhoto: false,
   photoIds: [],
   ingredients: [

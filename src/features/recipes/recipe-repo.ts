@@ -36,6 +36,7 @@ function toRecipe(id: string, data: Record<string, unknown>): Recipe {
     servings: data.servings as number,
     tagIds: (data.tagIds as string[]) ?? [],
     notes: (data.notes as string) ?? '',
+    link: (data.link as string) ?? '',
     hasPhoto: !!data.hasPhoto,
     // Before multiple photos, a recipe's one photo was stored under its own id.
     photoIds: (data.photoIds as string[] | undefined) ?? (data.hasPhoto ? [id] : []),
@@ -120,6 +121,7 @@ export async function saveRecipe(
     servings: Number(draft.servings),
     tagIds: draft.tagIds,
     notes: draft.notes.trim(),
+    link: draft.link.trim(),
     hasPhoto: photos.length > 0,
     photoIds: photos.map((p) => p.id),
     ingredients: lines.map((line) => ({

@@ -134,6 +134,7 @@ export function groupForTrip(
       category: guessCategory(line.name),
       categorySet: false,
       categoryChecked: false,
+      usuallyAtHome: false,
       storePriority: [],
       areaOverrides: {},
       defaultUnit: null,
@@ -205,13 +206,21 @@ export function mealsFromCalendar(
   });
 }
 
-/** Every planned meal on the chosen days of a plan (skipping empty meals). */
-export function mealsFromPlan(plan: MealPlan, dayIndexes: number[], meals: MealId[]): MealChoice[] {
+/**
+ * Every planned meal on the chosen days of a plan (skipping empty meals).
+ * `prefix` (the plan's id) keeps keys apart when several plans are chosen.
+ */
+export function mealsFromPlan(
+  plan: MealPlan,
+  dayIndexes: number[],
+  meals: MealId[],
+  prefix?: string
+): MealChoice[] {
   return dayIndexes.flatMap((dayIndex) =>
     meals
       .filter((meal) => plan.days[dayIndex]?.meals[meal].length > 0)
       .map((meal) => ({
-        key: mealKey(`plan-${dayIndex}`, meal),
+        key: mealKey(`${prefix ? `${prefix}:` : ''}plan-${dayIndex}`, meal),
         meal,
         items: plan.days[dayIndex].meals[meal],
       }))
@@ -221,4 +230,41 @@ export function mealsFromPlan(plan: MealPlan, dayIndexes: number[], meals: MealI
 /** The planned recipes in the meals she kept selected. */
 export function itemsFor(choices: MealChoice[], selectedKeys: Set<string>): PlanItem[] {
   return choices.filter((c) => selectedKeys.has(c.key)).flatMap((c) => c.items);
+}
+
+/**
+ * Adds her staples to what the meals need: a staple already needed by a
+ * recipe adds its amount to that line ("Staples" joins its recipes);
+ * otherwise it's its own line.
+ */
+export function withStaples(
+  needs: NeedLine[],
+  staples: { ingredientId: string; name: string; quantity: Quantity }[]
+): NeedLine[] {
+  const lines = needs.map((n) => ({ ...n }));
+  for (const staple of staples) {
+    const line = lines.find((n) => n.ingredientId === staple.ingredientId);
+    if (line) {
+      line.quantities = combineQuantities([...line.quantities, staple.quantity]);
+      if (!line.recipeNames.includes('Staples'))
+        line.recipeNames = [...line.recipeNames, 'Staples'];
+    } else {
+      lines.push({
+        ingredientId: staple.ingredientId,
+        name: staple.name,
+        quantities: [staple.quantity],
+        recipeNames: ['Staples'],
+      });
+    }
+  }
+  return lines.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
+/** Splits off what's usually at home (water): left off shopping lists, kept for packing. */
+export function leaveOffAtHome(
+  needs: NeedLine[],
+  ingredients: Map<string, Ingredient>
+): { kept: NeedLine[]; atHome: NeedLine[] } {
+  const atHome = needs.filter((n) => ingredients.get(n.ingredientId)?.usuallyAtHome);
+  return { kept: needs.filter((n) => !atHome.includes(n)), atHome };
 }

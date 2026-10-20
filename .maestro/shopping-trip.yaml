@@ -49,7 +49,7 @@ onFlowComplete:
     visible: '.*Dinner, Veggie Pasta'
     timeout: 15000
 - scrollUntilVisible:
-    element: '2 meals · 7 ingredients.*'
+    element: '2 meals · 7 items.*'
 - assertVisible: 'Also on the list: paper towels.'
 - scrollUntilVisible:
     element: 'Save list'

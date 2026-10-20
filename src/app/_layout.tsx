@@ -69,6 +69,12 @@ function RootNavigator() {
           name="calendar/apply"
           options={{ headerShown: true, title: 'Apply a plan' }}
         />
+        <Stack.Screen
+          name="packing/new"
+          options={{ headerShown: true, title: 'New packing list' }}
+        />
+        <Stack.Screen name="packing/[id]" options={{ headerShown: true, title: 'Packing list' }} />
+        <Stack.Screen name="packing/gear" options={{ headerShown: true, title: 'Default gear' }} />
         <Stack.Screen name="shopping/new" options={{ headerShown: true, title: 'New list' }} />
         <Stack.Screen
           name="shopping/[id]"
@@ -76,6 +82,10 @@ function RootNavigator() {
         />
         <Stack.Screen name="recipe/new" options={{ headerShown: true, title: 'New recipe' }} />
         <Stack.Screen name="recipe/scan" options={{ headerShown: true, title: 'Scan a recipe' }} />
+        <Stack.Screen
+          name="recipe/import"
+          options={{ headerShown: true, title: 'Import a recipe' }}
+        />
         <Stack.Screen name="recipe/[id]/photos" options={{ headerShown: true, title: 'Photos' }} />
         <Stack.Screen name="recipe/[id]/index" options={{ headerShown: true, title: 'Recipe' }} />
         <Stack.Screen

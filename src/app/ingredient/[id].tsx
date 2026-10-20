@@ -10,6 +10,7 @@ import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
+import { ThemedSwitch } from '@/components/themed-switch';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { categoryName } from '@/features/ingredients/categories';
@@ -256,6 +257,21 @@ function IngredientEditor({
         />
       </View>
 
+      <View style={styles.switchRow}>
+        <View style={styles.flex}>
+          <ThemedText>Usually at home</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Like water: left off shopping lists, still on packing lists.
+          </ThemedText>
+        </View>
+        <ThemedSwitch
+          accessibilityLabel="Usually at home"
+          testID="usually-at-home"
+          value={ingredient.usuallyAtHome}
+          onValueChange={(on) => update({ usuallyAtHome: on })}
+        />
+      </View>
+
       <View style={styles.group}>
         <ThemedText type="smallBold" accessibilityRole="header">
           Where to buy it
@@ -384,6 +400,11 @@ function IngredientEditor({
 }
 
 const styles = StyleSheet.create({
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
   group: {
     gap: Spacing.two,
   },

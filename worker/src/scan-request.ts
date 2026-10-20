@@ -11,10 +11,12 @@ import {
 const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
 
 /** Why a request can't be scanned, or null when it's fine. */
-export function scanRequestProblem(body: unknown): string | null {
+/** Problems with a scan request; `withoutImages` checks an import's tags and units only. */
+export function scanRequestProblem(body: unknown, withoutImages = false): string | null {
   if (typeof body !== 'object' || body === null) return 'Send JSON with images and tags.';
   const { images, tags } = body as Partial<ScanRequest>;
-  if (!Array.isArray(images) || images.length === 0) return 'Add at least one photo.';
+  if (!Array.isArray(images)) return 'Add at least one photo.';
+  if (images.length === 0 && !withoutImages) return 'Add at least one photo.';
   if (images.length > MAX_SCAN_IMAGES) return `Send at most ${MAX_SCAN_IMAGES} photos.`;
   for (const image of images) {
     if (image?.media_type !== 'image/jpeg' || typeof image.data !== 'string') {
@@ -81,11 +83,17 @@ Each ingredient:
 Only include what is in the photos. If the photos don't show a recipe, return an empty title and ingredients list with a warning saying so.`;
 
 /** The text sent with the photos: her tags, so suggestions use her ids. */
-export function userPrompt(tags: ScanRequest['tags'], units: ScanRequest['units'] = []): string {
+export function userPrompt(
+  tags: ScanRequest['tags'],
+  units: ScanRequest['units'] = [],
+  source: 'photos' | 'page' = 'photos'
+): string {
   const lines = tags.map((t) => `- ${t.id}: ${t.name} (${t.group})`);
   const own = (units ?? []).map((u) => `- ${u.key}: ${u.singular} / ${u.plural}`);
   return [
-    'Read the recipe in these photos. The photos are pages of one recipe, in order.',
+    source === 'page'
+      ? 'Read the recipe in the web page text above (it may include ads, comments, and other recipes; read only the main recipe). Leave the cooking directions out; the app keeps the link to the page.'
+      : 'Read the recipe in these photos. The photos are pages of one recipe, in order.',
     lines.length
       ? `Household tags (suggest by id):\n${lines.join('\n')}`
       : 'The household has no tags.',

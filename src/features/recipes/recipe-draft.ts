@@ -30,7 +30,14 @@ function rowKey(): string {
 }
 
 export function emptyDraft(): RecipeDraft {
-  return { name: '', servings: String(DEFAULT_SERVINGS), tagIds: [], rows: [], notes: '' };
+  return {
+    name: '',
+    servings: String(DEFAULT_SERVINGS),
+    tagIds: [],
+    rows: [],
+    notes: '',
+    link: '',
+  };
 }
 
 export function draftFromRecipe(recipe: Recipe): RecipeDraft {
@@ -49,6 +56,7 @@ export function draftFromRecipe(recipe: Recipe): RecipeDraft {
       link: { kind: 'existing', ingredientId: line.ingredientId, name: canonicalName(line.name) },
     })),
     notes: recipe.notes,
+    link: recipe.link,
   };
 }
 

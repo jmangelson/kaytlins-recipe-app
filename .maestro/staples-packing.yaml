@@ -1,0 +1,162 @@
+# Staples are offered when making a list; usually-at-home items are left off
+# shopping lists but packed; packing lists come from meals or a shopping list.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - shopping
+---
+- evalScript: ${output.email = 'staples' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: week
+
+# A staple
+- tapOn: 'Shopping'
+- scrollUntilVisible:
+    element:
+      id: 'add-staple'
+    centerElement: true
+- tapOn:
+    id: 'add-staple'
+- inputText: '1 gallon whole milk'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to list'
+    centerElement: true
+- tapOn:
+    text: 'Add to list'
+    index: 1
+- scrollUntilVisible:
+    element: 'Add whole milk'
+    centerElement: true
+- tapOn: 'Add whole milk'
+- scrollUntilVisible:
+    element: 'whole milk, 1 gal.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/93-staples
+
+# Lime is usually at home
+- tapOn: 'Settings'
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Ingredients'
+- scrollUntilVisible:
+    element: 'lime.*'
+    centerElement: true
+- tapOn: 'lime.*'
+- scrollUntilVisible:
+    element: 'Usually at home'
+    centerElement: true
+- tapOn:
+    id: 'usually-at-home'
+- takeScreenshot: build/screenshots/94-usually-at-home
+- tapOn: 'Save'
+- back
+- back
+
+# A new list offers the staple and leaves lime off
+- tapOn: 'Recipes'
+- tapOn: 'Shopping'
+- tapOn: 'New list'
+- extendedWaitUntil:
+    visible: '.*Dinner, Chicken Enchiladas, Pico'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Add your staples\?'
+    centerElement: true
+- assertVisible:
+    text: 'Staple whole milk.*'
+    checked: true
+- scrollUntilVisible:
+    element: 'Left off, usually at home: lime.'
+    centerElement: true
+- assertVisible: '2 meals · 7 items.*'
+- takeScreenshot: build/screenshots/95-new-list-staples
+- scrollUntilVisible:
+    element: 'Save list'
+- tapOn: 'Save list'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Have whole milk.*'
+- assertNotVisible: 'Have lime.*'
+
+# A packing list from the shopping list: everything, lime too
+- scrollUntilVisible:
+    element: 'Make list'
+- back
+- runFlow:
+    when:
+      visible: 'Save your changes\?'
+    commands:
+      - tapOn: 'SAVE|Save'
+- extendedWaitUntil:
+    visible: 'Packing lists'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'New packing list'
+    centerElement: true
+- tapOn: 'New packing list'
+- tapOn: 'A shopping list'
+- tapOn: 'Pack from .*'
+- extendedWaitUntil:
+    visible: '8 food items.*'
+    timeout: 15000
+- takeScreenshot: build/screenshots/96-pack-from-list
+- scrollUntilVisible:
+    element: 'Make packing list'
+- tapOn: 'Make packing list'
+- extendedWaitUntil:
+    visible: '.*things to pack.*'
+    timeout: 15000
+- assertVisible: 'Food'
+- scrollUntilVisible:
+    element: 'lime.*'
+    centerElement: true
+- tapOn: 'lime.*'
+- assertVisible:
+    text: 'lime.*'
+    checked: true
+- scrollUntilVisible:
+    element: 'whole milk.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/97-packing-list
+- scrollUntilVisible:
+    element: 'Foil'
+    centerElement: true
+- tapOn:
+    id: 'add-gear'
+- inputText: 'Dutch oven'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add'
+    centerElement: true
+- tapOn: 'Add'
+- scrollUntilVisible:
+    element: 'Dutch oven'
+    centerElement: true
+- takeScreenshot: build/screenshots/98-packing-gear
+- back
+
+# A packing list straight from meals (no shopping list)
+- scrollUntilVisible:
+    element: 'New packing list'
+    centerElement: true
+- tapOn: 'New packing list'
+- extendedWaitUntil:
+    visible: '.*Dinner, Chicken Enchiladas, Pico'
+    timeout: 15000
+- scrollUntilVisible:
+    element: '7 food items.*'
+- scrollUntilVisible:
+    element: 'Make packing list'
+- tapOn: 'Make packing list'
+- extendedWaitUntil:
+    visible: '.*things to pack.*'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'lime.*'
+    centerElement: true

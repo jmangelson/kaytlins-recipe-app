@@ -10,7 +10,11 @@ import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { formatQuantity } from '@/features/ingredients/quantity';
 import { addExtraItem } from '@/features/shopping/add-extra';
 import { AddItem, type NewItem } from '@/features/shopping/add-item';
-import { deleteExtraItem, saveExtraItem } from '@/features/shopping/extra-repo';
+import {
+  deleteExtraItem,
+  saveExtraItem,
+  type ItemCollection,
+} from '@/features/shopping/extra-repo';
 import type { ExtraItem } from '@/features/shopping/list-model';
 import type { Store } from '@/features/stores/store-types';
 import { useTheme } from '@/hooks/use-theme';
@@ -25,12 +29,16 @@ export function ExtrasSection({
   initialItems,
   ingredients,
   stores,
+  collection = 'extraItems',
 }: {
   householdId: string;
   initialItems: ExtraItem[];
   ingredients: Ingredient[];
   stores: Store[];
+  /** "staples": things she buys most trips, offered when she makes a list. */
+  collection?: ItemCollection;
 }) {
+  const staples = collection === 'staples';
   const theme = useTheme();
   const [items, setItems] = useState(initialItems);
   // Hers (refreshed when the tab comes back into view), plus any added here.
@@ -41,23 +49,25 @@ export function ExtrasSection({
   function add(text: string, item: Ingredient | NewItem) {
     const added = addExtraItem(householdId, text, item);
     if (!added) return;
-    saveExtraItem(householdId, added.extra);
+    saveExtraItem(householdId, added.extra, collection);
     if (!('id' in item)) setAdded((current) => [...current, added.ingredient]);
     setItems([...items, added.extra]);
   }
 
   function remove(item: ExtraItem) {
-    deleteExtraItem(householdId, item.id);
+    deleteExtraItem(householdId, item.id, collection);
     setItems(items.filter((i) => i.id !== item.id));
   }
 
   return (
     <View style={styles.group}>
       <ThemedText type="smallBold" accessibilityRole="header">
-        Other things to buy
+        {staples ? 'Staples' : 'Other things to buy'}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        Added to every list you make until you check them off in the store.
+        {staples
+          ? 'Things you buy most trips. Making a list asks whether to add them.'
+          : 'Added to every list you make until you check them off in the store.'}
       </ThemedText>
       {items.length > 0 && (
         <View>
@@ -100,7 +110,12 @@ export function ExtrasSection({
           })}
         </View>
       )}
-      <AddItem ingredients={known} stores={stores.filter((s) => !s.hidden)} onAdd={add} />
+      <AddItem
+        ingredients={known}
+        stores={stores.filter((s) => !s.hidden)}
+        onAdd={add}
+        testID={staples ? 'add-staple' : 'add-item'}
+      />
     </View>
   );
 }

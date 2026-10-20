@@ -20,6 +20,8 @@ export type Recipe = {
   servings: number;
   tagIds: string[];
   notes: string;
+  /** The page it was imported from ('' if not imported); opened from the recipe. */
+  link: string;
   hasPhoto: boolean;
   /** Her photos in order (the dish, the directions, scanned pages). */
   photoIds: string[];
@@ -63,4 +65,5 @@ export type RecipeDraft = {
   tagIds: string[];
   rows: DraftRow[];
   notes: string;
+  link: string;
 };

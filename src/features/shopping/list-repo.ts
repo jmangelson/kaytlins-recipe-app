@@ -29,6 +29,7 @@ function listFromData(
     source: data.source as ShoppingList['source'],
     tripStoreIds: (data.tripStoreIds as string[]) ?? [],
     lines: (data.lines as ListLine[]) ?? [],
+    atHome: (data.atHome as ShoppingList['atHome']) ?? [],
     createdAt: created?.toMillis?.() ?? Date.now(),
   };
 }

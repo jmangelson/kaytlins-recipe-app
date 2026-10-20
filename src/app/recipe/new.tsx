@@ -69,11 +69,18 @@ export default function NewRecipeScreen() {
         scanned ? (
           <ScanNotice scanned={scanned.result} />
         ) : (
-          <Button
-            label="Scan a recipe photo"
-            variant="secondary"
-            onPress={() => router.push('/recipe/scan')}
-          />
+          <View style={styles.sources}>
+            <Button
+              label="Scan a recipe photo"
+              variant="secondary"
+              onPress={() => router.push('/recipe/scan')}
+            />
+            <Button
+              label="Import from a website"
+              variant="secondary"
+              onPress={() => router.push('/recipe/import')}
+            />
+          </View>
         )
       }
       onSave={async (draft, photos) => {
@@ -95,7 +102,13 @@ function ScanNotice({ scanned }: { scanned: ScannedDraft }) {
           `${unclear} ${unclear === 1 ? 'line was' : 'lines were'} hard to read; they’re marked below.`,
         ]
       : []),
-    ...(scanned.servingsMissing ? ['The photo didn’t say how many it serves.'] : []),
+    ...(scanned.servingsMissing
+      ? [
+          scanned.from === 'website'
+            ? 'The page didn’t say how many it serves.'
+            : 'The photo didn’t say how many it serves.',
+        ]
+      : []),
   ];
   return (
     <View
@@ -104,7 +117,10 @@ function ScanNotice({ scanned }: { scanned: ScannedDraft }) {
         { backgroundColor: theme.backgroundElement, borderColor: theme.border },
       ]}
       accessibilityLiveRegion="polite">
-      <ThemedText type="smallBold">Filled in from your photo. Check it before saving.</ThemedText>
+      <ThemedText type="smallBold">
+        Filled in from {scanned.from === 'website' ? 'the website' : 'your photo'}. Check it before
+        saving.
+      </ThemedText>
       {checks.map((check) => (
         <ThemedText key={check} type="small" themeColor="attention">
           • {check}
@@ -115,6 +131,9 @@ function ScanNotice({ scanned }: { scanned: ScannedDraft }) {
 }
 
 const styles = StyleSheet.create({
+  sources: {
+    gap: Spacing.two,
+  },
   notice: {
     borderWidth: 1,
     borderRadius: 10,
