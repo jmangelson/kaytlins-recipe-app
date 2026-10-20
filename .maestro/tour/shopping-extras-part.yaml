@@ -10,7 +10,13 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Add paper towels'
     centerElement: true
 - takeScreenshot: build/screenshots/55-extra-new
+- scrollUntilVisible:
+    element: 'Usually from Costco'
+    direction: UP
 - tapOn: 'Usually from Costco'
+- scrollUntilVisible:
+    element: 'Add paper towels'
+    centerElement: true
 - tapOn: 'Add paper towels'
 - runFlow:
     file: ../subflows/add-item.yaml

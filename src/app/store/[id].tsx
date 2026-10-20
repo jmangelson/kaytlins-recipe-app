@@ -213,7 +213,7 @@ function StoreEditor({
                 <ThemedText themeColor="textSecondary" style={styles.position}>
                   {index + 1}
                 </ThemedText>
-                <ThemedText numberOfLines={1} style={styles.flex}>
+                <ThemedText numberOfLines={2} style={styles.flex}>
                   {section.name}
                 </ThemedText>
               </>

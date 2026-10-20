@@ -271,6 +271,11 @@ appId: com.jmangelson.kaytlinsrecipes
     timeout: 60000
 - tapOn: 'Reorder areas'
 - takeScreenshot: build/screenshots/26b-store-reorder
+# Mid-screen first: a drag from the bottom edge can be taken by Android's
+# gesture bar.
+- scrollUntilVisible:
+    element: 'Drag Bread & bakery'
+    centerElement: true
 - swipe:
     from: 'Drag Bread & bakery'
     direction: DOWN
