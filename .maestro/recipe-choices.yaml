@@ -32,6 +32,7 @@ tags:
 - scrollUntilVisible:
     element: 'Other options'
     centerElement: true
+- assertVisible: 'Lists buy the first, unless one of these is already on the list.'
 - takeScreenshot: build/screenshots/112-or-instead
 # Typing in Note, then adding a choice: typing goes to the search, not the
 # note, and the search shows above the keyboard

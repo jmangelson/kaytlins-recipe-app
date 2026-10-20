@@ -630,6 +630,11 @@ function OrInstead({
       <ThemedText type="small" themeColor="textSecondary">
         You can optionally specify another option for this ingredient by selecting it below
       </ThemedText>
+      {alternates.length > 0 && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Lists buy the first, unless one of these is already on the list.
+        </ThemedText>
+      )}
       {alternates.map((alt, i) => {
         const name = alt.link.kind === 'choose' ? alt.writtenName : alt.link.name;
         return (
