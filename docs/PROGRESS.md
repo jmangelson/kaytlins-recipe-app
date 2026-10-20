@@ -359,12 +359,19 @@ From the full check on her phone:
 - Seed v5: Macey's in Kaytlin's walking order (perimeter, aisles 16 → 2,
   aisle 14 = shampoo, skin care, lotion); Costco/Sam's with the cold produce
   room apart from the bins; a finer generic layout for Walmart/Smith's;
-  Uncategorized in every store.
+  Uncategorized in every store. Medicine & health is its own category (Macey's
+  pharmacy, between aisles 16 and 15), apart from shampoo and skin care.
 - Upgrade: `categoryVersion: 5` marks v5 data (some v4 ids are also v5 ids
   with narrower meaning). A v4 category equal to the frozen v4 guess is
   re-guessed; one she chose stays within its family. Unedited starter stores
   and Macey's get the new layouts; edited stores keep their areas with
   categories expanded. `categorySet` marks her choices from now on.
+- Released: Firestore rules (category fields), Worker (`/categorize`), OTA
+  update 6a2f873d on preview (runtime 1.0.1).
+- Checks: lint, TypeScript, 317 unit tests, 41 rules tests, 17/17 e2e flows
+  (three rerun after both emulators' watchdogs killed them mid-suite), full
+  screenshot tour reviewed (fixed area names hiding their start, chip labels
+  wrapping).
 - Paid check: Haiku categorized 12 sample names correctly except Cool Whip
   (no good category) → whipped topping and frozen desserts moved to "Ice
   cream & frozen desserts", frozen dough to "Frozen breakfast, bread & dough".
@@ -458,6 +465,15 @@ From the full check on her phone:
 | Disk full (916 GB); the second emulator died                           | The emulator network simulator (`netsimd`) looped on "Error in packet stream" after an emulator exited, writing 193 GB of stderr log in /tmp at ~70 MB/s                                                                                           | Truncated the log and restarted the emulators; `start-emulator.sh` now links `netsim_stderr.log` to /dev/null                                                    |
 
 ## Lessons learned
+
+- **Split the screenshot tour across emulators.** `npm run screenshots` runs
+  the main tour on one emulator and the standalone parts on the other;
+  `npm run screenshots -- stores` runs just named parts (a few minutes).
+- **Don't edit a shell script while it runs.** Bash reads scripts as it goes;
+  rewriting `screenshots.sh` mid-run made it execute the new text's tail.
+- **Long lists need longer Maestro scrolls.** With 27 Macey's areas,
+  `scrollUntilVisible` needed a 60 s timeout; and `eraseText` deletes only
+  before the cursor, so tapping a long field mid-text leaves the rest.
 
 - **Metro reloads mid-suite.** Editing app code while Maestro runs hot-reloads
   the app under the tests: a fixture's "1 bunch cilantro" became an
