@@ -210,3 +210,31 @@ describe('filterRecipes', () => {
     expect(filterRecipes([dinnerTacos, lunchSalad], '', selected).map((r) => r.id)).toEqual(['t']);
   });
 });
+
+describe('ingredient choices ("or")', () => {
+  const mine = [ingredient('ice', 'iceberg lettuce'), ingredient('rice-w', 'white rice')];
+
+  it('splits a choice into a first ingredient and others', () => {
+    const [row] = rowsFromText('1 head iceberg or romaine lettuce', mine);
+    expect(row.link).toEqual({ kind: 'existing', ingredientId: 'ice', name: 'iceberg lettuce' });
+    expect(row.alternates).toEqual([
+      { writtenName: 'romaine lettuce', link: { kind: 'new', name: 'romaine lettuce' } },
+    ]);
+  });
+
+  it('saves the other choices linked by id, making new ones once', () => {
+    const rows = rowsFromText('2 cups white or brown rice\n1 cup brown rice', mine);
+    const { lines, newIngredients } = linesForSave(rows, mine);
+    expect(newIngredients.map((n) => n.name)).toEqual(['brown rice']);
+    expect(lines[0]).toMatchObject({
+      ingredientId: 'rice-w',
+      alternates: [{ ingredientId: 'new:0', name: 'brown rice' }],
+    });
+    expect(lines[1].alternates).toBeUndefined();
+  });
+
+  it('keeps an ingredient she named with "or" as one', () => {
+    const [row] = rowsFromText('1 cup half or whole', [ingredient('hw', 'half or whole')]);
+    expect(row.alternates).toBeUndefined();
+  });
+});

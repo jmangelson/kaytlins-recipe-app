@@ -12,7 +12,12 @@ export type RecipeIngredient = {
   note: string | null;
   /** The line as originally written or scanned. */
   raw: string;
+  /** Other ingredients that work instead ("iceberg or romaine lettuce"). */
+  alternates?: Alternate[];
 };
+
+/** Another ingredient a line can use instead of its first choice. */
+export type Alternate = { ingredientId: string; name: string };
 
 export type Recipe = {
   id: string;
@@ -54,9 +59,13 @@ export type DraftRow = {
   writtenName: string;
   raw: string;
   link: RowLink;
+  /** The other choices ("or romaine lettuce"), each linked like the row. */
+  alternates?: DraftAlternate[];
   /** From a photo scan: the line as printed, and whether it was hard to read. */
   scan?: { sourceText: string; unclear: boolean };
 };
+
+export type DraftAlternate = { writtenName: string; link: RowLink };
 
 /** What the add/edit form holds while she edits. */
 export type RecipeDraft = {

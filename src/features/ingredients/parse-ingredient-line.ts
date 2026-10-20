@@ -474,3 +474,27 @@ export function ingredientNameKey(name: string): string {
   words[words.length - 1] = singular;
   return words.join(' ');
 }
+
+/**
+ * A name that offers a choice, split into the choices: "iceberg or romaine
+ * lettuce" → iceberg lettuce, romaine lettuce; "white or brown rice" →
+ * white rice, brown rice; "butter or margarine" → butter, margarine. A
+ * one-word choice before a longer last one shares its last word. Null when
+ * the name isn't a choice.
+ */
+export function splitAlternatives(name: string): string[] | null {
+  const byOr = name.trim().split(/\s*,?\s+or\s+|\s*\/\s*(?=[a-z])/i);
+  // "cheddar, jack, or colby": commas list more choices when there's an "or".
+  const parts = (byOr.length > 1 ? [...byOr[0].split(','), ...byOr.slice(1)] : byOr)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length < 2 || parts.length > 4) return null;
+  const last = parts[parts.length - 1].split(/\s+/);
+  const head = last.length > 1 ? last[last.length - 1] : null;
+  const choices = parts.map((part, i) =>
+    i < parts.length - 1 && head && !part.includes(' ') ? `${part} ${head}` : part
+  );
+  // Each choice must be a name, not a word like "more" ("or more" is a note).
+  if (choices.some((c) => /^(more|less|so|two|other)$/i.test(c))) return null;
+  return choices;
+}

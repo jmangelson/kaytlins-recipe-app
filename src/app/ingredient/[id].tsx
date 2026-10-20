@@ -55,7 +55,11 @@ export default function IngredientScreen() {
       listRecipes(household.id),
     ]);
     const usedIn = recipes
-      .filter((r) => r.ingredients.some((l) => l.ingredientId === id))
+      .filter((r) =>
+        r.ingredients.some(
+          (l) => l.ingredientId === id || l.alternates?.some((a) => a.ingredientId === id)
+        )
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
     return { ingredient, stores, all, usedIn };
   }, [household.id, id]);
@@ -304,7 +308,11 @@ function IngredientEditor({
         ) : (
           usedIn.map((recipe) => {
             const notes = recipe.ingredients
-              .filter((l) => l.ingredientId === initial.id)
+              .filter(
+                (l) =>
+                  l.ingredientId === initial.id ||
+                  l.alternates?.some((a) => a.ingredientId === initial.id)
+              )
               .map((l) => l.raw)
               .join(' · ');
             return (

@@ -2,6 +2,7 @@ import { newIngredient, type Ingredient } from '@/features/ingredients/ingredien
 import type { Recipe } from '@/features/recipes/recipe-types';
 import {
   gatherNeeds,
+  nameWithChoices,
   groupForTrip,
   haveInNeedUnit,
   itemsFor,
@@ -262,5 +263,46 @@ describe('choosing meals', () => {
       'plan-1:lunch',
     ]);
     expect(mealsFromPlan(plan, [0, 1], ['dinner']).map((c) => c.key)).toEqual(['plan-0:dinner']);
+  });
+});
+
+describe('gatherNeeds with choices ("iceberg or romaine lettuce")', () => {
+  const salad = (id: string, lines: Recipe['ingredients']): Recipe => ({
+    ...tacos,
+    id,
+    name: id,
+    ingredients: lines,
+  });
+  const either = {
+    ...line('iceberg', 'iceberg lettuce', 1, 'head'),
+    alternates: [{ ingredientId: 'romaine', name: 'romaine lettuce' }],
+  };
+
+  it('buys the first choice, showing the others', () => {
+    const needs = gatherNeeds(
+      [{ recipeId: 'a', servings: null }],
+      new Map([['a', salad('a', [either])]])
+    );
+    expect(needs).toHaveLength(1);
+    expect(needs[0]).toMatchObject({ ingredientId: 'iceberg', orNames: ['romaine lettuce'] });
+    expect(nameWithChoices(needs[0])).toBe('iceberg lettuce (or romaine lettuce)');
+  });
+
+  it('joins a choice another recipe needs anyway', () => {
+    const needs = gatherNeeds(
+      [
+        { recipeId: 'a', servings: null },
+        { recipeId: 'b', servings: null },
+      ],
+      new Map([
+        ['a', salad('a', [either])],
+        ['b', salad('b', [line('romaine', 'romaine lettuce', 1, 'head')])],
+      ])
+    );
+    expect(needs).toHaveLength(1);
+    expect(needs[0].ingredientId).toBe('romaine');
+    expect(needs[0].quantities).toEqual([{ amount: 2, unit: 'head' }]);
+    // Recipe b needs romaine itself, so no "or".
+    expect(needs[0].orNames).toBeUndefined();
   });
 });

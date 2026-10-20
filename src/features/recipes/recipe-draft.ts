@@ -7,6 +7,7 @@ import {
 import {
   ingredientNameKey,
   parseIngredientLine,
+  splitAlternatives,
   type ParsedIngredient,
 } from '@/features/ingredients/parse-ingredient-line';
 import { formatAmount } from '@/features/ingredients/quantity';
@@ -54,6 +55,18 @@ export function draftFromRecipe(recipe: Recipe): RecipeDraft {
       writtenName: canonicalName(line.name),
       raw: line.raw,
       link: { kind: 'existing', ingredientId: line.ingredientId, name: canonicalName(line.name) },
+      ...(line.alternates?.length
+        ? {
+            alternates: line.alternates.map((a) => ({
+              writtenName: canonicalName(a.name),
+              link: {
+                kind: 'existing' as const,
+                ingredientId: a.ingredientId,
+                name: canonicalName(a.name),
+              },
+            })),
+          }
+        : {}),
     })),
     notes: recipe.notes,
     link: recipe.link,
@@ -77,16 +90,42 @@ export function linkFor(writtenName: string, ingredients: Ingredient[]): RowLink
 }
 
 export function rowFromParsed(parsed: ParsedIngredient, ingredients: Ingredient[]): DraftRow {
+  // "iceberg or romaine lettuce": the first choice, and the others. A name
+  // she already has as one ingredient ("half or whole milk" as hers) stays.
+  const choices =
+    matchIngredient(parsed.name, ingredients).kind === 'exact'
+      ? null
+      : splitAlternatives(parsed.name);
+  const name = choices ? choices[0] : parsed.name;
   return {
     key: rowKey(),
     quantity: parsed.quantity,
     quantityMax: parsed.quantityMax,
     unit: parsed.unit,
     note: parsed.note,
-    writtenName: canonicalName(parsed.name),
+    writtenName: canonicalName(name),
     raw: parsed.raw,
-    link: linkFor(parsed.name, ingredients),
+    link: linkFor(name, ingredients),
+    ...(choices
+      ? {
+          alternates: choices.slice(1).map((c) => ({
+            writtenName: canonicalName(c),
+            link: linkFor(c, ingredients),
+          })),
+        }
+      : {}),
   };
+}
+
+/** Rows (and their other choices) still waiting for her to say which ingredient. */
+export function unresolvedCount(rows: DraftRow[]): number {
+  return rows.reduce(
+    (n, r) =>
+      n +
+      (r.link.kind === 'choose' ? 1 : 0) +
+      (r.alternates ?? []).filter((a) => a.link.kind === 'choose').length,
+    0
+  );
 }
 
 /** Parses pasted or typed text (one ingredient per line) into new rows. */
@@ -109,7 +148,7 @@ export function validateDraft(draft: RecipeDraft): DraftErrors {
   if (!Number.isFinite(servings) || servings <= 0 || servings > 100) {
     errors.servings = 'Enter how many servings it makes (1–100).';
   }
-  const unresolved = draft.rows.filter((r) => r.link.kind === 'choose').length;
+  const unresolved = unresolvedCount(draft.rows);
   if (draft.rows.length > MAX_INGREDIENT_LINES) {
     errors.ingredients = `Keep it to ${MAX_INGREDIENT_LINES} ingredients or fewer.`;
   } else if (unresolved > 0) {
@@ -134,43 +173,45 @@ export function linesForSave(
 ): { lines: RecipeIngredient[]; newIngredients: NewIngredient[] } {
   const newIngredients: NewIngredient[] = [];
   const newByKey = new Map<string, NewIngredient>();
-  const lines = rows.map((row) => {
-    let ingredientId: string;
-    let name: string;
-    if (row.link.kind === 'existing') {
-      ingredientId = row.link.ingredientId;
-      name = row.link.name;
-    } else if (row.link.kind === 'new') {
-      const match = matchIngredient(row.link.name, ingredients);
+  function resolve(link: RowLink, writtenName: string): { ingredientId: string; name: string } {
+    if (link.kind === 'existing') return { ingredientId: link.ingredientId, name: link.name };
+    if (link.kind === 'new') {
+      const match = matchIngredient(link.name, ingredients);
       if (match.kind === 'exact') {
-        ingredientId = match.ingredient.id;
-        name = match.ingredient.name;
-      } else {
-        const key = ingredientNameKey(row.link.name);
-        let planned = newByKey.get(key);
-        if (!planned) {
-          planned = {
-            tempId: `new:${newIngredients.length}`,
-            name: canonicalName(row.link.name),
-            category: row.link.category,
-          };
-          newIngredients.push(planned);
-          newByKey.set(key, planned);
-        }
-        ingredientId = planned.tempId;
-        name = planned.name;
+        return { ingredientId: match.ingredient.id, name: match.ingredient.name };
       }
-    } else {
-      throw new Error(`Unresolved ingredient: ${row.writtenName}`);
+      const key = ingredientNameKey(link.name);
+      let planned = newByKey.get(key);
+      if (!planned) {
+        planned = {
+          tempId: `new:${newIngredients.length}`,
+          name: canonicalName(link.name),
+          category: link.category,
+        };
+        newIngredients.push(planned);
+        newByKey.set(key, planned);
+      }
+      return { ingredientId: planned.tempId, name: planned.name };
     }
+    throw new Error(`Unresolved ingredient: ${writtenName}`);
+  }
+  const lines = rows.map((row) => {
+    const main = resolve(row.link, row.writtenName);
+    const alternates = (row.alternates ?? [])
+      .map((a) => resolve(a.link, a.writtenName))
+      .filter(
+        (a, i, all) =>
+          a.ingredientId !== main.ingredientId &&
+          all.findIndex((b) => b.ingredientId === a.ingredientId) === i
+      );
     return {
-      ingredientId,
-      name,
+      ...main,
       quantity: row.quantity,
       quantityMax: row.quantityMax,
       unit: row.unit,
       note: row.note,
       raw: row.raw,
+      ...(alternates.length ? { alternates } : {}),
     };
   });
   return { lines, newIngredients };
@@ -216,7 +257,11 @@ export function filterRecipes(
       (r) =>
         !needle ||
         r.name.toLowerCase().includes(needle) ||
-        r.ingredients.some((i) => i.name.toLowerCase().includes(needle))
+        r.ingredients.some(
+          (i) =>
+            i.name.toLowerCase().includes(needle) ||
+            !!i.alternates?.some((a) => a.name.toLowerCase().includes(needle))
+        )
     )
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }

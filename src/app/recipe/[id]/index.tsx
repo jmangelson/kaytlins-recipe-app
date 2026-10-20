@@ -148,6 +148,7 @@ export default function RecipeDetailScreen() {
                 <View style={styles.ingredientName}>
                   <ThemedText>
                     {line.name}
+                    {line.alternates?.map((a) => ` or ${a.name}`).join('')}
                     {line.note ? (
                       <ThemedText themeColor="textSecondary">{`, ${line.note}`}</ThemedText>
                     ) : null}

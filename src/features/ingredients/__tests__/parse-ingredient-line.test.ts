@@ -7,6 +7,7 @@ import {
   parseAmountRange,
   parseIngredientLine,
   prepWordsInName,
+  splitAlternatives,
   withoutPrepWord,
 } from '@/features/ingredients/parse-ingredient-line';
 
@@ -252,4 +253,25 @@ describe('droppedWords', () => {
   ])('%s → %s drops %s', (from, to, dropped) => {
     expect(droppedWords(from, to)).toBe(dropped);
   });
+});
+
+describe('splitAlternatives', () => {
+  it.each([
+    ['iceberg or romaine lettuce', ['iceberg lettuce', 'romaine lettuce']],
+    ['white or brown rice', ['white rice', 'brown rice']],
+    ['butter or margarine', ['butter', 'margarine']],
+    ['chicken or vegetable broth', ['chicken broth', 'vegetable broth']],
+    ['sour cream or plain yogurt', ['sour cream', 'plain yogurt']],
+    ['cheddar, jack, or colby cheese', ['cheddar cheese', 'jack cheese', 'colby cheese']],
+    ['butter/margarine', ['butter', 'margarine']],
+  ])('%s', (name, choices) => {
+    expect(splitAlternatives(name)).toEqual(choices);
+  });
+
+  it.each(['flour', 'salt and pepper', 'milk or more', 'half and half'])(
+    '%s is not a choice',
+    (name) => {
+      expect(splitAlternatives(name)).toBeNull();
+    }
+  );
 });

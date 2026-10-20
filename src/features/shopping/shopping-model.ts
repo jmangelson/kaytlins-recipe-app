@@ -22,7 +22,17 @@ export type NeedLine = {
   recipeNames: string[];
   /** Recipe notes that matter when buying ("medium", "85% lean"), no repeats. */
   notes?: string[];
+  /**
+   * Other ingredients that work instead, when only "or" lines need it
+   * ("iceberg lettuce" with "romaine lettuce").
+   */
+  orNames?: string[];
 };
+
+/** "iceberg lettuce (or romaine lettuce)" when other choices work. */
+export function nameWithChoices(item: { name: string; orNames?: string[] }): string {
+  return item.orNames?.length ? `${item.name} (or ${item.orNames.join(' or ')})` : item.name;
+}
 
 /** Recipe amount scaled to the servings planned for that meal. */
 function scale(amount: number | null, item: PlanItem, recipe: Recipe): number | null {
@@ -39,27 +49,54 @@ function scale(amount: number | null, item: PlanItem, recipe: Recipe): number | 
 export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): NeedLine[] {
   const byIngredient = new Map<
     string,
-    { name: string; amounts: Quantity[]; recipes: string[]; notes: string[] }
-  >();
-  for (const item of items) {
-    const recipe = recipes.get(item.recipeId);
-    if (!recipe) continue;
-    for (const line of recipe.ingredients) {
-      const entry = byIngredient.get(line.ingredientId) ?? {
-        name: line.name,
-        amounts: [],
-        recipes: [],
-        notes: [],
-      };
-      const note = buyingNote(line.note);
-      if (note && !entry.notes.includes(note)) entry.notes.push(note);
-      entry.amounts.push({
-        amount: scale(line.quantityMax ?? line.quantity, item, recipe),
-        unit: line.unit,
-      });
-      if (!entry.recipes.includes(recipe.name)) entry.recipes.push(recipe.name);
-      byIngredient.set(line.ingredientId, entry);
+    {
+      name: string;
+      amounts: Quantity[];
+      recipes: string[];
+      notes: string[];
+      /** A line needs exactly this one (not a choice). */
+      plain: boolean;
+      orNames: string[];
     }
+  >();
+  const uses = items.flatMap((item) => {
+    const recipe = recipes.get(item.recipeId);
+    return recipe ? recipe.ingredients.map((line) => ({ item, recipe, line })) : [];
+  });
+  // Lines that need one ingredient first, so an "or" line can join one of
+  // its choices that's already on the list.
+  const ordered = [
+    ...uses.filter((u) => !u.line.alternates?.length),
+    ...uses.filter((u) => u.line.alternates?.length),
+  ];
+  for (const { item, recipe, line } of ordered) {
+    const choices = [
+      { ingredientId: line.ingredientId, name: line.name },
+      ...(line.alternates ?? []),
+    ];
+    const target = choices.find((c) => byIngredient.has(c.ingredientId)) ?? choices[0];
+    const entry = byIngredient.get(target.ingredientId) ?? {
+      name: target.name,
+      amounts: [],
+      recipes: [],
+      notes: [],
+      plain: false,
+      orNames: [],
+    };
+    if (choices.length === 1) entry.plain = true;
+    for (const other of choices) {
+      if (other.ingredientId !== target.ingredientId && !entry.orNames.includes(other.name)) {
+        entry.orNames.push(other.name);
+      }
+    }
+    const note = buyingNote(line.note);
+    if (note && !entry.notes.includes(note)) entry.notes.push(note);
+    entry.amounts.push({
+      amount: scale(line.quantityMax ?? line.quantity, item, recipe),
+      unit: line.unit,
+    });
+    if (!entry.recipes.includes(recipe.name)) entry.recipes.push(recipe.name);
+    byIngredient.set(target.ingredientId, entry);
   }
   return [...byIngredient.entries()]
     .map(([ingredientId, e]) => ({
@@ -68,6 +105,7 @@ export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): Ne
       quantities: combineQuantities(e.amounts),
       recipeNames: e.recipes,
       notes: e.notes,
+      ...(!e.plain && e.orNames.length ? { orNames: e.orNames } : {}),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
@@ -108,6 +146,7 @@ export type ListItem = {
   quantities: Quantity[];
   recipeNames: string[];
   notes?: string[];
+  orNames?: string[];
   storeId: string;
   sectionId: string | null;
   /** Set when it's not at one of its preferred stores on this trip. */
@@ -172,6 +211,7 @@ export function groupForTrip(
       quantities: line.quantities,
       recipeNames: line.recipeNames,
       notes: line.notes,
+      orNames: line.orNames,
       storeId: placed.store.id,
       sectionId,
       usualStoreName: placed.usualStore?.name ?? null,

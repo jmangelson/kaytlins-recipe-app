@@ -3,6 +3,7 @@ import { parseIngredientLine } from '@/features/ingredients/parse-ingredient-lin
 import { combineQuantities, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import {
   groupForTrip,
+  nameWithChoices,
   remainingAfterPantry,
   type ListGroup,
   type NeedLine,
@@ -36,6 +37,8 @@ export type ListLine = {
   recipeNames: string[];
   /** Recipe notes that matter when buying (lists made before notes have none). */
   notes?: string[];
+  /** Other choices when only "or" lines need it ("romaine lettuce"). */
+  orNames?: string[];
   /** She edited the notes herself ("Notes: ripe", not "Recipe notes"). */
   notesEdited?: boolean;
   /** Placement once the list is made (status "ready"). */
@@ -90,6 +93,7 @@ export function linesFromNeeds(needs: NeedLine[]): ListLine[] {
     haveIt: false,
     recipeNames: need.recipeNames,
     notes: need.notes ?? [],
+    ...(need.orNames ? { orNames: need.orNames } : {}),
     storeId: null,
     sectionId: null,
     usualStoreName: null,
@@ -129,6 +133,7 @@ export function placeLines(
       quantities: remaining(l),
       recipeNames: l.recipeNames,
       notes: l.notes,
+      orNames: l.orNames,
     })),
     ingredients,
     storesInOrder,
@@ -180,6 +185,7 @@ export function groupReadyList(list: ShoppingList, storesInOrder: Store[]): List
             quantities: remaining(l),
             recipeNames: l.recipeNames,
             notes: l.notes,
+            orNames: l.orNames,
             storeId: store.id,
             sectionId,
             usualStoreName: l.usualStoreName,
@@ -278,7 +284,8 @@ export function listAsText(list: ShoppingList, storesInOrder: Store[]): string {
           const lines = items.map((i) => {
             const amount = i.quantities.map(formatQuantity).filter(Boolean).join(' + ');
             const notes = i.notes?.length ? ` · ${i.notes.join(', ')}` : '';
-            return amount ? `- ${i.name} (${amount})${notes}` : `- ${i.name}${notes}`;
+            const name = nameWithChoices(i);
+            return amount ? `- ${name} (${amount})${notes}` : `- ${name}${notes}`;
           });
           return [section.name, ...lines].join('\n');
         })

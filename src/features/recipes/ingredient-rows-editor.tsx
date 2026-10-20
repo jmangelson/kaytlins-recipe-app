@@ -224,6 +224,121 @@ function linkName(row: DraftRow): string {
   return row.writtenName;
 }
 
+type ChooseLink = Extract<RowLink, { kind: 'choose' }>;
+
+/** "Which ingredient is 'onion'?": her matches, suggested kinds, or new. */
+function ChooseChips({
+  writtenName,
+  link,
+  onLink,
+  onOther,
+}: {
+  writtenName: string;
+  link: ChooseLink;
+  onLink: (link: RowLink) => void;
+  onOther?: () => void;
+}) {
+  return (
+    <View style={styles.choices}>
+      {link.candidates.map((c) => (
+        <Chip
+          key={c.id}
+          label={c.name}
+          accessibilityLabel={`Use ${c.name} for ${writtenName}`}
+          onPress={() => onLink({ kind: 'existing', ingredientId: c.id, name: c.name })}
+        />
+      ))}
+      {link.suggestions.map((name) => (
+        <Chip
+          key={name}
+          label={name}
+          accessibilityLabel={`Use new ${name} for ${writtenName}`}
+          onPress={() => onLink({ kind: 'new', name })}
+        />
+      ))}
+      {/* A bare herb or spice must be chosen by form, not kept as is. */}
+      {!mustChooseForm(writtenName) && (
+        <Chip
+          label={`New: ${writtenName}`}
+          onPress={() => onLink({ kind: 'new', name: writtenName })}
+        />
+      )}
+      {onOther && <Chip label="Other…" onPress={onOther} />}
+    </View>
+  );
+}
+
+/** What a row's link says under its name: category, new, or "which one?". */
+function LinkStatus({
+  link,
+  writtenName,
+  ingredients,
+}: {
+  link: RowLink;
+  writtenName: string;
+  ingredients: Ingredient[];
+}) {
+  if (link.kind === 'existing') {
+    return <LinkedCategory ingredientId={link.ingredientId} ingredients={ingredients} />;
+  }
+  if (link.kind === 'new') {
+    return (
+      <>
+        <ThemedText type="small" themeColor="attention">
+          New ingredient
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {categoryName(newCategory(link))}
+        </ThemedText>
+      </>
+    );
+  }
+  return (
+    <ThemedText type="small" themeColor="danger">
+      Which ingredient is “{writtenName}”?
+    </ThemedText>
+  );
+}
+
+/** The other choices under a row: "or romaine lettuce", each linked. */
+function AlternateLines({
+  row,
+  ingredients,
+  onChange,
+}: {
+  row: DraftRow;
+  ingredients: Ingredient[];
+  onChange: (change: Partial<DraftRow>) => void;
+}) {
+  const alternates = row.alternates ?? [];
+  if (alternates.length === 0) return null;
+  return (
+    <View style={styles.alternates}>
+      {alternates.map((alt, i) => (
+        <View key={i} style={styles.group}>
+          <View>
+            <ThemedText>
+              or {alt.link.kind === 'choose' ? alt.writtenName : alt.link.name}
+            </ThemedText>
+            <LinkStatus link={alt.link} writtenName={alt.writtenName} ingredients={ingredients} />
+          </View>
+          {alt.link.kind === 'choose' && (
+            <ChooseChips
+              writtenName={alt.writtenName}
+              link={alt.link}
+              onLink={(link) =>
+                onChange({
+                  alternates: alternates.map((a, j) => (j === i ? { ...a, link } : a)),
+                })
+              }
+            />
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** Collapsed row. Vague matches show their choices right here. */
 function RowSummary({
   row,
@@ -255,7 +370,7 @@ function RowSummary({
       ]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Edit ${amount ? `${amount} ` : ''}${name}${row.note ? `, ${row.note}` : ''}`}
+        accessibilityLabel={`Edit ${amount ? `${amount} ` : ''}${name}${(row.alternates ?? []).map((a) => ` or ${a.writtenName}`).join('')}${row.note ? `, ${row.note}` : ''}`}
         onPress={onEdit}
         style={styles.rowMain}>
         <ThemedText type="smallBold" style={styles.amount}>
@@ -268,24 +383,7 @@ function RowSummary({
               <ThemedText themeColor="textSecondary">{`, ${row.note}`}</ThemedText>
             ) : null}
           </ThemedText>
-          {row.link.kind === 'existing' && (
-            <LinkedCategory ingredientId={row.link.ingredientId} ingredients={ingredients} />
-          )}
-          {row.link.kind === 'new' && (
-            <>
-              <ThemedText type="small" themeColor="attention">
-                New ingredient
-              </ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {categoryName(newCategory(row.link))}
-              </ThemedText>
-            </>
-          )}
-          {row.link.kind === 'choose' && (
-            <ThemedText type="small" themeColor="danger">
-              Which ingredient is “{row.writtenName}”?
-            </ThemedText>
-          )}
+          <LinkStatus link={row.link} writtenName={row.writtenName} ingredients={ingredients} />
           {row.scan?.unclear && (
             <ThemedText type="small" themeColor="attention">
               Hard to read. Photo says: “{row.scan.sourceText}”
@@ -294,33 +392,14 @@ function RowSummary({
         </View>
       </Pressable>
       {row.link.kind === 'choose' && (
-        <View style={styles.choices}>
-          {row.link.candidates.map((c) => (
-            <Chip
-              key={c.id}
-              label={c.name}
-              accessibilityLabel={`Use ${c.name} for ${row.writtenName}`}
-              onPress={() => onLink({ kind: 'existing', ingredientId: c.id, name: c.name })}
-            />
-          ))}
-          {row.link.suggestions.map((name) => (
-            <Chip
-              key={name}
-              label={name}
-              accessibilityLabel={`Use new ${name} for ${row.writtenName}`}
-              onPress={() => onLink({ kind: 'new', name })}
-            />
-          ))}
-          {/* A bare herb or spice must be chosen by form, not kept as is. */}
-          {!mustChooseForm(row.writtenName) && (
-            <Chip
-              label={`New: ${row.writtenName}`}
-              onPress={() => onLink({ kind: 'new', name: row.writtenName })}
-            />
-          )}
-          <Chip label="Other…" onPress={onEdit} />
-        </View>
+        <ChooseChips
+          writtenName={row.writtenName}
+          link={row.link}
+          onLink={onLink}
+          onOther={onEdit}
+        />
       )}
+      <AlternateLines row={row} ingredients={ingredients} onChange={onChange} />
       {prepWords.length > 0 && (
         <View style={styles.choices}>
           <ThemedText type="small" themeColor="attention" style={styles.fullWidth}>
@@ -489,6 +568,8 @@ function RowEditor({
         />
       )}
 
+      {!picking && <OrInstead row={row} ingredients={ingredients} onChange={onChange} />}
+
       <View style={styles.editorActions}>
         <IconButton
           icon={{ android: 'arrow_upward', ios: 'arrow.up' }}
@@ -512,14 +593,104 @@ function RowEditor({
         <Button
           label="Done"
           onPress={onDone}
-          disabled={!!amountError || row.link.kind === 'choose'}
+          disabled={
+            !!amountError ||
+            row.link.kind === 'choose' ||
+            !!row.alternates?.some((a) => a.link.kind === 'choose')
+          }
         />
       </View>
     </View>
   );
 }
 
+/**
+ * "Or instead": other ingredients the recipe takes in place of this one
+ * ("iceberg or romaine lettuce"). A list buys the first unless it already
+ * has one of the others.
+ */
+function OrInstead({
+  row,
+  ingredients,
+  onChange,
+}: {
+  row: DraftRow;
+  ingredients: Ingredient[];
+  onChange: (change: Partial<DraftRow>) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const alternates = row.alternates ?? [];
+  function setAlternates(next: DraftRow['alternates']) {
+    onChange({ alternates: next && next.length ? next : undefined });
+  }
+  return (
+    <View style={styles.group}>
+      <ThemedText type="smallBold">Or instead</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {alternates.length
+          ? 'Lists buy the first, unless one of these is already on the list.'
+          : 'For a recipe that takes either one, like iceberg or romaine lettuce.'}
+      </ThemedText>
+      {alternates.map((alt, i) => {
+        const name = alt.link.kind === 'choose' ? alt.writtenName : alt.link.name;
+        return (
+          <View key={i} style={styles.linkRow}>
+            <View style={styles.flex}>
+              <ThemedText>or {name}</ThemedText>
+              <LinkStatus link={alt.link} writtenName={alt.writtenName} ingredients={ingredients} />
+              {alt.link.kind === 'choose' && (
+                <ChooseChips
+                  writtenName={alt.writtenName}
+                  link={alt.link}
+                  onLink={(link) =>
+                    setAlternates(alternates.map((a, j) => (j === i ? { ...a, link } : a)))
+                  }
+                />
+              )}
+            </View>
+            <Chip
+              label="Remove"
+              accessibilityLabel={`Remove ${name} as a choice`}
+              onPress={() => setAlternates(alternates.filter((_, j) => j !== i))}
+            />
+          </View>
+        );
+      })}
+      {adding ? (
+        <IngredientPicker
+          ingredients={ingredients}
+          initialSearch=""
+          onPick={(ingredient) => {
+            setAlternates([
+              ...alternates,
+              {
+                writtenName: ingredient.name,
+                link: { kind: 'existing', ingredientId: ingredient.id, name: ingredient.name },
+              },
+            ]);
+            setAdding(false);
+          }}
+          onCreate={(name) => {
+            const lower = canonicalName(name);
+            setAlternates([
+              ...alternates,
+              { writtenName: lower, link: { kind: 'new', name: lower } },
+            ]);
+            setAdding(false);
+          }}
+        />
+      ) : (
+        <Chip label="Add a choice" onPress={() => setAdding(true)} />
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  alternates: {
+    gap: Spacing.two,
+    paddingLeft: 84 + Spacing.three,
+  },
   fullWidth: {
     width: '100%',
   },

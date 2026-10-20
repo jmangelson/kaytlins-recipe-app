@@ -127,6 +127,14 @@ export async function saveRecipe(
     ingredients: lines.map((line) => ({
       ...line,
       ingredientId: realIds.get(line.ingredientId) ?? line.ingredientId,
+      ...(line.alternates
+        ? {
+            alternates: line.alternates.map((a) => ({
+              ...a,
+              ingredientId: realIds.get(a.ingredientId) ?? a.ingredientId,
+            })),
+          }
+        : {}),
     })),
     updatedAt: serverTimestamp(),
   };

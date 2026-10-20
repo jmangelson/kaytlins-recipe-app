@@ -7,7 +7,7 @@ import {
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { combineQuantities, type Quantity } from '@/features/ingredients/quantity';
 import type { ListSource, ShoppingList } from '@/features/shopping/list-model';
-import type { NeedLine } from '@/features/shopping/shopping-model';
+import { nameWithChoices, type NeedLine } from '@/features/shopping/shopping-model';
 
 /** Food to pack: the full amount the meals need (no pantry check). */
 export type PackItem = {
@@ -69,7 +69,8 @@ export function packItemsFromNeeds(
   return needs.map((need) => ({
     key: need.ingredientId,
     ingredientId: need.ingredientId,
-    name: need.name,
+    // Packing either one works ("iceberg lettuce (or romaine lettuce)").
+    name: nameWithChoices(need),
     quantities: need.quantities,
     category: categoryOf(need.ingredientId, need.name, ingredients),
     checked: false,
@@ -110,7 +111,13 @@ export function packItemsFromShoppingList(
     });
   };
   for (const line of list.lines)
-    add(line.ingredientId ?? line.key, line.ingredientId, line.name, line.needed, line.notes);
+    add(
+      line.ingredientId ?? line.key,
+      line.ingredientId,
+      nameWithChoices(line),
+      line.needed,
+      line.notes
+    );
   for (const item of list.atHome ?? [])
     add(item.ingredientId, item.ingredientId, item.name, item.quantities);
   return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));

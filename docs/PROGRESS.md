@@ -404,6 +404,15 @@ From the full check on her phone:
   in one pass.
 - Ingredient page lists the recipes that use it ("Used in"), each opening
   the recipe.
+- Choices in recipes ("iceberg or romaine lettuce", "white or brown rice"):
+  a line links to a first ingredient plus others (`alternates`, by id).
+  Typed, scanned, and imported lines split on "or" (a one-word choice
+  shares the last word); a name she already has with "or" stays one. The
+  editor shows "or …" under the line and an "Or instead" section to add or
+  remove choices. Lists buy the first choice, shown as "iceberg lettuce (or
+  romaine lettuce)", unless another recipe already needs one of the choices,
+  which it joins. Rename and merge relink choices too; search and "Used in"
+  include them.
 
 ### Round 2, phase 2 — Specific categories and real aisles (2026-10-19)
 

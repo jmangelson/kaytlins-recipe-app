@@ -15,6 +15,7 @@ import {
   type Ingredient,
 } from '@/features/ingredients/ingredient-model';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
+import { lineUses, relinkLine, type StoredLine } from '@/features/recipes/recipe-lines';
 import { db } from '@/lib/firebase';
 import { commitOrQueue } from '@/lib/firestore-write';
 
@@ -94,13 +95,11 @@ export async function renameIngredient(
   const recipes = await getDocs(collection(db, 'households', householdId, 'recipes'));
   const batch = writeBatch(db);
   for (const recipe of recipes.docs) {
-    const lines = (recipe.data().ingredients ?? []) as { ingredientId: string; name: string }[];
-    if (!lines.some((line) => line.ingredientId === ingredient.id)) continue;
+    const lines = (recipe.data().ingredients ?? []) as StoredLine[];
+    if (!lines.some((line) => lineUses(line, ingredient.id))) continue;
     batch.update(recipe.ref, {
       updatedAt: serverTimestamp(),
-      ingredients: lines.map((line) =>
-        line.ingredientId === ingredient.id ? { ...line, name: ingredient.name } : line
-      ),
+      ingredients: lines.map((line) => relinkLine(line, ingredient.id, ingredient)),
     });
   }
   const oldKey = ingredientNameKey(oldName);
@@ -130,15 +129,11 @@ export async function mergeIngredients(
   const recipes = await getDocs(collection(db, 'households', householdId, 'recipes'));
   const batch = writeBatch(db);
   for (const recipe of recipes.docs) {
-    const lines = (recipe.data().ingredients ?? []) as { ingredientId: string; name: string }[];
-    if (!lines.some((line) => line.ingredientId === source.id)) continue;
+    const lines = (recipe.data().ingredients ?? []) as StoredLine[];
+    if (!lines.some((line) => lineUses(line, source.id))) continue;
     batch.update(recipe.ref, {
       updatedAt: serverTimestamp(),
-      ingredients: lines.map((line) =>
-        line.ingredientId === source.id
-          ? { ...line, ingredientId: target.id, name: target.name }
-          : line
-      ),
+      ingredients: lines.map((line) => relinkLine(line, source.id, target)),
     });
   }
   const targetKey = ingredientNameKey(target.name);

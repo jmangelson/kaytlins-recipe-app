@@ -1,0 +1,65 @@
+# A recipe line that takes either of two ingredients ("iceberg or romaine
+# lettuce"): parsed into a first choice and another, shown on the recipe,
+# editable, and on a shopping list as one item with its other choice.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - recipes
+---
+- evalScript: ${output.email = 'choices' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- runFlow:
+    file: subflows/add-recipe.yaml
+    env:
+      NAME: 'Taco salad'
+      TAG: 'Vegetarian'
+      LINE1: '1 head iceberg or romaine lettuce'
+      LINE2: '1 cup white or brown rice'
+- assertVisible: 'iceberg lettuce or romaine lettuce'
+- assertVisible: 'white rice or brown rice'
+- takeScreenshot: build/screenshots/110-recipe-choices
+
+# In the editor: the other choice under the line, and "Or instead"
+- tapOn: 'Edit recipe'
+- scrollUntilVisible:
+    element: 'Edit 1 head iceberg lettuce or romaine lettuce'
+    centerElement: true
+- takeScreenshot: build/screenshots/111-edit-choices
+- tapOn: 'Edit 1 head iceberg lettuce or romaine lettuce'
+- scrollUntilVisible:
+    element: 'Or instead'
+    centerElement: true
+- takeScreenshot: build/screenshots/112-or-instead
+- back
+- runFlow:
+    when:
+      visible: 'Save your changes\?'
+    commands:
+      - tapOn: 'DISCARD|Discard'
+- back
+
+# A shopping list buys the first choice and shows the other
+- tapOn: 'Shopping'
+- tapOn: 'New list'
+- scrollUntilVisible:
+    element: 'Add a recipe'
+    centerElement: true
+- tapOn: 'Add a recipe'
+- tapOn:
+    id: 'add-recipe-search'
+- inputText: 'romaine'
+- hideKeyboard
+- tapOn: 'Add Taco salad'
+- scrollUntilVisible:
+    element: 'Save list'
+- tapOn: 'Save list'
+- extendedWaitUntil:
+    visible: 'Check the pantry'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'iceberg lettuce \(or romaine lettuce\).*'
+    centerElement: true
+- takeScreenshot: build/screenshots/113-list-choices

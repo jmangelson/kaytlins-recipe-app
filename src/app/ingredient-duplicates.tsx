@@ -43,7 +43,12 @@ async function loadAuditData(householdId: string): Promise<AuditData> {
   ]);
   const uses = new Map<string, number>();
   for (const recipe of recipes) {
-    for (const id of new Set(recipe.ingredients.map((l) => l.ingredientId))) {
+    for (const id of new Set(
+      recipe.ingredients.flatMap((l) => [
+        l.ingredientId,
+        ...(l.alternates ?? []).map((x) => x.ingredientId),
+      ])
+    )) {
       uses.set(id, (uses.get(id) ?? 0) + 1);
     }
   }

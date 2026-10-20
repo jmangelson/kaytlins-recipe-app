@@ -55,6 +55,7 @@ import {
   getShoppingList,
   saveShoppingList,
 } from '@/features/shopping/list-repo';
+import { nameWithChoices } from '@/features/shopping/shopping-model';
 import { moveCategoryToSection } from '@/features/stores/store-edit';
 import { listStores, saveStore } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
@@ -491,7 +492,7 @@ function PantryLine({
   return (
     <View style={[styles.line, { borderBottomColor: theme.border }]}>
       <CheckRow
-        title={line.name}
+        title={nameWithChoices(line)}
         detail={[
           `Need ${amountText(line.needed)}`,
           line.manual ? 'added by you' : line.recipeNames.join(', '),
@@ -782,7 +783,7 @@ function ReadyList({
                   return (
                     <View key={item.ingredientId}>
                       <CheckRow
-                        title={item.name}
+                        title={nameWithChoices(item)}
                         detail={detail}
                         note={
                           item.notes?.length
