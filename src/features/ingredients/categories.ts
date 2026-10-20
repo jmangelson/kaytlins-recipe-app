@@ -144,7 +144,11 @@ export function upgradeCategory(
   name: string
 ): CategoryId {
   if (data.categoryVersion === CATEGORY_VERSION && isCategoryId(data.category)) {
-    return data.category;
+    // One the app guessed follows fixes to the built-in list ("chicken
+    // bullion" moved to soup); hers, and Claude's for names the list
+    // doesn't know, stay as they are.
+    if (data.categorySet === true) return data.category;
+    return catalogCategory(name) ?? data.category;
   }
   if (data.categoryVersion === 5 && isCategoryId(data.category)) return fromV5(data, name);
   const family = legacyFamily(data.category);
@@ -245,6 +249,8 @@ const GROUND_FROM: Partial<Record<CategoryId, CategoryId>> = {
 
 /** Single words that decide the category when no catalog name matches. */
 const KEYWORDS: [RegExp, CategoryId][] = [
+  // Before the meats: "chicken bouillon" and "beef broth" are soup and broth.
+  [/\b(broth|stock|soup|chowder|bouillon|bullion|soup base)\b/, 'soup'],
   [/\b(ice cream|gelato|popsicle|sherbet)\b/, 'ice-cream'],
   [/\bpizza\b/, 'frozen-pizza'],
   [/\b(cheese|cheddar|mozzarella|parmesan|provolone|feta|gouda|brie)\b/, 'cheese'],
@@ -259,7 +265,6 @@ const KEYWORDS: [RegExp, CategoryId][] = [
   [/\b(tortilla|wrap)\b/, 'tortillas'],
   [/\b(cake|cupcake|pie|donut|croissant|danish|scone|baguette|bakery)\b/, 'bakery'],
   [/\b(bread|bun|roll|bagel|muffin)\b/, 'bread'],
-  [/\b(broth|stock|soup|chowder|bouillon)\b/, 'soup'],
   [/\bbeans?\b|\blentil/, 'beans'],
   [/\b(pasta|noodle|spaghetti|macaroni|penne)\b/, 'pasta'],
   [/\b(rice|quinoa|couscous|barley|grain)\b/, 'rice-grains'],
@@ -333,6 +338,14 @@ function keywordCategory(key: string): CategoryId | null {
  * stays Uncategorized).
  */
 export function knownCategory(name: string): CategoryId | null {
+  return catalogCategory(name) ?? keywordCategory(ingredientNameKey(name));
+}
+
+/**
+ * The category from the built-in list alone (exact names, forms like
+ * "frozen X", and name endings), without the looser keyword guesses.
+ */
+export function catalogCategory(name: string): CategoryId | null {
   const key = ingredientNameKey(name);
   if (!key) return null;
   const exact = CATALOG_BY_KEY.get(key);
@@ -346,7 +359,7 @@ export function knownCategory(name: string): CategoryId | null {
   if (dried.form) return dried.category ?? 'spices';
   const ground = formCategory(words, ['ground'], GROUND_FROM);
   if (ground.form) return ground.category ?? 'spices';
-  return catalogLookup(words) ?? keywordCategory(key);
+  return catalogLookup(words);
 }
 
 /** Best-guess category for a new ingredient: Uncategorized when nothing knows it. */

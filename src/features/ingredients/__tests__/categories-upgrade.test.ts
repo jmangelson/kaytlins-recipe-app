@@ -33,10 +33,27 @@ describe('the built-in catalog', () => {
 });
 
 describe('upgrading v4 ingredient categories', () => {
-  it('keeps a v5 category as saved', () => {
-    expect(upgradeCategory({ category: 'cheese', categoryVersion: CATEGORY_VERSION }, 'eggs')).toBe(
+  it('keeps a current category she chose; a guessed one follows the built-in list', () => {
+    const current = { categoryVersion: CATEGORY_VERSION };
+    expect(upgradeCategory({ ...current, category: 'cheese', categorySet: true }, 'eggs')).toBe(
       'cheese'
     );
+    expect(upgradeCategory({ ...current, category: 'cheese' }, 'eggs')).toBe('eggs');
+    // "chicken bullion" was guessed as meat; the list now knows it's soup.
+    expect(upgradeCategory({ ...current, category: 'fresh-meat' }, 'chicken bullion')).toBe('soup');
+    // A name the list doesn't know keeps what Claude (or she) gave it.
+    expect(upgradeCategory({ ...current, category: 'asian' }, 'zorbleberry sauce')).toBe('asian');
+  });
+
+  it('files bouillon, however it is spelled, with soup and broth', () => {
+    for (const name of [
+      'chicken bouillon',
+      'beef bullion',
+      'bouillon cubes',
+      'Better Than Bouillon',
+    ]) {
+      expect([name, guessCategory(name)]).toEqual([name, 'soup']);
+    }
   });
 
   it('re-guesses a category that was only the app’s old guess', () => {
