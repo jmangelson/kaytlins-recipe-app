@@ -344,6 +344,25 @@ From the full check on her phone:
 - Shipped as an over-the-air update to 1.0.1 (no native changes).
 - Still to do: the accuracy check on ~10 of her real recipe photos.
 
+### Round 2 follow-ups — categories, shopping fixes, drag reorder (2026-10-20)
+
+- Category field with Change category (departments in their own box) on
+  ingredients, recipe lines in edit mode, new ingredients, and new items;
+  categories shown under each ingredient on recipes and on Other things to buy.
+- Category data v6: Store counters (bakery counter, deli counter & prepared)
+  apart from Standard bread & buns; packaged cured meats with packaged meats;
+  household split into Paper/cleaning/kitchen, Health/beauty/pharmacy, Baby,
+  Pet, School & office, Automotive, and Not sure yet.
+- Herbs, spices (ground, whole, seed, sticks), and fish (fresh/frozen) ask
+  their form; cube unit.
+- Shopping list: Fix an item's aisle (wrong category, or a different area at
+  this store), "Everything's in the cart" prompt, Done shopping button,
+  Finished trips.
+- Reorder stores and store areas by dragging a handle (custom DraggableList
+  on gesture-handler and Reanimated, so it shipped over the air).
+- Each released by OTA after the full e2e suite (18 flows) and screenshot
+  review; rules deployed for the list "done" status.
+
 ### Round 2, phase 2 — Specific categories and real aisles (2026-10-19)
 
 - 78 categories in 11 departments (pickers group them; departments open on
