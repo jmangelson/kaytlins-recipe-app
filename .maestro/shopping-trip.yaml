@@ -28,7 +28,7 @@ onFlowComplete:
     element: 'Add paper towels'
     centerElement: true
 - tapOn: 'Add paper towels'
-- assertVisible: 'paper towels, Costco'
+- assertVisible: 'paper towels, Paper towels & tissue · Costco'
 - runFlow:
     file: subflows/add-item.yaml
     env:
@@ -39,9 +39,9 @@ onFlowComplete:
     element: 'Add whole milk'
     centerElement: true
 - tapOn: 'Add whole milk'
-- assertVisible: 'whole milk, 1 gallon'
+- assertVisible: 'whole milk, 1 gallon · Milk & dairy'
 - tapOn: 'Remove whole milk'
-- assertNotVisible: 'whole milk, 1 gallon'
+- assertNotVisible: 'whole milk, 1 gallon · Milk & dairy'
 
 # A new list brings it along
 - tapOn: 'New list'
@@ -93,8 +93,8 @@ onFlowComplete:
 - tapOn:
     text: 'paper towels, added by you'
 - back
-- assertVisible: 'lime, 2'
-- assertNotVisible: 'paper towels, Costco'
+- assertVisible: 'lime, 2 · Fruit'
+- assertNotVisible: 'paper towels, Paper towels & tissue · Costco'
 - scrollUntilVisible:
     element: '.*1 of 10 in the cart'
     direction: UP
@@ -109,7 +109,7 @@ onFlowComplete:
     text: 'paper towels, added by you'
 - back
 - scrollUntilVisible:
-    element: 'paper towels, Costco'
+    element: 'paper towels, Paper towels & tissue · Costco'
 
 # Hide checked and share
 - scrollUntilVisible:
@@ -171,5 +171,5 @@ onFlowComplete:
     visible: '.*2 of 10 in the cart'
     timeout: 20000
 - scrollUntilVisible:
-    element: 'lime, 2'
-- assertNotVisible: 'paper towels, Costco'
+    element: 'lime, 2 · Fruit'
+- assertNotVisible: 'paper towels, Paper towels & tissue · Costco'

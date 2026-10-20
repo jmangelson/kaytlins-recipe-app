@@ -138,20 +138,9 @@ export default function RecipeDetailScreen() {
             const ingredient = ingredients.get(line.ingredientId);
             const category = ingredient ? categoryName(ingredient.category) : null;
             return (
-              // Tap a line to open its ingredient (category, stores, names).
-              <Pressable
-                key={index}
-                accessibilityRole="button"
-                accessibilityHint="Opens the ingredient"
-                disabled={!ingredient}
-                onPress={() =>
-                  router.push({ pathname: '/ingredient/[id]', params: { id: line.ingredientId } })
-                }
-                style={({ pressed }) => [
-                  styles.ingredient,
-                  { borderBottomColor: theme.border },
-                  pressed && styles.pressed,
-                ]}>
+              // The category is shown, not edited, here; she changes it while
+              // editing the recipe.
+              <View key={index} style={[styles.ingredient, { borderBottomColor: theme.border }]}>
                 <ThemedText type="smallBold" style={styles.amount}>
                   {formatIngredientAmount(line)}
                 </ThemedText>
@@ -172,7 +161,7 @@ export default function RecipeDetailScreen() {
                     </ThemedText>
                   )}
                 </View>
-              </Pressable>
+              </View>
             );
           })
         )}
@@ -256,8 +245,5 @@ const styles = StyleSheet.create({
   },
   ingredientName: {
     flex: 1,
-  },
-  pressed: {
-    opacity: 0.6,
   },
 });

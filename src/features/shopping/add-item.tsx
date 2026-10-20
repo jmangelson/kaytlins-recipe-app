@@ -6,7 +6,8 @@ import { Chip } from '@/components/chip';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { CATEGORIES } from '@/features/ingredients/categories';
+import { guessCategory, type CategoryId } from '@/features/ingredients/categories';
+import { CategoryField } from '@/features/ingredients/category-field';
 import {
   matchIngredient,
   newIngredient,
@@ -23,7 +24,13 @@ type Step =
   /** The name shares words with some of hers ("onion"): she picks one or a new item. */
   | { kind: 'choose'; candidates: Ingredient[]; suggestions: string[] }
   /** Not one of hers yet (named as typed, or a suggested kind): which store? */
-  | { kind: 'new'; name: string; storeIds: string[] };
+  | {
+      kind: 'new';
+      name: string;
+      storeIds: string[];
+      /** Her choice; else the guess from the name. */
+      category?: CategoryId;
+    };
 
 /**
  * "Add an item" on a shopping list. The item is one of her ingredients: an
@@ -57,17 +64,17 @@ export function AddItem({
     if (match.kind === 'exact') add(match.ingredient);
     else if (match.kind === 'partial') {
       setStep({ kind: 'choose', candidates: match.candidates, suggestions: match.suggestions });
-    } else setStep({ kind: 'new', name: item.name, storeIds: [] });
+    } else startNew(item.name);
   }
 
-  function addNew(name: string, storeIds: string[]) {
-    add({ ...newIngredient(name), storePriority: storeIds });
+  function startNew(name: string) {
+    setStep({ kind: 'new', name, storeIds: [] });
   }
 
-  const newName = step.kind === 'new' ? step.name : null;
-  const category = newName
-    ? CATEGORIES.find((c) => c.id === newIngredient(newName).category)
-    : null;
+  function addNew(name: string, storeIds: string[], category: CategoryId | undefined) {
+    const ingredient = { ...newIngredient(name), storePriority: storeIds };
+    add(category ? { ...ingredient, category, categorySet: true } : ingredient);
+  }
 
   return (
     <View style={styles.group}>
@@ -106,13 +113,13 @@ export function AddItem({
                 key={name}
                 label={name}
                 accessibilityLabel={`Use new ${name} for ${item.name}`}
-                onPress={() => setStep({ kind: 'new', name, storeIds: [] })}
+                onPress={() => startNew(name)}
               />
             ))}
             <Chip
               label={`New: ${item.name}`}
               accessibilityLabel={`${item.name} is a new item`}
-              onPress={() => setStep({ kind: 'new', name: item.name, storeIds: [] })}
+              onPress={() => startNew(item.name)}
             />
           </View>
         </View>
@@ -121,8 +128,7 @@ export function AddItem({
       {step.kind === 'new' && (
         <View style={styles.group}>
           <ThemedText type="small">
-            “{step.name}” is new{category ? ` (${category.name})` : ''}. Where do you usually buy
-            it? Tap stores in order of preference.
+            “{step.name}” is new. Where do you usually buy it? Tap stores in order of preference.
           </ThemedText>
           <View style={styles.chips}>
             {stores.map((store) => {
@@ -147,10 +153,18 @@ export function AddItem({
               );
             })}
           </View>
+          <CategoryField
+            value={step.category ?? guessCategory(step.name)}
+            guessed={!step.category}
+            onChange={(category) => setStep({ ...step, category })}
+          />
           <ThemedText type="small" themeColor="textSecondary">
             Optional. It&apos;s added to your ingredients, where you can change it later.
           </ThemedText>
-          <Button label={`Add ${step.name}`} onPress={() => addNew(step.name, step.storeIds)} />
+          <Button
+            label={`Add ${step.name}`}
+            onPress={() => addNew(step.name, step.storeIds, step.category)}
+          />
         </View>
       )}
     </View>

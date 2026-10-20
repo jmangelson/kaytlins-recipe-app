@@ -18,7 +18,8 @@ type CategoryPickerProps = {
 
 /**
  * The ~80 categories grouped by department. Departments start closed,
- * except those holding a selected category; tap one to open it.
+ * except those holding a selected category (other than Uncategorized); tap
+ * one to open it.
  */
 export function CategoryPicker({ selected, onToggle }: CategoryPickerProps) {
   const theme = useTheme();
@@ -27,7 +28,10 @@ export function CategoryPicker({ selected, onToggle }: CategoryPickerProps) {
     () =>
       new Set(
         groups
-          .filter((g) => g.categories.some((c) => selected.includes(c.id)))
+          // Uncategorized isn't a choice to show, so it opens nothing.
+          .filter((g) =>
+            g.categories.some((c) => c.id !== 'uncategorized' && selected.includes(c.id))
+          )
           .map((g) => g.department.id)
       )
   );
@@ -40,7 +44,13 @@ export function CategoryPicker({ selected, onToggle }: CategoryPickerProps) {
     });
 
   return (
-    <View style={styles.list}>
+    // Its own tinted box, so the departments read as choices under the
+    // field's label rather than as more headings.
+    <View
+      style={[styles.box, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <ThemedText type="small" themeColor="textSecondary">
+        Choose a department, then a category.
+      </ThemedText>
       {groups.map(({ department, categories }) => {
         const isOpen = open.has(department.id);
         const chosen = categories.filter((c) => selected.includes(c.id));
@@ -53,7 +63,7 @@ export function CategoryPicker({ selected, onToggle }: CategoryPickerProps) {
               onPress={() => toggleOpen(department.id)}
               style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
               <View style={styles.headerText}>
-                <ThemedText type="smallBold">{department.name}</ThemedText>
+                <ThemedText type="small">{department.name}</ThemedText>
                 {!isOpen && chosen.length > 0 && (
                   <ThemedText type="small" themeColor="tint" numberOfLines={2}>
                     {chosen.map((c) => c.name).join(', ')}
@@ -82,7 +92,11 @@ export function CategoryPicker({ selected, onToggle }: CategoryPickerProps) {
 }
 
 const styles = StyleSheet.create({
-  list: {
+  box: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
     gap: Spacing.one,
   },
   department: {
@@ -93,7 +107,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
-    minHeight: 48,
+    minHeight: 44,
   },
   headerText: {
     flex: 1,

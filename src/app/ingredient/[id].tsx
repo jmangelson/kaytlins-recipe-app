@@ -13,7 +13,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { categoryName } from '@/features/ingredients/categories';
-import { CategoryPicker } from '@/features/ingredients/category-picker';
+import { CategoryField } from '@/features/ingredients/category-field';
 import {
   areaForStore,
   canonicalName,
@@ -249,15 +249,10 @@ function IngredientEditor({
       </View>
 
       <View style={styles.group}>
-        <ThemedText type="smallBold" accessibilityRole="header">
-          Category
-        </ThemedText>
-        <ThemedText themeColor={ingredient.category === 'uncategorized' ? 'attention' : 'text'}>
-          {categoryName(ingredient.category)}
-        </ThemedText>
-        <CategoryPicker
-          selected={[ingredient.category]}
-          onToggle={(id) => update({ category: id, categorySet: true })}
+        <CategoryField
+          value={ingredient.category}
+          guessed={!ingredient.categorySet}
+          onChange={(id) => update({ category: id, categorySet: true })}
         />
       </View>
 

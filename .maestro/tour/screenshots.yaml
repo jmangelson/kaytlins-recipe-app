@@ -306,7 +306,12 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'ingredient-name'
     timeout: 15000
 - takeScreenshot: build/screenshots/29-ingredient-edit
-# The category picker: departments, its own open
+# The category: shown, then Change category opens the departments
+- scrollUntilVisible:
+    element: 'Change category'
+    centerElement: true
+- takeScreenshot: build/screenshots/29a0-ingredient-category-field
+- tapOn: 'Change category'
 - scrollUntilVisible:
     element: 'Meat & seafood, Fresh meat'
     centerElement: true

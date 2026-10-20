@@ -154,3 +154,18 @@ describe('sizes, dozens, shorthands, and percentages', () => {
     expect(splitSize('large')).toEqual({ name: 'large', size: null });
   });
 });
+
+describe('cube and container units', () => {
+  it.each([
+    ['2 cubes chicken bouillon', 2, 'cube', 'chicken bouillon'],
+    ['1 cube beef bouillon', 1, 'cube', 'beef bouillon'],
+    ['1 container sour cream', 1, 'container', 'sour cream'],
+    ['2 containers strawberries', 2, 'container', 'strawberries'],
+  ])('%s', (line, quantity, unit, name) => {
+    expect(parseIngredientLine(line)).toMatchObject({ quantity, unit, name });
+  });
+
+  it('keeps "cubes" in the name when it is the item itself', () => {
+    expect(parseIngredientLine('4 bouillon cubes')).toMatchObject({ quantity: 4, unit: null });
+  });
+});

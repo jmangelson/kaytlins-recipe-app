@@ -65,6 +65,11 @@ appId: com.jmangelson.kaytlinsrecipes
       id: 'ingredient-name'
     timeout: 15000
 - scrollUntilVisible:
+    element: 'Change category'
+    centerElement: true
+- takeScreenshot: build/screenshots/s8a-ingredient-category-field
+- tapOn: 'Change category'
+- scrollUntilVisible:
     element: 'Meat & seafood, Fresh meat'
     centerElement: true
 - takeScreenshot: build/screenshots/s8-ingredient-category
@@ -84,6 +89,23 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Ingredients'
     centerElement: true
 - takeScreenshot: build/screenshots/s10-recipe-categories
+
+# Editing the recipe: a line's category, changed right there
+- tapOn: 'Edit'
+- scrollUntilVisible:
+    element: 'Edit 2 lb chicken breasts'
+    centerElement: true
+- tapOn: 'Edit 2 lb chicken breasts'
+- scrollUntilVisible:
+    element: 'Change category'
+    centerElement: true
+- takeScreenshot: build/screenshots/s10b-edit-line-category
+- tapOn: 'Change category'
+- scrollUntilVisible:
+    element: 'Changes chicken breasts everywhere.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/s10c-edit-line-category-picker
+- back
 
 # A new ingredient's category, guessed then chosen, in the recipe form
 - back
@@ -114,13 +136,22 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/s11-new-ingredient-rows
 - tapOn: 'Edit 2 slices zorbleberry loaf'
 - scrollUntilVisible:
-    element: 'Category'
+    element: 'Change category'
     centerElement: true
 - takeScreenshot: build/screenshots/s12-new-ingredient-category
+- tapOn: 'Change category'
+- scrollUntilVisible:
+    element: 'Bread, deli & PB&J'
+    centerElement: true
+- takeScreenshot: build/screenshots/s12b-new-ingredient-departments
 - tapOn: 'Bread, deli & PB&J'
 - tapOn: 'Bread & bakery'
+# The list closes when she picks, so the line's Done is above now.
 - scrollUntilVisible:
     element: 'Done'
+    direction: UP
+    centerElement: true
+- takeScreenshot: build/screenshots/s12c-new-ingredient-picked
 - tapOn: 'Done'
 - scrollUntilVisible:
     element: 'Edit 2 slices zorbleberry loaf'

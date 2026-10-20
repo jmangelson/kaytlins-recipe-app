@@ -8,9 +8,10 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { categoryName, guessCategory, type CategoryId } from '@/features/ingredients/categories';
-import { CategoryPicker } from '@/features/ingredients/category-picker';
+import { CategoryField } from '@/features/ingredients/category-field';
 import { mustChooseForm } from '@/features/ingredients/generic-ingredients';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
+import { saveIngredient } from '@/features/ingredients/ingredient-repo';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import {
@@ -27,6 +28,7 @@ import {
 } from '@/features/recipes/recipe-draft';
 import type { DraftRow, RowLink } from '@/features/recipes/recipe-types';
 import { moveItem } from '@/features/stores/store-edit';
+import { useHousehold } from '@/features/session/session-provider';
 import { useTheme } from '@/hooks/use-theme';
 
 type IngredientRowsEditorProps = {
@@ -46,11 +48,25 @@ type IngredientRowsEditorProps = {
 export function IngredientRowsEditor({
   rows,
   onChange,
-  ingredients,
+  ingredients: loaded,
   error,
   scrollRef,
   contentRef,
 }: IngredientRowsEditorProps) {
+  const { household } = useHousehold();
+  // Categories she changed here, saved to the ingredient right away.
+  const [changedCategories, setChangedCategories] = useState<Record<string, CategoryId>>({});
+  const ingredients = loaded.map((i) =>
+    changedCategories[i.id] ? { ...i, category: changedCategories[i.id], categorySet: true } : i
+  );
+
+  function changeCategory(ingredient: Ingredient, category: CategoryId) {
+    setChangedCategories((current) => ({ ...current, [ingredient.id]: category }));
+    saveIngredient(household.id, { ...ingredient, category, categorySet: true }).catch((error) =>
+      console.warn('Category not saved', error)
+    );
+  }
+
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [addText, setAddText] = useState('');
   const rowViews = useRef(new Map<string, View>());
@@ -116,6 +132,7 @@ export function IngredientRowsEditor({
                 key={row.key}
                 row={row}
                 ingredients={ingredients}
+                onCategoryChange={changeCategory}
                 onChange={(change) => update(row.key, change)}
                 onDone={() => closeEditor(row.key)}
                 onRemove={() => {
@@ -297,6 +314,7 @@ function RowSummary({
 function RowEditor({
   row,
   ingredients,
+  onCategoryChange,
   onChange,
   onDone,
   onRemove,
@@ -305,6 +323,7 @@ function RowEditor({
 }: {
   row: DraftRow;
   ingredients: Ingredient[];
+  onCategoryChange: (ingredient: Ingredient, category: CategoryId) => void;
   onChange: (change: Partial<DraftRow>) => void;
   onDone: () => void;
   onRemove: () => void;
@@ -318,6 +337,10 @@ function RowEditor({
   const firstUnits: UnitKey[] = [...COMMON_UNITS, ...getCustomUnits().map((u) => u.key)];
   const [moreUnits, setMoreUnits] = useState(row.unit !== null && !firstUnits.includes(row.unit));
   const [picking, setPicking] = useState(row.link.kind === 'choose');
+  const linked =
+    row.link.kind === 'existing'
+      ? ingredients.find((i) => i.id === (row.link as { ingredientId: string }).ingredientId)
+      : undefined;
   const units = moreUnits ? allUnits() : firstUnits;
 
   function changeAmount(text: string) {
@@ -408,21 +431,20 @@ function RowEditor({
         )}
       </View>
 
+      {!picking && linked && (
+        <CategoryField
+          value={linked.category}
+          guessed={!linked.categorySet}
+          note={`Changes ${linked.name} everywhere: every recipe and shopping list.`}
+          onChange={(category) => onCategoryChange(linked, category)}
+        />
+      )}
       {!picking && row.link.kind === 'new' && (
-        <View style={styles.group}>
-          <ThemedText type="smallBold">Category</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {row.link.category
-              ? 'Where it’s shelved, so it lands in the right aisle.'
-              : newCategory(row.link) === 'uncategorized'
-                ? 'Not one the app knows. Choose where it’s shelved, or leave it and the app looks it up after you save.'
-                : 'Guessed from the name. Change it if it’s shelved somewhere else.'}
-          </ThemedText>
-          <CategoryPicker
-            selected={[newCategory(row.link)]}
-            onToggle={(category) => onChange({ link: { ...(row.link as NewLink), category } })}
-          />
-        </View>
+        <CategoryField
+          value={newCategory(row.link)}
+          guessed={!row.link.category}
+          onChange={(category) => onChange({ link: { ...(row.link as NewLink), category } })}
+        />
       )}
 
       <View style={styles.editorActions}>

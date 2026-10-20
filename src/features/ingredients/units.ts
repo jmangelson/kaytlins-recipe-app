@@ -221,6 +221,13 @@ const UNITS = {
     plural: 'containers',
     aliases: ['container', 'containers', 'ctn'],
   },
+  cube: {
+    dimension: 'count',
+    toBase: 1,
+    singular: 'cube',
+    plural: 'cubes',
+    aliases: ['cube', 'cubes'],
+  },
   carton: {
     dimension: 'count',
     toBase: 1,

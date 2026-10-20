@@ -64,6 +64,34 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/74-item-store-priority
 - tapOn: 'Add dish soap'
 
+# An item the app doesn't know: the category picker opens to choose one
+- runFlow:
+    file: ../subflows/add-item.yaml
+    env:
+      TEXT: 'zorbleberry spray'
+- scrollUntilVisible:
+    element: 'Not one the app knows.*'
+    centerElement: true
+- takeScreenshot: build/screenshots/74b-item-unknown-category
+- tapOn: 'Change category'
+- scrollUntilVisible:
+    element: 'Household & everything else.*'
+    centerElement: true
+- tapOn: 'Household & everything else.*'
+- scrollUntilVisible:
+    element: 'Cleaning & dish soap'
+    centerElement: true
+- tapOn: 'Cleaning & dish soap'
+- scrollUntilVisible:
+    element: 'Add zorbleberry spray'
+    centerElement: true
+- takeScreenshot: build/screenshots/74c-item-category-chosen
+- tapOn: 'Add zorbleberry spray'
+- scrollUntilVisible:
+    element: 'zorbleberry spray, Cleaning & dish soap'
+    centerElement: true
+- takeScreenshot: build/screenshots/74d-extras-with-categories
+
 # A bare herb asks fresh or dried
 - tapOn: 'Recipes'
 - tapOn: 'Add recipe'
