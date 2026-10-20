@@ -1,13 +1,19 @@
 /**
  * Imports a recipe page with the same code the Worker uses, straight from
- * this machine. Pages with schema.org Recipe data are free; others are read
- * by Claude (a paid call, a few cents).
+ * this machine: Claude reads the page's recipe data (or its text) into the
+ * scan format. Without --paid it only shows what would be sent.
  *
  *   ANTHROPIC_API_KEY=$(cat ~/.anthropic-key) npx tsx worker/scripts/try-import.ts https://…
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { readFileSync } from 'node:fs';
 
-import { normalizeUrl, pageText, recipeFromHtml } from '../../src/features/import/recipe-page';
+import {
+  normalizeUrl,
+  pageText,
+  recipeDataText,
+  recipeFromHtml,
+} from '../../src/features/import/recipe-page';
 import { readRecipe, SCAN_MODEL } from '../src/read-recipe';
 
 // Claude Opus 5.5, $ per million tokens.
@@ -17,17 +23,22 @@ const OUTPUT_PRICE = 20;
 async function main() {
   const url = normalizeUrl(process.argv[2] ?? '');
   if (!url) throw new Error('Pass a recipe link.');
-  const page = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Android) Chrome/130' } });
-  const html = await page.text();
+  // --html saved.html: a page saved elsewhere (some sites block this machine).
+  const saved = process.argv.indexOf('--html');
+  const html =
+    saved > 0
+      ? readFileSync(process.argv[saved + 1], 'utf8')
+      : await (
+          await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Android) Chrome/130' } })
+        ).text();
   const recipe = recipeFromHtml(html);
-  if (recipe) {
-    console.log('Recipe data on the page (free):');
-    console.log(JSON.stringify(recipe, null, 2));
-    return;
-  }
-  const text = pageText(html);
-  console.log(`No recipe data; Claude reads ${text.length} characters of page text…`);
-  if (process.argv[3] !== '--paid') {
+  const text = recipe ? recipeDataText(recipe) : pageText(html);
+  console.log(
+    recipe
+      ? `Recipe data on the page; Claude tidies it:\n${text}`
+      : `No recipe data; Claude reads ${text.length} characters of page text…`
+  );
+  if (!process.argv.includes('--paid')) {
     console.log('Add --paid to make the Claude call.');
     return;
   }
@@ -40,6 +51,7 @@ async function main() {
       { id: 'dinner', name: 'Dinner', group: 'meal' },
     ],
     pageText: text,
+    pageSource: recipe ? 'data' : 'page',
   });
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   if (!outcome.ok) throw new Error(`${outcome.error}: ${outcome.message}`);

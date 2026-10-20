@@ -11,7 +11,30 @@ export type PageRecipe = {
   title: string;
   servings: number | null;
   ingredients: string[];
+  /** The site's own category, cuisine, and keywords (help suggest tags). */
+  hints?: string[];
 };
+
+/** The page's recipe data as text for Claude to tidy (notes split out, tags suggested). */
+export function recipeDataText(recipe: PageRecipe): string {
+  return [
+    `Title: ${recipe.title}`,
+    recipe.servings ? `Serves: ${recipe.servings}` : null,
+    recipe.hints?.length ? `Site's categories and keywords: ${recipe.hints.join(', ')}` : null,
+    'Ingredients:',
+    ...recipe.ingredients.map((line) => `- ${line}`),
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+}
+
+function textList(value: unknown): string[] {
+  const values = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  return values
+    .filter((v): v is string => typeof v === 'string')
+    .map(clean)
+    .filter(Boolean);
+}
 
 /** What the app sends to /import. */
 export type ImportRequest = {
@@ -136,6 +159,13 @@ export function recipeFromHtml(html: string): PageRecipe | null {
       title: clean(typeof recipe.name === 'string' ? recipe.name : '') || 'Untitled recipe',
       servings: servingsFrom(recipe.recipeYield ?? recipe.yield),
       ingredients,
+      hints: [
+        ...new Set([
+          ...textList(recipe.recipeCategory),
+          ...textList(recipe.recipeCuisine),
+          ...textList(recipe.keywords),
+        ]),
+      ].slice(0, 20),
     };
   }
   return null;

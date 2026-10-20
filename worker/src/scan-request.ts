@@ -86,14 +86,16 @@ Only include what is in the photos. If the photos don't show a recipe, return an
 export function userPrompt(
   tags: ScanRequest['tags'],
   units: ScanRequest['units'] = [],
-  source: 'photos' | 'page' = 'photos'
+  source: 'photos' | 'page' | 'data' = 'photos'
 ): string {
   const lines = tags.map((t) => `- ${t.id}: ${t.name} (${t.group})`);
   const own = (units ?? []).map((u) => `- ${u.key}: ${u.singular} / ${u.plural}`);
   return [
-    source === 'page'
-      ? 'Read the recipe in the web page text above (it may include ads, comments, and other recipes; read only the main recipe). Leave the cooking directions out; the app keeps the link to the page.'
-      : 'Read the recipe in these photos. The photos are pages of one recipe, in order.',
+    source === 'data'
+      ? 'Read the recipe from the web page\'s recipe data above. Keep each ingredient\'s wording, but split it as for photos: sizes, preparation, and parenthetical details go in the note ("1 lb ground beef (85% lean)" -> name "ground beef", note "85% lean"; "3 cloves garlic minced" -> note "minced"). Suggest tags from the ingredients and the site\'s categories.'
+      : source === 'page'
+        ? 'Read the recipe in the web page text above (it may include ads, comments, and other recipes; read only the main recipe). Leave the cooking directions out; the app keeps the link to the page.'
+        : 'Read the recipe in these photos. The photos are pages of one recipe, in order.',
     lines.length
       ? `Household tags (suggest by id):\n${lines.join('\n')}`
       : 'The household has no tags.',

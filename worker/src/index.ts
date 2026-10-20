@@ -23,6 +23,7 @@ import {
 import {
   normalizeUrl,
   pageText,
+  recipeDataText,
   recipeFromHtml,
   type ImportRequest,
   type ImportResponse,
@@ -176,8 +177,8 @@ async function categorize(request: Request, env: Env): Promise<Response> {
 const MAX_PAGE_BYTES = 5_000_000;
 
 /**
- * A recipe from a web page: the page's own recipe data when it has it
- * (free), else Claude reads the page text (counts as a scan).
+ * A recipe from a web page, read by Claude from the page's recipe data (or
+ * its text when it has none). Counts as a scan.
  */
 async function importRecipe(request: Request, env: Env): Promise<Response> {
   const who = await authorize(request, env);
@@ -217,14 +218,14 @@ async function importRecipe(request: Request, env: Env): Promise<Response> {
     return problem(502, 'page_error', 'Couldn’t open that page. Check the link and try again.');
   }
 
+  // The page's own recipe data when it has it (exact); otherwise its text.
+  // Either way Claude reads it into the scan format: notes split out and
+  // tags suggested, as for photos. Counted with scans.
   const recipe = recipeFromHtml(html);
-  if (recipe) return reply(200, { kind: 'page', url, recipe } satisfies ImportResponse);
-
-  const text = pageText(html);
-  if (text.length < 200) {
+  const text = recipe ? recipeDataText(recipe) : pageText(html);
+  if (!recipe && text.length < 200) {
     return problem(422, 'no_recipe', 'That page doesn’t have a recipe the app can read.');
   }
-  // Claude reads the page: counted with scans.
   const keys = limitKeys(who.uid, new Date());
   const [used, usedTotal] = await Promise.all([
     env.SCAN_LIMITS.get(keys.user).then(Number),
@@ -232,6 +233,8 @@ async function importRecipe(request: Request, env: Env): Promise<Response> {
   ]);
   const perUser = Number(env.DAILY_LIMIT_PER_USER);
   if (used >= perUser || usedTotal >= Number(env.DAILY_LIMIT_TOTAL)) {
+    // Over the limit: the page's data as it is still imports (free).
+    if (recipe) return reply(200, { kind: 'page', url, recipe } satisfies ImportResponse);
     return problem(
       429,
       'daily_limit',
@@ -248,7 +251,11 @@ async function importRecipe(request: Request, env: Env): Promise<Response> {
     tags: body.tags ?? [],
     units: body.units,
     pageText: text,
+    pageSource: recipe ? 'data' : 'page',
   });
+  // If Claude can't read it, the page's data as it is still imports.
+  if (!outcome.ok && recipe)
+    return reply(200, { kind: 'page', url, recipe } satisfies ImportResponse);
   if (!outcome.ok) return problem(outcome.status, outcome.error, outcome.message);
   return reply(200, { kind: 'read', url, result: outcome.result } satisfies ImportResponse);
 }

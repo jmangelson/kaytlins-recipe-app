@@ -26,7 +26,7 @@ export type ReadOutcome =
  */
 export async function readRecipe(
   client: Anthropic,
-  request: ScanRequest & { pageText?: string }
+  request: ScanRequest & { pageText?: string; pageSource?: 'page' | 'data' }
 ): Promise<ReadOutcome> {
   const tagIds = request.tags.map((t) => t.id);
   const unitKeys = scanUnitKeys(request);
@@ -59,13 +59,20 @@ export async function readRecipe(
               ? [
                   {
                     type: 'text' as const,
-                    text: `The text of a recipe web page:\n\n${request.pageText}`,
+                    text:
+                      request.pageSource === 'data'
+                        ? `A recipe web page's recipe data:\n\n${request.pageText}`
+                        : `The text of a recipe web page:\n\n${request.pageText}`,
                   },
                 ]
               : []),
             {
               type: 'text' as const,
-              text: userPrompt(request.tags, request.units, request.pageText ? 'page' : 'photos'),
+              text: userPrompt(
+                request.tags,
+                request.units,
+                request.pageText ? (request.pageSource ?? 'page') : 'photos'
+              ),
             },
           ],
         },

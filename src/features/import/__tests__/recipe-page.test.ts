@@ -1,6 +1,7 @@
 import { pageToScanResult } from '@/features/import/import-service';
 import {
   normalizeUrl,
+  recipeDataText,
   pageText,
   recipeFromHtml,
   servingsFrom,
@@ -47,6 +48,7 @@ describe('recipeFromHtml', () => {
       title: "Mom's Chili",
       servings: 6,
       ingredients: ['2 lbs ground beef', '1 (15 oz) can kidney beans', '1 ½ cups onion'],
+      hints: [],
     });
   });
 
@@ -97,5 +99,32 @@ describe('pageToScanResult', () => {
     expect(result.ingredients[0]).toMatchObject({ quantity: 2, unit: 'lb', name: 'ground beef' });
     expect(result.ingredients[1]).toMatchObject({ quantity: 1, name: 'onion' });
     expect(result.notes).toBeNull();
+  });
+});
+
+describe('recipeDataText', () => {
+  it('gives Claude the title, servings, site keywords, and lines', () => {
+    const recipe = recipeFromHtml(
+      page({
+        '@type': 'Recipe',
+        name: 'Chili',
+        recipeYield: '6',
+        recipeCategory: 'Dinner',
+        recipeCuisine: ['Mexican'],
+        keywords: 'beef, chili, easy',
+        recipeIngredient: ['1 lb ground beef (85% lean)', '3 cloves garlic minced'],
+      })
+    )!;
+    expect(recipe.hints).toEqual(['Dinner', 'Mexican', 'beef', 'chili', 'easy']);
+    expect(recipeDataText(recipe)).toBe(
+      [
+        'Title: Chili',
+        'Serves: 6',
+        "Site's categories and keywords: Dinner, Mexican, beef, chili, easy",
+        'Ingredients:',
+        '- 1 lb ground beef (85% lean)',
+        '- 3 cloves garlic minced',
+      ].join('\n')
+    );
   });
 });
