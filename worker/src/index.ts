@@ -72,7 +72,7 @@ function problem(status: number, error: string, message: string): Response {
 /** Who is asking: a valid Firebase sign-in for this project, on the allowed list. */
 async function authorize(request: Request, env: Env): Promise<{ uid: string } | Response> {
   const token = request.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
-  if (!token) return problem(401, 'signed_out', 'Sign in again, then try the scan.');
+  if (!token) return problem(401, 'signed_out', 'Sign in again, then try again.');
   let uid: string;
   let email: string;
   try {
@@ -84,7 +84,7 @@ async function authorize(request: Request, env: Env): Promise<{ uid: string } | 
     uid = payload.sub;
     email = String(payload.email ?? '').toLowerCase();
   } catch {
-    return problem(401, 'signed_out', 'Sign in again, then try the scan.');
+    return problem(401, 'signed_out', 'Sign in again, then try again.');
   }
   const allowed = env.ALLOWED_EMAILS.split(',').map((e) => e.trim().toLowerCase());
   if (!allowed.includes(email)) {
