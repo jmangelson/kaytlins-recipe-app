@@ -10,6 +10,7 @@ import { Spacing } from '@/constants/theme';
 import { addDays, formatDay, formatRange, type DateKey } from '@/features/calendar/calendar-model';
 import { listCalendarDays } from '@/features/calendar/calendar-repo';
 import { mealName, type MealId, type MealPlan, type PlanItem } from '@/features/plans/meal-plan';
+import { filterRecipes } from '@/features/recipes/recipe-draft';
 import type { Recipe } from '@/features/recipes/recipe-types';
 import { CheckRow } from '@/features/shopping/check-row';
 import type { ListSource } from '@/features/shopping/list-model';
@@ -19,6 +20,8 @@ import {
   mealsFromPlan,
   type MealChoice,
 } from '@/features/shopping/shopping-model';
+import { TAG_GROUPS, tagsByGroup } from '@/features/stores/tag-groups';
+import type { Tag } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -50,12 +53,15 @@ export type ListSources = {
 export function useListSources({
   householdId,
   recipes,
+  tags,
   plans,
   meals,
   thisWeek,
 }: {
   householdId: string;
   recipes: Map<string, Recipe>;
+  /** For filtering recipes in "Add a recipe", as on the Recipes tab. */
+  tags: Tag[];
   plans: MealPlan[];
   meals: MealId[];
   thisWeek: DateKey;
@@ -216,7 +222,7 @@ export function useListSources({
         </ThemedText>
         {added.map((item, index) => (
           <View key={index} style={styles.addedRow}>
-            <ThemedText style={styles.flex}>
+            <ThemedText type="small" style={styles.flex}>
               {recipes.get(item.recipeId)?.name ?? 'Deleted recipe'}
             </ThemedText>
             <IconButton
@@ -228,6 +234,7 @@ export function useListSources({
         ))}
         <RecipeAdder
           recipes={[...recipes.values()]}
+          tags={tags}
           onAdd={(recipe) => touch(setAdded)([...added, { recipeId: recipe.id, servings: null }])}
         />
       </View>
@@ -258,20 +265,43 @@ export function useListSources({
   };
 }
 
-/** "Add a recipe": a search box that drops down matching recipes; one tap adds one. */
-function RecipeAdder({ recipes, onAdd }: { recipes: Recipe[]; onAdd: (recipe: Recipe) => void }) {
+/**
+ * "Add a recipe": opens a search (name or ingredient) with the same tag
+ * filters as the Recipes tab; one tap adds one recipe and closes it.
+ */
+function RecipeAdder({
+  recipes,
+  tags,
+  onAdd,
+}: {
+  recipes: Recipe[];
+  tags: Tag[];
+  onAdd: (recipe: Recipe) => void;
+}) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const needle = search.trim().toLowerCase();
-  const matches = recipes
-    .filter((r) => !needle || r.name.toLowerCase().includes(needle))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .slice(0, 8);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   if (!open) {
     return <Button label="Add a recipe" variant="secondary" onPress={() => setOpen(true)} />;
   }
+  const groups = tagsByGroup(tags);
+  const selected = tags.filter((t) => selectedTags.includes(t.id));
+  const matches = filterRecipes(recipes, search, selected);
+  const shown = matches.slice(0, 12);
+  const toggleTag = (id: string) =>
+    setSelectedTags((current) =>
+      current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
+    );
+  function close() {
+    setOpen(false);
+    setSearch('');
+    setSelectedTags([]);
+    setFiltersOpen(false);
+  }
+
   return (
     <View
       style={[
@@ -283,34 +313,71 @@ function RecipeAdder({ recipes, onAdd }: { recipes: Recipe[]; onAdd: (recipe: Re
         testID="add-recipe-search"
         value={search}
         onChangeText={setSearch}
-        placeholder="Recipe name"
+        placeholder="Recipe name or ingredient"
         autoCorrect={false}
       />
-      {matches.length === 0 ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          No recipes match.
-        </ThemedText>
-      ) : (
-        matches.map((recipe) => (
-          <Pressable
-            key={recipe.id}
-            accessibilityRole="button"
-            accessibilityLabel={`Add ${recipe.name}`}
-            onPress={() => {
-              onAdd(recipe);
-              setSearch('');
-              setOpen(false);
-            }}
-            style={({ pressed }) => [
-              styles.option,
-              { borderBottomColor: theme.border },
-              pressed && styles.pressed,
-            ]}>
-            <ThemedText>{recipe.name}</ThemedText>
-          </Pressable>
-        ))
-      )}
-      <Button label="Cancel" variant="secondary" onPress={() => setOpen(false)} />
+      <View style={styles.chips}>
+        <Chip
+          label={selected.length ? `Filters (${selected.length})` : 'Filters'}
+          accessibilityLabel={filtersOpen ? 'Hide recipe filters' : 'Show recipe filters'}
+          selected={filtersOpen}
+          onPress={() => setFiltersOpen((v) => !v)}
+        />
+        {!filtersOpen &&
+          selected.map((tag) => (
+            <Chip
+              key={tag.id}
+              label={`${tag.name} ✕`}
+              accessibilityLabel={`Remove filter ${tag.name}`}
+              onPress={() => toggleTag(tag.id)}
+            />
+          ))}
+      </View>
+      {filtersOpen &&
+        TAG_GROUPS.map((group) =>
+          groups[group.id].length === 0 ? null : (
+            <View key={group.id} style={styles.tagGroup}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {group.name}
+              </ThemedText>
+              <View style={styles.chips}>
+                {groups[group.id].map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    label={tag.name}
+                    selected={selectedTags.includes(tag.id)}
+                    onPress={() => toggleTag(tag.id)}
+                  />
+                ))}
+              </View>
+            </View>
+          )
+        )}
+      <ThemedText type="small" themeColor="textSecondary">
+        {matches.length === 0
+          ? 'No recipes match.'
+          : matches.length > shown.length
+            ? `Showing ${shown.length} of ${matches.length}; search to narrow it down.`
+            : `${matches.length} ${matches.length === 1 ? 'recipe' : 'recipes'}`}
+      </ThemedText>
+      {shown.map((recipe) => (
+        <Pressable
+          key={recipe.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${recipe.name}`}
+          onPress={() => {
+            onAdd(recipe);
+            close();
+          }}
+          style={({ pressed }) => [
+            styles.option,
+            { borderBottomColor: theme.border },
+            pressed && styles.pressed,
+          ]}>
+          <ThemedText type="small">{recipe.name}</ThemedText>
+        </Pressable>
+      ))}
+      <Button label="Cancel" variant="secondary" onPress={close} />
     </View>
   );
 }
@@ -450,6 +517,9 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  tagGroup: {
+    gap: Spacing.one,
   },
   dropdown: {
     borderWidth: 1,

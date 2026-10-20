@@ -24,8 +24,8 @@ import { lineForExtra, linesFromNeeds, type ExtraItem } from '@/features/shoppin
 import { createShoppingList } from '@/features/shopping/list-repo';
 import { useListSources } from '@/features/shopping/list-sources';
 import { gatherNeeds, leaveOffAtHome, withStaples } from '@/features/shopping/shopping-model';
-import { listStores } from '@/features/stores/store-repo';
-import type { Store } from '@/features/stores/store-types';
+import { listStores, listTags } from '@/features/stores/store-repo';
+import type { Store, Tag } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 
@@ -39,8 +39,9 @@ export default function NewShoppingListScreen() {
   const thisWeek = startOfWeek(today, household.settings.weekStart);
 
   const data = useAsync(async () => {
-    const [recipes, plans, stores, extras, staples, ingredients] = await Promise.all([
+    const [recipes, tags, plans, stores, extras, staples, ingredients] = await Promise.all([
       listRecipes(household.id),
+      listTags(household.id),
       listPlans(household.id),
       listStores(household.id),
       listExtraItems(household.id),
@@ -49,6 +50,7 @@ export default function NewShoppingListScreen() {
     ]);
     return {
       recipes: new Map(recipes.map((r) => [r.id, r])),
+      tags,
       plans,
       stores,
       extras,
@@ -68,6 +70,7 @@ export default function NewShoppingListScreen() {
 
 function NewListForm({
   recipes,
+  tags,
   plans,
   stores,
   extras,
@@ -77,6 +80,7 @@ function NewListForm({
   thisWeek,
 }: {
   recipes: Map<string, Recipe>;
+  tags: Tag[];
   plans: MealPlan[];
   stores: Store[];
   extras: ExtraItem[];
@@ -89,6 +93,7 @@ function NewListForm({
   const sources = useListSources({
     householdId: household.id,
     recipes,
+    tags,
     plans,
     meals,
     thisWeek,

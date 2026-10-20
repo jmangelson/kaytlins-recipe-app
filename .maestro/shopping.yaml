@@ -100,9 +100,13 @@ tags:
 - tapOn: 'Add a recipe'
 - tapOn:
     id: 'add-recipe-search'
-- inputText: 'sal'
+# Search by ingredient, with the Recipes tab's filters
+- inputText: 'cilantro'
 - hideKeyboard
+- tapOn: 'Show recipe filters'
+- assertVisible: 'Type'
 - takeScreenshot: build/screenshots/88-add-recipe-dropdown
+- tapOn: 'Hide recipe filters'
 - tapOn: 'Add Salsa'
 - scrollUntilVisible:
     element: '2 meals \+ 1 recipe · 9 items.*'

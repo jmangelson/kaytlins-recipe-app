@@ -28,6 +28,8 @@ import type { ShoppingList } from '@/features/shopping/list-model';
 import { listShoppingLists } from '@/features/shopping/list-repo';
 import { useListSources } from '@/features/shopping/list-sources';
 import { gatherNeeds } from '@/features/shopping/shopping-model';
+import { listTags } from '@/features/stores/store-repo';
+import type { Tag } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 
 const HEADER_EDGES: Edge[] = ['right', 'bottom', 'left'];
@@ -41,8 +43,9 @@ export default function NewPackingListScreen() {
   const { household } = useHousehold();
   const { fromList } = useLocalSearchParams<{ fromList?: string }>();
   const data = useAsync(async () => {
-    const [recipes, plans, ingredients, gear, shoppingLists] = await Promise.all([
+    const [recipes, tags, plans, ingredients, gear, shoppingLists] = await Promise.all([
       listRecipes(household.id),
+      listTags(household.id),
       listPlans(household.id),
       listIngredients(household.id),
       getDefaultGear(household.id),
@@ -50,6 +53,7 @@ export default function NewPackingListScreen() {
     ]);
     return {
       recipes: new Map(recipes.map((r) => [r.id, r])),
+      tags,
       plans,
       ingredients: new Map(ingredients.map((i) => [i.id, i])),
       gear,
@@ -80,6 +84,7 @@ function NewPackingForm({
   shoppingLists: ShoppingList[];
   fromList: string | null;
   recipes: Map<string, Recipe>;
+  tags: Tag[];
   plans: MealPlan[];
   ingredients: Map<string, Ingredient>;
   gear: string[];
@@ -164,6 +169,7 @@ function FromShoppingList({
 
 function FromMeals({
   recipes,
+  tags,
   plans,
   ingredients,
   gear,
@@ -172,6 +178,7 @@ function FromMeals({
   modes,
 }: {
   recipes: Map<string, Recipe>;
+  tags: Tag[];
   plans: MealPlan[];
   ingredients: Map<string, Ingredient>;
   gear: string[];
@@ -180,7 +187,14 @@ function FromMeals({
   modes: React.ReactNode;
 }) {
   const { household } = useHousehold();
-  const sources = useListSources({ householdId: household.id, recipes, plans, meals, thisWeek });
+  const sources = useListSources({
+    householdId: household.id,
+    recipes,
+    tags,
+    plans,
+    meals,
+    thisWeek,
+  });
   const items = packItemsFromNeeds(gatherNeeds(sources.items, recipes), ingredients);
   return (
     <CreateForm
