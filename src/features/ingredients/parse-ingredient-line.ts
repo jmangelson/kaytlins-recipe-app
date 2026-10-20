@@ -169,8 +169,36 @@ export function droppedWords(oldName: string, newName: string): string | null {
   const newKeys = newName.trim().split(/\s+/).map(key);
   const oldKeys = oldWords.map(key);
   if (!newKeys.every((k) => oldKeys.includes(k))) return null;
-  const extra = oldWords.filter((_, i) => !newKeys.includes(oldKeys[i]));
+  // Product words ("fresh", "ground", "red") aren't notes: they say what's bought.
+  const extra = oldWords.filter((w, i) => !newKeys.includes(oldKeys[i]) && !isProductWord(w));
   return extra.length ? extra.join(' ').replace(/[,;]+$/, '') : null;
+}
+
+/**
+ * Words that say which product it is, not how to prepare it: "fresh" vs
+ * "dried" cilantro, "ground" vs "whole" cumin, "red" vs "yellow" onions.
+ * They stay in an ingredient's name and never move to notes.
+ */
+const PRODUCT_WORDS = new Set(
+  (
+    'fresh frozen dried dry ground whole crushed canned smoked powdered powder flaked flakes ' +
+    'seed seeds stick sticks leaf leaves raw cooked instant evaporated condensed salted ' +
+    'unsalted sweetened unsweetened light dark baby wild sweet hot mild ' +
+    'red green yellow white black brown orange purple golden'
+  ).split(' ')
+);
+
+export function isProductWord(word: string): boolean {
+  return PRODUCT_WORDS.has(word.toLowerCase().replace(/[,;.]$/, ''));
+}
+
+/** Product words in the old name that the new name leaves out. */
+export function productWordsDropped(oldName: string, newName: string): string[] {
+  const newKeys = newName.trim().split(/\s+/).map(ingredientNameKey);
+  return oldName
+    .trim()
+    .split(/\s+/)
+    .filter((w) => isProductWord(w) && !newKeys.includes(ingredientNameKey(w)));
 }
 
 /** Preparation words: a note, not part of the ingredient's name. */

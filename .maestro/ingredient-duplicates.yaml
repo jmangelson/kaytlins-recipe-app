@@ -43,6 +43,36 @@ tags:
     element: 'Add zucchinni'
     centerElement: true
 - tapOn: 'Add zucchinni'
+# Two that look alike but she wants kept apart
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'pecans'
+- runFlow:
+    when:
+      visible: 'Add pecans'
+    commands:
+      - scrollUntilVisible:
+          element: 'Add pecans'
+          centerElement: true
+      - tapOn: 'Add pecans'
+- runFlow:
+    file: subflows/add-item.yaml
+    env:
+      TEXT: 'pecan5'
+- runFlow:
+    when:
+      visible: 'Which .* do you mean.*'
+    commands:
+      - tapOn: 'New: pecan5'
+- runFlow:
+    when:
+      visible: 'Add pecan5'
+    commands:
+      - scrollUntilVisible:
+          element: 'Add pecan5'
+          centerElement: true
+      - tapOn: 'Add pecan5'
 # Plain garlic already exists, so tidying "minced garlic" merges into it
 - runFlow:
     file: subflows/add-item.yaml
@@ -74,6 +104,14 @@ tags:
 - extendedWaitUntil:
     visible: 'Run the audit again'
     timeout: 15000
+# "Keep both" is remembered
+- scrollUntilVisible:
+    element: 'Keep pecan.* and pecan.* apart'
+    centerElement: true
+- tapOn: 'Keep pecan.* and pecan.* apart'
+- extendedWaitUntil:
+    visible: 'Kept apart. It won’t be suggested again.'
+    timeout: 15000
 - scrollUntilVisible:
     element: 'Spelled almost the same'
     centerElement: true
@@ -93,8 +131,10 @@ tags:
     centerElement: true
 - takeScreenshot: build/screenshots/101-duplicates-final-name
 - tapOn: 'Merge zucchinni into zucchini'
-- extendedWaitUntil:
-    visible: 'Merged.'
+# (the card shrinks once merged)
+- scrollUntilVisible:
+    element: 'Merged.'
+    direction: UP
     timeout: 15000
 # Running it again uses the ingredients as they are now: no repeat
 - scrollUntilVisible:
@@ -105,6 +145,7 @@ tags:
     visible: 'Run the audit again'
     timeout: 15000
 - assertNotVisible: 'Merge zucchinni into.*'
+- assertNotVisible: 'Keep pecan.* and pecan.* apart'
 - assertNotVisible: 'Spelled almost the same'
 - back
 - scrollUntilVisible:
@@ -140,13 +181,21 @@ tags:
     element: 'Merge minced garlic into garlic'
     centerElement: true
 - tapOn: 'Merge minced garlic into garlic'
-- extendedWaitUntil:
-    visible: 'Merged.'
+- scrollUntilVisible:
+    element: 'Merged.'
+    direction: UP
     timeout: 15000
 - back
-- back
-- tapOn: 'Recipes'
-- tapOn: 'Garlic bread.*'
+# The ingredient lists the recipes that use it; each opens the recipe
+- scrollUntilVisible:
+    element: 'garlic, Potatoes.*'
+    centerElement: true
+- tapOn: 'garlic, Potatoes.*'
+- scrollUntilVisible:
+    element: 'Used in'
+    centerElement: true
+- takeScreenshot: build/screenshots/107-ingredient-used-in
+- tapOn: 'Garlic bread, 2 cloves.*'
 - extendedWaitUntil:
     visible: 'garlic, minced'
     timeout: 15000

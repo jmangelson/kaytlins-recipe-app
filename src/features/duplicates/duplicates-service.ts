@@ -9,9 +9,10 @@ import {
 } from '@/features/duplicates/duplicates-contract';
 import { editDistance, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { prepWordsInName, withoutPrepWord } from '@/features/ingredients/parse-ingredient-line';
+import { reviewGroups } from '@/features/duplicates/review-groups';
 import { auth, usingFirebaseEmulators } from '@/lib/firebase';
 
-const TIMEOUT_MS = 90_000;
+const TIMEOUT_MS = 180_000;
 
 export class DuplicatesError extends Error {}
 
@@ -58,7 +59,7 @@ export async function findDuplicates(ingredients: Ingredient[]): Promise<Duplica
   if (ingredients.length < 2) return [];
   if (usingFirebaseEmulators) {
     await new Promise((resolve) => setTimeout(resolve, 500));
-    return testSuggestions(ingredients);
+    return reviewGroups(testSuggestions(ingredients), ingredients);
   }
   const url = Constants.expoConfig?.extra?.scanUrl as string | undefined;
   const user = auth.currentUser;
@@ -70,6 +71,8 @@ export async function findDuplicates(ingredients: Ingredient[]): Promise<Duplica
       name: i.name,
       aliases: i.aliases.slice(0, 30),
       category: i.category,
+      apart: i.auditApart.length ? i.auditApart.slice(-100) : undefined,
+      nameKept: i.auditNameKept === i.name ? true : undefined,
     })),
   };
   const controller = new AbortController();
@@ -104,5 +107,5 @@ export async function findDuplicates(ingredients: Ingredient[]): Promise<Duplica
     list.map((i) => i.id)
   );
   if (!result) throw new DuplicatesError('Claude sent something unexpected. Try again.');
-  return result.groups;
+  return reviewGroups(result.groups, list);
 }

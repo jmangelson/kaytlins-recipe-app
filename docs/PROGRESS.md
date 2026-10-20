@@ -396,6 +396,14 @@ From the full check on her phone:
   name and notes (the name changes everywhere; her own notes show as
   "Notes:", recipe ones as "Recipe notes:").
 - One-day ranges read "Oct 18", not "Oct 18 – 18".
+- Cleanup remembers her choices: "Keep both" (kept apart) and "Keep name"
+  are saved on the ingredients and sent with the next audit, so they aren't
+  suggested again; groups of 3+ can "Leave X out". Product words (fresh,
+  dried, ground, crushed, colors…) stay in names and never move to notes.
+  The audit runs at high effort with thinking (streamed) to find everything
+  in one pass.
+- Ingredient page lists the recipes that use it ("Used in"), each opening
+  the recipe.
 
 ### Round 2, phase 2 — Specific categories and real aisles (2026-10-19)
 

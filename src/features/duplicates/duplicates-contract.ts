@@ -10,7 +10,16 @@ import { CATEGORIES, type CategoryId } from '../ingredients/taxonomy';
 export const MAX_INGREDIENTS = 600;
 
 export type DuplicatesRequest = {
-  ingredients: { id: string; name: string; aliases: string[]; category: string }[];
+  ingredients: {
+    id: string;
+    name: string;
+    aliases: string[];
+    category: string;
+    /** Ids she kept apart from this one ("Keep both"). */
+    apart?: string[];
+    /** She kept this name when a tidy was suggested. */
+    nameKept?: boolean;
+  }[];
 };
 
 /**
@@ -43,7 +52,12 @@ export function duplicatesRequestProblem(body: unknown): string | null {
       i.name.length <= 80 &&
       Array.isArray(i.aliases) &&
       i.aliases.length <= 30 &&
-      typeof i.category === 'string'
+      typeof i.category === 'string' &&
+      (i.apart === undefined ||
+        (Array.isArray(i.apart) &&
+          i.apart.length <= 100 &&
+          i.apart.every((a: unknown) => typeof a === 'string'))) &&
+      (i.nameKept === undefined || typeof i.nameKept === 'boolean')
   );
   return ok ? null : 'Ingredients must have an id, name, other names, and category.';
 }
@@ -79,21 +93,26 @@ Never group things bought differently, even when the words overlap:
 - fresh vs dried herbs, ground vs whole spices, crushed vs whole;
 - fresh vs frozen vs canned, or different package types;
 - different varieties or cuts (roma vs cherry tomatoes, chicken breasts vs thighs, yellow vs red onions);
-- different fat levels, flavors, or sizes when they're sold as different products (whole vs 2% milk, salted vs unsalted butter).
+- different fat levels, flavors, or sizes when they're sold as different products (whole vs 2% milk, salted vs unsalted butter);
+- any pair the household already kept apart (marked "kept apart from").
 
 When unsure, leave it out: a missed duplicate is fine, a wrong merge isn't. For each group, choose which id to keep (the one with the clearest name), and give the final name and category for the merged ingredient:
 - name: the clearest, most specific name a shopper and the recipes would use, in plain lowercase except proper names ("Monterey Jack", "Rotel"); correct typos; it may be a tidied version of one of the names.
 - category: the aisle category id from the list where it's sold.
-The final name leaves out preparation, size, and fat/lean notes (minced, chopped, sliced, medium, large, 85% lean, boneless): the app moves them into the recipes' notes. But keep words that are part of what's bought (diced tomatoes, ground beef, shredded cheese, crushed red pepper, sliced almonds, whole milk).
+The final name leaves out preparation, size, and fat/lean notes (minced, chopped, sliced, medium, large, 85% lean, boneless): the app moves them into the recipes' notes. But keep words that are part of what's bought (diced tomatoes, ground beef, shredded cheese, crushed red pepper, sliced almonds, whole milk). Never take out a word that says which product it is: fresh, frozen, dried, ground, whole, crushed, canned, smoked, powder, flakes, seed, sticks, leaves, salted/unsalted, colors (red, green, yellow, white, black), sweet, hot, mild. "fresh cilantro" stays "fresh cilantro".
 
-Also suggest tidying a single ingredient whose name carries such a note ("minced garlic" -> "garlic"): a group with that ingredient as keepId, no mergeIds, and the tidy name. Only when the name really changes.
+Also suggest tidying a single ingredient whose name carries such a note ("minced garlic" -> "garlic"): a group with that ingredient as keepId, no mergeIds, and the tidy name. Only when the name really changes, and never for a name marked "name kept".
+
+Be thorough: go through the whole list, alphabetically and by category, and include every group and tidy you find in this one answer. The household reviews each suggestion; they shouldn't find new ones only by running the check again.
 
 Use only the ids given. Give a short reason a person can check (e.g. "plural of the same item").`;
 
 export function duplicatesUserPrompt(request: DuplicatesRequest): string {
   const lines = request.ingredients.map(
     (i) =>
-      `- ${i.id}: ${i.name}${i.aliases.length ? ` (also: ${i.aliases.join(', ')})` : ''} [${i.category}]`
+      `- ${i.id}: ${i.name}${i.aliases.length ? ` (also: ${i.aliases.join(', ')})` : ''} [${i.category}]` +
+      (i.apart?.length ? ` (kept apart from: ${i.apart.join(', ')})` : '') +
+      (i.nameKept ? ' (name kept)' : '')
   );
   const categories = CATEGORIES.map((c) => `- ${c.id}: ${c.name}`).join('\n');
   return `Categories:\n${categories}\n\nIngredients (id: name [category]):\n${lines.join('\n')}`;

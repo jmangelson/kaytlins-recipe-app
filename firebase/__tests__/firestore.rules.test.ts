@@ -599,6 +599,17 @@ describe('round 2 phase 3–5 data', () => {
         usuallyAtHome: 'yes',
       })
     );
+    // Cleanup choices she made: kept apart, name kept
+    await assertSucceeds(
+      setDoc(doc(db, 'households', HID, 'ingredients', 'w3'), {
+        ...ingredient,
+        auditApart: ['w'],
+        auditNameKept: 'Water',
+      })
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'ingredients', 'w4'), { ...ingredient, auditApart: 'w' })
+    );
     const list = {
       name: 'Week',
       status: 'pantry',

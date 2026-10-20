@@ -19,6 +19,8 @@ import {
   listIngredients,
   mergeIngredients,
   renameIngredient,
+  keepApart,
+  keepName,
   saveIngredient,
 } from '@/features/ingredients/ingredient-repo';
 import { droppedWords, ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
@@ -168,14 +170,49 @@ function Review({ householdId, initial }: { householdId: string; initial: AuditD
     );
   }
 
-  function keepInstead(index: number, id: string) {
+  /** Remembers her choice in the screen's copy too. */
+  function remember(changed: Ingredient[]) {
+    const byChanged = new Map(changed.map((i) => [i.id, i]));
+    setData({ ingredients: ingredients.map((i) => byChanged.get(i.id) ?? i), uses });
+  }
+
+  /**
+   * "Keep both" / "Keep this name": saved, so later audits don't suggest it
+   * again.
+   */
+  async function keepAsIs(index: number, group: DuplicateGroup) {
+    const members = [group.keepId, ...group.mergeIds]
+      .map((id) => byId.get(id))
+      .filter((i): i is Ingredient => !!i);
+    setStatus((s) => ({ ...s, [index]: 'merging' }));
+    if (members.length === 1) {
+      await keepName(householdId, members[0]);
+      remember([{ ...members[0], auditNameKept: members[0].name }]);
+    } else {
+      await keepApart(householdId, members);
+      remember(
+        members.map((m) => ({
+          ...m,
+          auditApart: [...m.auditApart, ...members.filter((o) => o !== m).map((o) => o.id)],
+        }))
+      );
+    }
+    setStatus((s) => ({ ...s, [index]: 'skipped' }));
+  }
+
+  /** "Leave X out" of a group of three or more: kept apart from the rest. */
+  async function leaveOut(index: number, group: DuplicateGroup, id: string) {
+    const out = byId.get(id);
+    const rest = [group.keepId, ...group.mergeIds].filter((m) => m !== id);
+    if (!out || rest.length < 2) return;
     setGroups((current) =>
       (current ?? []).map((g, i) =>
-        i === index
-          ? { ...g, keepId: id, mergeIds: [g.keepId, ...g.mergeIds.filter((m) => m !== id)] }
-          : g
+        i === index ? { ...g, keepId: rest[0], mergeIds: rest.slice(1) } : g
       )
     );
+    const others = rest.map((m) => byId.get(m)).filter((i): i is Ingredient => !!i);
+    for (const other of others) await keepApart(householdId, [out, other]);
+    remember([{ ...out, auditApart: [...out.auditApart, ...rest] }]);
   }
 
   const describe = (i: Ingredient) => {
@@ -231,8 +268,8 @@ function Review({ householdId, initial }: { householdId: string; initial: AuditD
             suggestedCategory={group.category === 'uncategorized' ? keep.category : group.category}
             nameOwner={(name) => nameOwner(group, name)}
             onMerge={(name, category) => merge(index, group, name, category)}
-            onSkip={() => setStatus((s) => ({ ...s, [index]: 'skipped' }))}
-            onKeepInstead={(id) => keepInstead(index, id)}
+            onKeep={() => keepAsIs(index, group)}
+            onLeaveOut={(id) => leaveOut(index, group, id)}
           />
         );
       })}
@@ -250,8 +287,8 @@ function DuplicateCard({
   suggestedCategory,
   nameOwner,
   onMerge,
-  onSkip,
-  onKeepInstead,
+  onKeep,
+  onLeaveOut,
 }: {
   keep: Ingredient;
   merges: Ingredient[];
@@ -263,8 +300,10 @@ function DuplicateCard({
   /** Another ingredient that already has this name (they merge into it). */
   nameOwner: (name: string) => Ingredient | null;
   onMerge: (name: string, category: CategoryId) => void;
-  onSkip: () => void;
-  onKeepInstead: (id: string) => void;
+  /** "Keep both" (or "Keep this name" for a tidy): remembered. */
+  onKeep: () => void;
+  /** Leave one out of a group of three or more. */
+  onLeaveOut: (id: string) => void;
 }) {
   const theme = useTheme();
   const done = state === 'merged' || state === 'skipped';
@@ -316,7 +355,11 @@ function DuplicateCard({
       {state === 'merged' && (
         <ThemedText type="smallBold">{tidy ? 'Tidied.' : 'Merged.'}</ThemedText>
       )}
-      {state === 'skipped' && <ThemedText type="small">Skipped.</ThemedText>}
+      {state === 'skipped' && (
+        <ThemedText type="small">
+          {merges.length === 0 ? 'Name kept.' : 'Kept apart.'} It won’t be suggested again.
+        </ThemedText>
+      )}
       {state === 'merging' && <ActivityIndicator />}
       {state === 'open' && (
         <>
@@ -342,18 +385,25 @@ function DuplicateCard({
               </ThemedText>
             ))}
           </View>
-          <View style={styles.chips}>
-            {merges.map((m) => (
-              <Chip
-                key={m.id}
-                label={`Keep “${m.name}” instead`}
-                onPress={() => onKeepInstead(m.id)}
-              />
-            ))}
-          </View>
+          {merges.length >= 2 && (
+            <View style={styles.chips}>
+              {[keep, ...merges].map((m) => (
+                <Chip key={m.id} label={`Leave “${m.name}” out`} onPress={() => onLeaveOut(m.id)} />
+              ))}
+            </View>
+          )}
           <View style={styles.actions}>
             <View style={styles.flex}>
-              <Button label="Skip" variant="secondary" onPress={onSkip} />
+              <Button
+                label={merges.length === 0 ? 'Keep name' : 'Keep both'}
+                accessibilityLabel={
+                  merges.length === 0
+                    ? `Keep the name ${keep.name}`
+                    : `Keep ${[keep, ...merges].map((m) => m.name).join(' and ')} apart`
+                }
+                variant="secondary"
+                onPress={onKeep}
+              />
             </View>
             <View style={styles.flex}>
               <Button
@@ -406,7 +456,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: 'column-reverse',
     gap: Spacing.two,
     marginTop: Spacing.two,
   },

@@ -35,6 +35,10 @@ export type Ingredient = {
   categoryChecked: boolean;
   /** Usually at home (water): left off shopping lists, still on packing lists. */
   usuallyAtHome: boolean;
+  /** Ingredients she kept apart from this one in the cleanup (never suggested again). */
+  auditApart: string[];
+  /** The name she kept when skipping a tidy (not suggested again while it's the name). */
+  auditNameKept: string | null;
   /** Stores she buys it at, most preferred first. Empty = her overall store order. */
   storePriority: string[];
   /** Area per store when it differs from the category's usual area. */
@@ -69,6 +73,8 @@ export function ingredientFromData(id: string, data: Record<string, unknown>): I
     categorySet: categoryWasChosen(data, name),
     categoryChecked: data.categoryChecked === true,
     usuallyAtHome: data.usuallyAtHome === true,
+    auditApart: Array.isArray(data.auditApart) ? (data.auditApart as string[]) : [],
+    auditNameKept: typeof data.auditNameKept === 'string' ? data.auditNameKept : null,
     storePriority,
     areaOverrides,
     defaultUnit: (data.defaultUnit as string | null) ?? null,
@@ -88,6 +94,8 @@ export function ingredientToData(ingredient: Omit<Ingredient, 'id'>) {
     categorySet: ingredient.categorySet,
     categoryChecked: ingredient.categoryChecked,
     usuallyAtHome: ingredient.usuallyAtHome,
+    auditApart: ingredient.auditApart.slice(-100),
+    auditNameKept: ingredient.auditNameKept,
     storePriority: ingredient.storePriority,
     areaOverrides: ingredient.areaOverrides,
     defaultUnit: ingredient.defaultUnit,
@@ -104,6 +112,8 @@ export function newIngredient(name: string): Omit<Ingredient, 'id'> {
     categorySet: false,
     categoryChecked: false,
     usuallyAtHome: false,
+    auditApart: [],
+    auditNameKept: null,
     storePriority: [],
     areaOverrides: {},
     defaultUnit: null,

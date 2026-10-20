@@ -7,6 +7,7 @@ import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
+import { ListRow } from '@/components/list-row';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
@@ -31,6 +32,8 @@ import {
   saveIngredient,
 } from '@/features/ingredients/ingredient-repo';
 import { ingredientNameKey, droppedWords } from '@/features/ingredients/parse-ingredient-line';
+import { listRecipes } from '@/features/recipes/recipe-repo';
+import type { Recipe } from '@/features/recipes/recipe-types';
 import { useHousehold } from '@/features/session/session-provider';
 import { moveItem } from '@/features/stores/store-edit';
 import { listStores } from '@/features/stores/store-repo';
@@ -45,12 +48,16 @@ export default function IngredientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { household } = useHousehold();
   const data = useAsync(async () => {
-    const [ingredient, stores, all] = await Promise.all([
+    const [ingredient, stores, all, recipes] = await Promise.all([
       getIngredient(household.id, id),
       listStores(household.id),
       listIngredients(household.id),
+      listRecipes(household.id),
     ]);
-    return { ingredient, stores, all };
+    const usedIn = recipes
+      .filter((r) => r.ingredients.some((l) => l.ingredientId === id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return { ingredient, stores, all, usedIn };
   }, [household.id, id]);
 
   if (data.state.status === 'loading') return <LoadingScreen label="Loading ingredient" />;
@@ -62,7 +69,7 @@ export default function IngredientScreen() {
       />
     );
   }
-  const { ingredient, stores, all } = data.state.data;
+  const { ingredient, stores, all, usedIn } = data.state.data;
   if (!ingredient) return <ErrorScreen message="This ingredient no longer exists." />;
   return (
     <IngredientEditor
@@ -70,6 +77,7 @@ export default function IngredientScreen() {
       initial={ingredient}
       stores={stores}
       others={all.filter((i) => i.id !== ingredient.id)}
+      usedIn={usedIn}
     />
   );
 }
@@ -85,11 +93,14 @@ function IngredientEditor({
   initial,
   stores,
   others,
+  usedIn,
 }: {
   householdId: string;
   initial: Ingredient;
   stores: Store[];
   others: Ingredient[];
+  /** Recipes with a line linked to it, by name. */
+  usedIn: Recipe[];
 }) {
   const theme = useTheme();
   const [ingredient, setIngredient] = useState(initial);
@@ -280,6 +291,32 @@ function IngredientEditor({
           value={ingredient.usuallyAtHome}
           onValueChange={(on) => update({ usuallyAtHome: on })}
         />
+      </View>
+
+      <View>
+        <ThemedText type="smallBold" accessibilityRole="header">
+          Used in
+        </ThemedText>
+        {usedIn.length === 0 ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            No recipes yet.
+          </ThemedText>
+        ) : (
+          usedIn.map((recipe) => {
+            const notes = recipe.ingredients
+              .filter((l) => l.ingredientId === initial.id)
+              .map((l) => l.raw)
+              .join(' · ');
+            return (
+              <ListRow
+                key={recipe.id}
+                title={recipe.name}
+                subtitle={notes || null}
+                onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: recipe.id } })}
+              />
+            );
+          })
+        )}
       </View>
 
       <View style={styles.group}>

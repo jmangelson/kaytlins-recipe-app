@@ -62,7 +62,7 @@ service cloud.firestore {
     function validIngredient(data) {
       return data.keys().hasOnly(['name', 'nameKey', 'aliases', 'aliasKeys', 'category',
           'storePriority', 'areaOverrides', 'defaultUnit', 'categoryVersion', 'categorySet',
-          'categoryChecked', 'usuallyAtHome'])
+          'categoryChecked', 'usuallyAtHome', 'auditApart', 'auditNameKept'])
         && validName(data.name, 80)
         && validName(data.nameKey, 80)
         && data.aliases is list && data.aliases.size() <= 30
@@ -74,7 +74,9 @@ service cloud.firestore {
         && (!('categoryVersion' in data) || data.categoryVersion is int)
         && (!('categorySet' in data) || data.categorySet is bool)
         && (!('categoryChecked' in data) || data.categoryChecked is bool)
-        && (!('usuallyAtHome' in data) || data.usuallyAtHome is bool);
+        && (!('usuallyAtHome' in data) || data.usuallyAtHome is bool)
+        && (!('auditApart' in data) || (data.auditApart is list && data.auditApart.size() <= 100))
+        && optionalString(data, 'auditNameKept');
     }
 
     function validRecipe(data) {

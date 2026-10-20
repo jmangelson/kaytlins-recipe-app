@@ -147,12 +147,34 @@ export async function mergeIngredients(
     const key = ingredientNameKey(name);
     if (key !== targetKey && !aliases.some((a) => ingredientNameKey(a) === key)) aliases.push(name);
   }
+  // Kept-apart choices follow the merged one.
+  const auditApart = [...new Set([...target.auditApart, ...source.auditApart])].filter(
+    (id) => id !== target.id && id !== source.id
+  );
   batch.set(
     doc(ingredientsCollection(householdId), target.id),
-    ingredientToData({ ...target, aliases })
+    ingredientToData({ ...target, aliases, auditApart })
   );
   batch.delete(doc(ingredientsCollection(householdId), source.id));
   await commitOrQueue(() => batch.commit());
+}
+
+/** "Keep both": the cleanup won't suggest merging these with each other again. */
+export async function keepApart(householdId: string, ingredients: Ingredient[]): Promise<void> {
+  const batch = writeBatch(db);
+  for (const i of ingredients) {
+    const others = ingredients.filter((o) => o.id !== i.id).map((o) => o.id);
+    batch.set(
+      doc(ingredientsCollection(householdId), i.id),
+      ingredientToData({ ...i, auditApart: [...new Set([...i.auditApart, ...others])] })
+    );
+  }
+  await commitOrQueue(() => batch.commit());
+}
+
+/** "Keep this name": the cleanup won't suggest tidying it while it's the name. */
+export async function keepName(householdId: string, ingredient: Ingredient): Promise<void> {
+  await saveIngredient(householdId, { ...ingredient, auditNameKept: ingredient.name });
 }
 
 export async function deleteIngredient(householdId: string, ingredientId: string): Promise<void> {

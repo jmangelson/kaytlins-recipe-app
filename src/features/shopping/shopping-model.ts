@@ -146,6 +146,8 @@ export function groupForTrip(
       categorySet: false,
       categoryChecked: false,
       usuallyAtHome: false,
+      auditApart: [],
+      auditNameKept: null,
       storePriority: [],
       areaOverrides: {},
       defaultUnit: null,

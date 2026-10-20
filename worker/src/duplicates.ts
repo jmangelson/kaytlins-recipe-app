@@ -25,16 +25,21 @@ export async function findDuplicates(
 ): Promise<DuplicatesOutcome> {
   let response: Anthropic.Beta.BetaMessage;
   try {
-    response = await client.beta.messages.create({
-      model: DUPLICATES_MODEL,
-      max_tokens: 8000,
-      output_config: {
-        effort: 'low',
-        format: { type: 'json_schema', schema: DUPLICATES_JSON_SCHEMA },
-      },
-      system: DUPLICATES_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: duplicatesUserPrompt(request) }],
-    });
+    // Thorough: she'd rather get every suggestion in one run than find more
+    // on the next. Streamed, since a long list can take a while.
+    response = await client.beta.messages
+      .stream({
+        model: DUPLICATES_MODEL,
+        max_tokens: 32000,
+        thinking: { type: 'adaptive' },
+        output_config: {
+          effort: 'high',
+          format: { type: 'json_schema', schema: DUPLICATES_JSON_SCHEMA },
+        },
+        system: DUPLICATES_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: duplicatesUserPrompt(request) }],
+      })
+      .finalMessage();
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
       console.error('Claude API error', error.status, error.message);

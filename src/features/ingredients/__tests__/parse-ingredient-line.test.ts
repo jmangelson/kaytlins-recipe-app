@@ -245,6 +245,10 @@ describe('droppedWords', () => {
     ['zucchinni', 'zucchini', null],
     ['Hortels tomatoes w/ chile', 'Rotel', null],
     ['garlic', 'garlic', null],
+    // Product words aren't notes
+    ['fresh cilantro', 'cilantro', null],
+    ['small red peppers', 'peppers', 'small'],
+    ['crushed rosemary', 'rosemary', null],
   ])('%s → %s drops %s', (from, to, dropped) => {
     expect(droppedWords(from, to)).toBe(dropped);
   });
