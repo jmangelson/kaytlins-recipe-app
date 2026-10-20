@@ -3,7 +3,9 @@ import { catalogConflicts, CATALOG_BY_KEY } from '@/features/ingredients/catalog
 import {
   CATEGORIES,
   CATEGORY_VERSION,
+  categoriesByDepartment,
   categoryWasChosen,
+  guessCategory,
   upgradeCategory,
   upgradeCategoryIds,
   V4_TO_V5,
@@ -154,5 +156,64 @@ describe('upgrading stores to seed v5', () => {
 
   it('recognizes an unedited layout regardless of saved order of the list', () => {
     expect(isUneditedSeed([...v4Grocery].reverse(), v4Grocery)).toBe(true);
+  });
+});
+
+describe('v5 to v6: standard bread, bakery and deli counters', () => {
+  it('splits "Bread & bakery" into standard bread and the bakery counter', () => {
+    const v5 = (name: string) => upgradeCategory({ category: 'bakery', categoryVersion: 5 }, name);
+    expect(v5('hamburger buns')).toBe('bread');
+    expect(v5('sandwich bread')).toBe('bread');
+    expect(v5('birthday cake')).toBe('bakery');
+    expect(v5('French bread')).toBe('bakery');
+    expect(v5('mystery loaf thing')).toBe('bread');
+  });
+
+  it('moves packaged lunch meat out of Deli unless she chose Deli', () => {
+    expect(upgradeCategory({ category: 'deli', categoryVersion: 5 }, 'deli turkey')).toBe(
+      'packaged-meat'
+    );
+    expect(upgradeCategory({ category: 'deli', categoryVersion: 5 }, 'rotisserie chicken')).toBe(
+      'deli'
+    );
+    expect(
+      upgradeCategory({ category: 'deli', categoryVersion: 5, categorySet: true }, 'deli turkey')
+    ).toBe('deli');
+  });
+
+  it('keeps other v5 categories and her choices', () => {
+    expect(upgradeCategory({ category: 'cheese', categoryVersion: 5 }, 'eggs')).toBe('cheese');
+    expect(
+      categoryWasChosen({ category: 'cheese', categoryVersion: 5, categorySet: true }, 'x')
+    ).toBe(true);
+  });
+
+  it('puts standard bread wherever the bakery was in a v5 store', () => {
+    expect(upgradeCategoryIds(['bakery', 'tortillas'], 5)).toEqual([
+      'bread',
+      'bakery',
+      'tortillas',
+    ]);
+    expect(upgradeCategoryIds(['cheese'], 5)).toEqual(['cheese']);
+  });
+
+  it('guesses counters and standard bread for new names', () => {
+    expect(guessCategory('hamburger buns')).toBe('bread');
+    expect(guessCategory('birthday cake')).toBe('bakery');
+    expect(guessCategory('rotisserie chicken')).toBe('deli');
+    expect(guessCategory('deli turkey')).toBe('packaged-meat');
+    expect(guessCategory('prosciutto')).toBe('packaged-meat');
+    expect(guessCategory('cinnamon swirl bread')).toBe('bread');
+    expect(guessCategory('lemon bundt cake')).toBe('bakery');
+  });
+
+  it('groups categories into departments with no department left empty', () => {
+    for (const { department, categories } of categoriesByDepartment()) {
+      expect([department.id, categories.length > 0]).toEqual([department.id, true]);
+    }
+    const names = categoriesByDepartment().map((g) => g.department.name);
+    expect(names).toContain('Store counters (bakery & deli)');
+    expect(names).toContain('Standard bread, tortillas & PB&J');
+    expect(names).toContain('Health, beauty & pharmacy');
   });
 });

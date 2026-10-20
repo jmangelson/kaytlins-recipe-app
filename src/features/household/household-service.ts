@@ -20,7 +20,7 @@ import {
   seedTagOrder,
   upgradedSections,
 } from '@/features/household/seed-data';
-import { CATEGORY_VERSION } from '@/features/ingredients/categories';
+import { CATEGORY_VERSION, upgradeCategoryIds } from '@/features/ingredients/categories';
 import {
   generateInviteCode,
   isValidInviteCode,
@@ -229,15 +229,24 @@ async function upgradeSeed(householdId: string, fromVersion: number): Promise<vo
       }),
     });
   }
-  if (fromVersion < 5) {
+  if (fromVersion < 6) {
     // Runs after the to-2 pass above, so v1 areas already have categories.
     const all = await getDocs(collection(db, 'households', householdId, 'stores'));
     for (const store of all.docs) {
       const data = store.data();
       if (data.categoryVersion === CATEGORY_VERSION) continue;
+      const sections = (data.sections ?? []) as { categoryIds?: string[] }[];
       batch.update(store.ref, {
         categoryVersion: CATEGORY_VERSION,
-        sections: upgradedSections(store.id, data.sections ?? []),
+        // From v5, her areas stay as they are (standard bread joins the
+        // bakery); older stores get the full upgrade.
+        sections:
+          data.categoryVersion === 5
+            ? sections.map((s) => ({
+                ...s,
+                categoryIds: upgradeCategoryIds(s.categoryIds ?? [], 5),
+              }))
+            : upgradedSections(store.id, data.sections ?? []),
       });
     }
   }

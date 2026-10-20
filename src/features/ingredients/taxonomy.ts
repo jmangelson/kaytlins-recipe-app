@@ -15,10 +15,11 @@ export const CATEGORIES = [
   { id: 'produce-cold-fruit', name: 'Berries, grapes & cold fruit', dept: 'produce' },
   { id: 'produce-greens', name: 'Greens & vegetables', dept: 'produce' },
   { id: 'produce-roots', name: 'Potatoes, onions & garlic', dept: 'produce' },
-  { id: 'bakery', name: 'Bread & bakery', dept: 'bakery-deli' },
-  { id: 'tortillas', name: 'Tortillas & wraps', dept: 'bakery-deli' },
-  { id: 'deli', name: 'Deli & prepared', dept: 'bakery-deli' },
-  { id: 'pbj', name: 'Peanut butter & jam', dept: 'bakery-deli' },
+  { id: 'bakery', name: 'Bakery counter', dept: 'counters' },
+  { id: 'deli', name: 'Deli counter & prepared', dept: 'counters' },
+  { id: 'bread', name: 'Standard bread & buns', dept: 'bread' },
+  { id: 'tortillas', name: 'Tortillas & wraps', dept: 'bread' },
+  { id: 'pbj', name: 'Peanut butter & jam', dept: 'bread' },
   { id: 'packaged-meat', name: 'Packaged meats', dept: 'meat' },
   { id: 'cheese', name: 'Cheese', dept: 'dairy' },
   { id: 'fresh-meat', name: 'Fresh meat', dept: 'meat' },
@@ -90,13 +91,13 @@ export const CATEGORIES = [
   { id: 'cleaning', name: 'Cleaning & dish soap', dept: 'household' },
   { id: 'laundry', name: 'Laundry', dept: 'household' },
   { id: 'paper-towels', name: 'Paper towels & tissue', dept: 'household' },
-  { id: 'pet', name: 'Pet food & supplies', dept: 'household' },
-  { id: 'automotive', name: 'Automotive', dept: 'household' },
-  { id: 'baby', name: 'Baby & diapers', dept: 'household' },
-  { id: 'school-supplies', name: 'School & office', dept: 'household' },
-  { id: 'health-beauty', name: 'Shampoo, skin care & beauty', dept: 'household' },
-  { id: 'medicine', name: 'Medicine & health', dept: 'household' },
-  { id: 'uncategorized', name: 'Uncategorized', dept: 'household' },
+  { id: 'pet', name: 'Pet food & supplies', dept: 'more' },
+  { id: 'automotive', name: 'Automotive', dept: 'more' },
+  { id: 'baby', name: 'Baby & diapers', dept: 'more' },
+  { id: 'school-supplies', name: 'School & office', dept: 'more' },
+  { id: 'health-beauty', name: 'Shampoo, skin care & beauty', dept: 'health' },
+  { id: 'medicine', name: 'Medicine & health', dept: 'health' },
+  { id: 'uncategorized', name: 'Uncategorized', dept: 'unsure' },
 ] as const;
 
 export type CategoryId = (typeof CATEGORIES)[number]['id'];
@@ -104,7 +105,8 @@ export type CategoryId = (typeof CATEGORIES)[number]['id'];
 /** Departments, for grouping the long category list in pickers. */
 export const DEPARTMENTS = [
   { id: 'produce', name: 'Produce' },
-  { id: 'bakery-deli', name: 'Bread, deli & PB&J' },
+  { id: 'counters', name: 'Store counters (bakery & deli)' },
+  { id: 'bread', name: 'Standard bread, tortillas & PB&J' },
   { id: 'meat', name: 'Meat & seafood' },
   { id: 'dairy', name: 'Dairy, cheese & eggs' },
   { id: 'drinks', name: 'Drinks' },
@@ -113,7 +115,10 @@ export const DEPARTMENTS = [
   { id: 'baking', name: 'Baking, oil & spices' },
   { id: 'pantry', name: 'Canned, boxed & international' },
   { id: 'frozen', name: 'Frozen' },
-  { id: 'household', name: 'Household & everything else' },
+  { id: 'household', name: 'Paper, cleaning & kitchen' },
+  { id: 'health', name: 'Health, beauty & pharmacy' },
+  { id: 'more', name: 'Baby, pet & more' },
+  { id: 'unsure', name: 'Not sure yet' },
 ] as const;
 
 export type DepartmentId = (typeof DEPARTMENTS)[number]['id'];
@@ -139,7 +144,7 @@ export const MACEYS_AREAS: AreaSeed[] = [
     name: 'Produce · Potatoes, onions & garlic',
     categoryIds: ['produce-roots'],
   },
-  { id: 'bakery', name: 'Bread & bakery', categoryIds: ['bakery', 'tortillas'] },
+  { id: 'bakery', name: 'Bread & bakery', categoryIds: ['bread', 'bakery', 'tortillas'] },
   { id: 'deli', name: 'Deli', categoryIds: ['deli'] },
   { id: 'pbj', name: 'PB&J', categoryIds: ['pbj'] },
   { id: 'packaged-meat', name: 'Packaged meats', categoryIds: ['packaged-meat'] },

@@ -141,11 +141,11 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/s12-new-ingredient-category
 - tapOn: 'Change category'
 - scrollUntilVisible:
-    element: 'Bread, deli & PB&J'
+    element: 'Standard bread, tortillas & PB&J'
     centerElement: true
 - takeScreenshot: build/screenshots/s12b-new-ingredient-departments
-- tapOn: 'Bread, deli & PB&J'
-- tapOn: 'Bread & bakery'
+- tapOn: 'Standard bread, tortillas & PB&J'
+- tapOn: 'Standard bread & buns'
 # The list closes when she picks, so the line's Done is above now.
 - scrollUntilVisible:
     element: 'Done'
@@ -156,7 +156,7 @@ appId: com.jmangelson.kaytlinsrecipes
 - scrollUntilVisible:
     element: 'Edit 2 slices zorbleberry loaf'
     centerElement: true
-- assertVisible: 'Bread & bakery'
+- assertVisible: 'Standard bread & buns'
 - takeScreenshot: build/screenshots/s13-new-ingredient-chosen
 - back
 - tapOn: 'DISCARD|Discard'

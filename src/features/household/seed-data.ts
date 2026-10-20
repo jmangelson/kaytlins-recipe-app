@@ -14,8 +14,9 @@ import type { TagGroupId } from '@/features/stores/tag-groups';
  *    canned, pasta & rice, international, condiments, and breakfast).
  * 5: about 80 specific categories; Macey's as Kaytlin walks it; produce by
  *    where it sits; an Uncategorized area in every store.
+ * 6: standard bread apart from the bakery counter (the bread area holds both).
  */
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 export type SeedSection = { id: string; name: string; categoryIds: CategoryId[] };
 export type SeedStore = { id: string; name: string; sections: SeedSection[] };
@@ -42,7 +43,7 @@ const GROCERY_SECTIONS: SeedSection[] = [
     name: 'Produce · Potatoes, onions & garlic',
     categoryIds: ['produce-roots'],
   },
-  { id: 'bakery', name: 'Bread & bakery', categoryIds: ['bakery', 'tortillas'] },
+  { id: 'bakery', name: 'Bread & bakery', categoryIds: ['bread', 'bakery', 'tortillas'] },
   { id: 'deli', name: 'Deli', categoryIds: ['deli'] },
   {
     id: 'canned',
@@ -256,7 +257,7 @@ const WAREHOUSE_SECTIONS: SeedSection[] = [
       'spices',
     ],
   },
-  { id: 'bakery', name: 'Bakery', categoryIds: ['bakery', 'tortillas'] },
+  { id: 'bakery', name: 'Bakery', categoryIds: ['bakery', 'bread', 'tortillas'] },
   { id: 'deli', name: 'Deli & prepared', categoryIds: ['deli', 'refrigerated'] },
   {
     id: 'meat-seafood',

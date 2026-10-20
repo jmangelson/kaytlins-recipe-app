@@ -20,7 +20,7 @@ export { CATEGORIES, DEPARTMENTS, type CategoryId, type DepartmentId };
  * "condiments") are also v5 ids with a narrower meaning, so the marker, not
  * the id, tells them apart.
  */
-export const CATEGORY_VERSION = 5;
+export const CATEGORY_VERSION = 6;
 
 export function isCategoryId(value: unknown): value is CategoryId {
   return CATEGORIES.some((c) => c.id === value);
@@ -47,8 +47,8 @@ export function categoriesByDepartment(): {
  */
 export const V4_TO_V5: Record<V4CategoryId, CategoryId[]> = {
   produce: ['produce-greens', 'produce-fruit', 'produce-cold-fruit', 'produce-roots'],
-  bakery: ['bakery', 'tortillas'],
-  deli: ['deli'],
+  bakery: ['bread', 'bakery', 'tortillas'],
+  deli: ['deli', 'packaged-meat'],
   'meat-seafood': ['fresh-meat', 'packaged-meat', 'fresh-seafood'],
   'dairy-eggs': ['dairy', 'cheese', 'eggs', 'refrigerated'],
   frozen: [
@@ -140,18 +140,32 @@ function legacyFamily(value: unknown): CategoryId[] | null {
  * dairy, Eggs, …), so her choice isn't undone.
  */
 export function upgradeCategory(
-  data: { category?: unknown; categoryVersion?: unknown },
+  data: { category?: unknown; categoryVersion?: unknown; categorySet?: unknown },
   name: string
 ): CategoryId {
   if (data.categoryVersion === CATEGORY_VERSION && isCategoryId(data.category)) {
     return data.category;
   }
+  if (data.categoryVersion === 5 && isCategoryId(data.category)) return fromV5(data, name);
   const family = legacyFamily(data.category);
   const guess = knownCategory(name);
   if (!family) return guess ?? 'uncategorized';
   const wasGuess = isV4CategoryId(data.category) && data.category === guessCategoryV4(name);
   if (wasGuess) return guess ?? family[0];
   return guess && family.includes(guess) ? guess : family[0];
+}
+
+/**
+ * v5 to v6: "Bread & bakery" split into standard bread and the bakery
+ * counter, and Deli narrowed to the counter (packaged lunch meat moved to
+ * Packaged meats). Everything else is unchanged.
+ */
+function fromV5(data: { category?: unknown; categorySet?: unknown }, name: string): CategoryId {
+  const category = data.category as CategoryId;
+  const guess = knownCategory(name);
+  if (category === 'bakery') return guess === 'bakery' ? 'bakery' : 'bread';
+  if (category === 'deli' && data.categorySet !== true) return guess ?? 'deli';
+  return category;
 }
 
 /**
@@ -162,7 +176,9 @@ export function categoryWasChosen(
   data: { category?: unknown; categoryVersion?: unknown; categorySet?: unknown },
   name: string
 ): boolean {
-  if (data.categoryVersion === CATEGORY_VERSION) return data.categorySet === true;
+  if (data.categoryVersion === CATEGORY_VERSION || data.categoryVersion === 5) {
+    return data.categorySet === true;
+  }
   return isV4CategoryId(data.category) && data.category !== guessCategoryV4(name);
 }
 
@@ -172,6 +188,14 @@ export function categoryWasChosen(
  */
 export function upgradeCategoryIds(values: unknown[], categoryVersion?: unknown): CategoryId[] {
   if (categoryVersion === CATEGORY_VERSION) return [...new Set(values.filter(isCategoryId))];
+  if (categoryVersion === 5) {
+    // Wherever the bakery was, standard bread is too.
+    return [
+      ...new Set(
+        values.flatMap((v) => (v === 'bakery' ? ['bread', 'bakery'] : [v])).filter(isCategoryId)
+      ),
+    ];
+  }
   return [...new Set(values.flatMap((v) => legacyFamily(v) ?? []))];
 }
 
@@ -186,6 +210,7 @@ const FROZEN_FROM: Partial<Record<CategoryId, CategoryId>> = {
   'packaged-meat': 'frozen-meat',
   'fresh-seafood': 'frozen-seafood',
   bakery: 'frozen-breakfast',
+  bread: 'frozen-breakfast',
   'cold-cereal': 'frozen-breakfast',
   'pancake-syrup': 'frozen-breakfast',
 };
@@ -232,7 +257,8 @@ const KEYWORDS: [RegExp, CategoryId][] = [
   [/\b(salmon|shrimp|fish|tilapia|cod|crab|lobster|scallop|tuna steak)\b/, 'fresh-seafood'],
   [/\b(chicken|beef|pork|turkey|steak|lamb|roast|rib|chop|brisket|veal)\b/, 'fresh-meat'],
   [/\b(tortilla|wrap)\b/, 'tortillas'],
-  [/\b(bread|bun|roll|bagel|baguette|muffin|croissant|cake|pie|donut)\b/, 'bakery'],
+  [/\b(cake|cupcake|pie|donut|croissant|danish|scone|baguette|bakery)\b/, 'bakery'],
+  [/\b(bread|bun|roll|bagel|muffin)\b/, 'bread'],
   [/\b(broth|stock|soup|chowder|bouillon)\b/, 'soup'],
   [/\bbeans?\b|\blentil/, 'beans'],
   [/\b(pasta|noodle|spaghetti|macaroni|penne)\b/, 'pasta'],
