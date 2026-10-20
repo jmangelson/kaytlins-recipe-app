@@ -93,6 +93,7 @@ export function FixAisle({
                 key={section.id}
                 label={section.name}
                 selected={section.id === sectionId}
+                wrap
                 onPress={() => onFix({ kind: 'area', ingredient, sectionId: section.id })}
               />
             ))}

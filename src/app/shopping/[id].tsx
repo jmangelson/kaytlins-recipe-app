@@ -531,6 +531,23 @@ function ReadyList({
     }
   }
 
+  /** Done shopping from the button: asks first if anything isn't checked. */
+  function finish() {
+    const left = items.filter((i) => !lines.get(i.ingredientId)?.checked).length;
+    if (left === 0) {
+      onDoneShopping(list);
+      return;
+    }
+    Alert.alert(
+      'Finish the trip?',
+      `${left} ${left === 1 ? 'item isn’t' : 'items aren’t'} checked off. Finish anyway?`,
+      [
+        { text: 'Keep shopping', style: 'cancel' },
+        { text: 'Finish trip', onPress: () => onDoneShopping(list) },
+      ]
+    );
+  }
+
   function tapItem(key: string) {
     if (pickingFix) {
       setPickingFix(false);
@@ -665,6 +682,17 @@ function ReadyList({
       )}
 
       {addItem}
+      {list.status === 'done' ? (
+        <ThemedText themeColor="textSecondary">
+          This trip is finished. Uncheck an item to keep shopping.
+        </ThemedText>
+      ) : (
+        <Button
+          label="Done shopping"
+          variant={items.length > 0 && checked === items.length ? 'primary' : 'secondary'}
+          onPress={finish}
+        />
+      )}
       <Button label="Back to pantry check" variant="secondary" onPress={onBack} />
     </>
   );

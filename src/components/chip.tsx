@@ -11,10 +11,12 @@ type ChipProps = {
   onPress?: () => void;
   /** Spoken label when the visible text alone is ambiguous. */
   accessibilityLabel?: string;
+  /** Let a long label wrap instead of shortening it with "…". */
+  wrap?: boolean;
 };
 
 /** Small rounded label; becomes a toggle when `onPress` is given. */
-export function Chip({ label, selected = false, onPress, accessibilityLabel }: ChipProps) {
+export function Chip({ label, selected = false, onPress, accessibilityLabel, wrap }: ChipProps) {
   const theme = useTheme();
   const colors = selected
     ? { backgroundColor: theme.tint, borderColor: theme.tint }
@@ -24,7 +26,7 @@ export function Chip({ label, selected = false, onPress, accessibilityLabel }: C
     // it ("Canned / milk").
     <ThemedText
       type="small"
-      numberOfLines={1}
+      numberOfLines={wrap ? undefined : 1}
       style={selected ? { color: theme.onTint } : undefined}>
       {label}
     </ThemedText>

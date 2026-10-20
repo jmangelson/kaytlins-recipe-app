@@ -466,6 +466,14 @@ From the full check on her phone:
 
 ## Lessons learned
 
+- **"Rules updated" isn't proof.** After a rules change (a new list status),
+  the Firestore emulator logged "Rules updated" but still denied the write;
+  restarting the emulators fixed it. When an e2e write is denied after a
+  rules edit, restart the emulators before debugging the app.
+- **Hand the latest state to async callbacks.** An Alert's button ran with
+  the list from the render before the last check, so "Done shopping" saved
+  a stale list. Pass the just-computed value in instead.
+
 - **Split the screenshot tour across emulators.** `npm run screenshots` runs
   the main tour on one emulator and the standalone parts on the other;
   `npm run screenshots -- stores` runs just named parts (a few minutes).

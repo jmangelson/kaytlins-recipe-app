@@ -69,6 +69,17 @@ tags:
 - tapOn: 'Refrigerated dough & dips'
 - assertNotVisible: 'Where does flour tortillas go\?'
 
+# Done shopping with items left asks first
+- scrollUntilVisible:
+    element: 'Done shopping'
+- tapOn: 'Done shopping'
+- extendedWaitUntil:
+    visible: 'Finish the trip\?'
+    timeout: 5000
+- assertVisible: '5 items aren’t checked off.*'
+- takeScreenshot: build/screenshots/84a-finish-early-prompt
+- tapOn: 'KEEP SHOPPING|Keep shopping'
+
 # Everything in the cart: done shopping?
 - scrollUntilVisible:
     element: 'Fix an item’s aisle'
@@ -98,6 +109,10 @@ tags:
     timeout: 5000
 - takeScreenshot: build/screenshots/84-done-shopping-prompt
 - tapOn: 'NEED MORE ITEMS|Need more items'
+# The Done shopping button finishes it later (here: back out first)
+- scrollUntilVisible:
+    element: 'Done shopping'
+- takeScreenshot: build/screenshots/84b-done-shopping-button
 - scrollUntilVisible:
     element: '5 of 5 in the cart.*'
     direction: UP
