@@ -8,7 +8,7 @@ import { Chip } from '@/components/chip';
 import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
-import { Screen } from '@/components/screen';
+import { Screen, useRevealOnFocus } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -201,10 +201,13 @@ function TagRow({
   onDelete: () => void;
 }) {
   const theme = useTheme();
+  const field = useRevealOnFocus();
   return (
     <View style={styles.block}>
       <View style={styles.row}>
         <TextInput
+          onFocus={field.onFocus}
+          onBlur={field.onBlur}
           accessibilityLabel={`${tag.name} tag name`}
           value={name}
           onChangeText={onRename}

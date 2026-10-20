@@ -1,6 +1,14 @@
-import { useRef } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { useLayoutEffect, useRef } from 'react';
+import {
+  Keyboard,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  type TextInputProps,
+} from 'react-native';
 
+import { useRevealOnFocus } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -13,8 +21,25 @@ type TextFieldProps = Omit<TextInputProps, 'style'> & {
   error?: string;
 };
 
-export function TextField({ label, hint, error, multiline, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  hint,
+  error,
+  multiline,
+  onFocus,
+  onBlur,
+  ...rest
+}: TextFieldProps) {
   const theme = useTheme();
+  const field = useRevealOnFocus();
+  // A focused field that goes away (a panel closes) closes the keyboard;
+  // otherwise Android moves focus, and the page, to the next field.
+  useLayoutEffect(() => {
+    const node = input.current;
+    return () => {
+      if (node?.isFocused()) Keyboard.dismiss();
+    };
+  }, []);
   const input = useRef<TextInput>(null);
 
   return (
@@ -44,6 +69,14 @@ export function TextField({ label, hint, error, multiline, ...rest }: TextFieldP
           },
         ]}
         {...rest}
+        onFocus={(event) => {
+          field.onFocus();
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          field.onBlur();
+          onBlur?.(event);
+        }}
       />
       {error && (
         <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite">

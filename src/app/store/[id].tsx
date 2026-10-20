@@ -9,7 +9,7 @@ import { DraggableList } from '@/components/draggable-list';
 import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
-import { Screen } from '@/components/screen';
+import { Screen, useRevealOnFocus } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedSwitch } from '@/components/themed-switch';
@@ -287,6 +287,7 @@ function AreaRow({
   onRemove: () => void;
 }) {
   const theme = useTheme();
+  const field = useRevealOnFocus();
   const [showCategories, setShowCategories] = useState(false);
   const holds = section.categoryIds.map(categoryName).join(', ');
 
@@ -297,6 +298,8 @@ function AreaRow({
           {position}
         </ThemedText>
         <TextInput
+          onFocus={field.onFocus}
+          onBlur={field.onBlur}
           accessibilityLabel={`Area ${position} name`}
           value={section.name}
           // Wraps so a long name ("Aisle 6 · Cereal, breakfast & coffee") shows

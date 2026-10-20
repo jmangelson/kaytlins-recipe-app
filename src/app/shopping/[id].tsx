@@ -8,7 +8,7 @@ import { Chip } from '@/components/chip';
 import { HeaderButton } from '@/components/header-button';
 import { IconButton } from '@/components/icon-button';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
-import { Screen } from '@/components/screen';
+import { Screen, useRevealOnFocus } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
@@ -554,6 +554,7 @@ function HaveInput({
   onChange: (value: number | null) => void;
 }) {
   const theme = useTheme();
+  const field = useRevealOnFocus();
   const [text, setText] = useState(value === null ? '' : formatAmount(value));
   const unit = quantity.unit ? unitLabel(quantity.unit, value ?? 2) : '';
   const invalid = text.trim() !== '' && parseAmountRange(text)?.quantity == null;
@@ -569,6 +570,8 @@ function HaveInput({
     <View style={styles.haveRow}>
       <ThemedText type="small">Have</ThemedText>
       <TextInput
+        onFocus={field.onFocus}
+        onBlur={field.onBlur}
         accessibilityLabel={`Amount of ${name} you have${unit ? ` in ${unit}` : ''}`}
         testID={`have-${name}`}
         value={text}

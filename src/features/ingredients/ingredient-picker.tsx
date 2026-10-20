@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, View } from 'react-native';
 
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
@@ -19,6 +19,8 @@ type IngredientPickerProps = {
   onCreate?: (name: string) => void;
   /** Ingredients not to offer (e.g. the one being merged). */
   excludeIds?: string[];
+  /** Typing goes to the search right away (opened by a button, not on its own). */
+  autoFocus?: boolean;
 };
 
 /** Search her ingredient list and pick one, or create a new one. */
@@ -28,6 +30,7 @@ export function IngredientPicker({
   onPick,
   onCreate,
   excludeIds = [],
+  autoFocus = false,
 }: IngredientPickerProps) {
   const theme = useTheme();
   const [search, setSearch] = useState(initialSearch);
@@ -36,6 +39,9 @@ export function IngredientPicker({
     ingredients.filter((i) => !excludeIds.includes(i.id))
   ).slice(0, MAX_RESULTS);
   const trimmed = search.trim().replace(/\s+/g, ' ');
+  // Close the keyboard before the search goes away; otherwise Android moves
+  // focus (and the page) to the next text field.
+  const done = () => Keyboard.dismiss();
   const exactExists = results.some((i) => i.name.toLowerCase() === trimmed.toLowerCase());
 
   return (
@@ -46,6 +52,7 @@ export function IngredientPicker({
         value={search}
         onChangeText={setSearch}
         autoCorrect={false}
+        autoFocus={autoFocus}
         placeholder="e.g. onion"
       />
       {results.length === 0 && (
@@ -58,7 +65,10 @@ export function IngredientPicker({
           key={ingredient.id}
           accessibilityRole="button"
           accessibilityLabel={`Use ${ingredient.name}`}
-          onPress={() => onPick(ingredient)}
+          onPress={() => {
+            done();
+            onPick(ingredient);
+          }}
           style={({ pressed }) => [
             styles.result,
             { borderColor: theme.border },
@@ -75,7 +85,10 @@ export function IngredientPicker({
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`New ingredient ${trimmed}`}
-          onPress={() => onCreate(trimmed)}
+          onPress={() => {
+            done();
+            onCreate(trimmed);
+          }}
           style={({ pressed }) => [
             styles.result,
             { borderColor: theme.tint, borderStyle: 'dashed' },

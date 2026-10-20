@@ -525,6 +525,7 @@ function RowEditor({
           <IngredientPicker
             ingredients={ingredients}
             initialSearch={row.writtenName}
+            autoFocus
             onPick={(ingredient) => {
               onChange({
                 link: { kind: 'existing', ingredientId: ingredient.id, name: ingredient.name },
@@ -660,6 +661,7 @@ function OrInstead({
         <IngredientPicker
           ingredients={ingredients}
           initialSearch=""
+          autoFocus
           onPick={(ingredient) => {
             setAlternates([
               ...alternates,

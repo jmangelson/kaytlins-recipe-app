@@ -94,6 +94,9 @@ tags:
 - tapOn:
     id: 'fix-item-notes'
 - inputText: 'ripe'
+# Typing near the bottom of the list: the field and its Save stay above the keyboard
+- takeScreenshot: build/screenshots/115-typing-above-keyboard
+- assertVisible: 'Save name and notes'
 - hideKeyboard
 - takeScreenshot: build/screenshots/105-fix-name-notes
 - scrollUntilVisible:

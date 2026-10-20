@@ -31,8 +31,10 @@ tags:
     element: 'Add whole milk'
     centerElement: true
 - tapOn: 'Add whole milk'
+# (it joins the list above the field)
 - scrollUntilVisible:
     element: 'whole milk, 1 gal.*'
+    direction: UP
     centerElement: true
 - takeScreenshot: build/screenshots/93-staples
 

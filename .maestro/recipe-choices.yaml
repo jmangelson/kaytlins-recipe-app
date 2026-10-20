@@ -33,6 +33,39 @@ tags:
     element: 'Or instead'
     centerElement: true
 - takeScreenshot: build/screenshots/112-or-instead
+# Typing in Note, then adding a choice: typing goes to the search, not the
+# note, and the search shows above the keyboard
+- scrollUntilVisible:
+    element:
+      id: 'row-note'
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: 'row-note'
+- inputText: 'chopped'
+# (with the keyboard up, scroll the button above it, as she would)
+- swipe:
+    start: 50%, 55%
+    end: 50%, 25%
+- swipe:
+    start: 50%, 55%
+    end: 50%, 25%
+- tapOn: 'Add a choice'
+- inputText: 'green leaf lettuce'
+- takeScreenshot: build/screenshots/114-add-choice-typing
+- assertVisible:
+    id: 'ingredient-picker-search'
+    text: 'green leaf lettuce'
+- tapOn: 'New ingredient green leaf lettuce'
+- assertVisible: 'or green leaf lettuce'
+- scrollUntilVisible:
+    element:
+      id: 'row-note'
+    direction: UP
+    centerElement: true
+- assertVisible:
+    id: 'row-note'
+    text: 'chopped'
 - back
 - runFlow:
     when:

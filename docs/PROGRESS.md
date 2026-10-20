@@ -491,6 +491,16 @@ From the full check on her phone:
 
 ## Important bugs and resolutions
 
+- **Keyboard covered fields at the bottom, and focus jumped to another
+  field (2026-10-20).** Android draws edge to edge, so the keyboard covers
+  the page instead of shrinking it, and neither React Native's keyboard
+  events nor Reanimated's keyboard height arrive in this build. Screen now
+  adds keyboard-sized room at the bottom while a field has focus and scrolls
+  the field (with ~120 px for its buttons) above where the keyboard sits.
+  When a focused field disappears (a picker or panel closes), Android moved
+  focus to the next field and the page with it ("typing goes into Notes");
+  TextField and the ingredient picker now close the keyboard first.
+
 - **AI-Assisted Cleanup re-suggested merges she'd already made (2026-10-20).**
   The screen loaded ingredients once, so "Run the audit again" sent the old
   list, and merging a repeat could rewrite ingredients from stale copies
