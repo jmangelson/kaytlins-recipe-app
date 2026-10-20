@@ -1,3 +1,4 @@
+import type { CategoryId } from '@/features/ingredients/categories';
 import type { StoreSection } from '@/features/stores/store-types';
 
 /** Returns a copy of the list with the item at `index` moved by `delta` (−1 up, +1 down). */
@@ -54,4 +55,19 @@ export function renameSection(sections: StoreSection[], id: string, name: string
 
 export function removeSection(sections: StoreSection[], id: string): StoreSection[] {
   return sections.filter((s) => s.id !== id);
+}
+
+/** Moves a category to another area of the store (out of whichever held it). */
+export function moveCategoryToSection(
+  sections: StoreSection[],
+  categoryId: CategoryId,
+  sectionId: string
+): StoreSection[] {
+  return sections.map((section) => {
+    const others = section.categoryIds.filter((id) => id !== categoryId);
+    return {
+      ...section,
+      categoryIds: section.id === sectionId ? [...others, categoryId] : others,
+    };
+  });
 }

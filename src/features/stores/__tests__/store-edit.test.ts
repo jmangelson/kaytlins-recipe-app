@@ -1,5 +1,6 @@
 import {
   addSection,
+  moveCategoryToSection,
   moveItem,
   nameProblem,
   removeSection,
@@ -58,5 +59,22 @@ describe('toggleSectionCategory', () => {
     expect(toggleSectionCategory(added, 'pantry', 'canned-vegetables')[0].categoryIds).toEqual([
       'flour-sugar',
     ]);
+  });
+});
+
+describe('moveCategoryToSection', () => {
+  it('moves a category out of its area into another', () => {
+    const sections = [
+      {
+        id: 'a',
+        name: 'Produce',
+        order: 0,
+        categoryIds: ['produce-fruit' as const, 'produce-greens' as const],
+      },
+      { id: 'b', name: 'Bakery', order: 1, categoryIds: ['bread' as const] },
+    ];
+    const moved = moveCategoryToSection(sections, 'produce-fruit', 'b');
+    expect(moved[0].categoryIds).toEqual(['produce-greens']);
+    expect(moved[1].categoryIds).toEqual(['bread', 'produce-fruit']);
   });
 });

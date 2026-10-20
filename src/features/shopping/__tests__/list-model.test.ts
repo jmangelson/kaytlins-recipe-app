@@ -8,6 +8,7 @@ import {
   placeLines,
   remaining,
   removeLine,
+  replaceAtStore,
   withExtras,
   type ShoppingList,
 } from '@/features/shopping/list-model';
@@ -194,5 +195,41 @@ describe('the list in the store', () => {
     );
     list.lines = list.lines.map((l) => ({ ...l, checked: true }));
     expect(listAsText(list, stores)).toBe("Oct 4 – 10\n\nEverything's in the cart.");
+  });
+});
+
+describe('replaceAtStore', () => {
+  const lines = placeLines(linesFromNeeds(needs), ingredients, stores, ['maceys']);
+  const maceys = stores[0];
+
+  it('follows a store-only override for one item', () => {
+    const onion = ingredients.get('onion')!;
+    const moved = new Map(ingredients).set('onion', {
+      ...onion,
+      areaOverrides: { maceys: 'meat' },
+    });
+    const next = replaceAtStore(lines, maceys, moved);
+    expect(next.find((l) => l.key === 'onion')!.sectionId).toBe('meat');
+    expect(next.find((l) => l.key === 'beef')!.sectionId).toBe('meat');
+  });
+
+  it('follows a category moved to another area of the store', () => {
+    const layout = {
+      ...maceys,
+      sections: maceys.sections.map((s) =>
+        s.id === 'produce'
+          ? { ...s, categoryIds: s.categoryIds.filter((c) => c !== 'produce-roots') }
+          : s.id === 'meat'
+            ? { ...s, categoryIds: [...s.categoryIds, 'produce-roots' as const] }
+            : s
+      ),
+    };
+    const next = replaceAtStore(lines, layout, ingredients);
+    expect(next.find((l) => l.key === 'onion')!.sectionId).toBe('meat');
+  });
+
+  it('leaves other stores alone', () => {
+    const next = replaceAtStore(lines, stores[1], ingredients);
+    expect(next).toEqual(lines);
   });
 });

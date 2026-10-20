@@ -12,7 +12,7 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { areaForStore, type Ingredient } from '@/features/ingredients/ingredient-model';
+import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { listIngredients, saveIngredient } from '@/features/ingredients/ingredient-repo';
 import { parseAmountRange } from '@/features/ingredients/parse-ingredient-line';
 import { formatAmount, formatQuantity, type Quantity } from '@/features/ingredients/quantity';
@@ -30,6 +30,7 @@ import {
   placeLines,
   remaining,
   removeLine,
+  replaceAtStore,
   toBuy,
   type ListLine,
   withExtras,
@@ -40,7 +41,8 @@ import {
   getShoppingList,
   saveShoppingList,
 } from '@/features/shopping/list-repo';
-import { listStores } from '@/features/stores/store-repo';
+import { moveCategoryToSection } from '@/features/stores/store-edit';
+import { listStores, saveStore } from '@/features/stores/store-repo';
 import type { Store } from '@/features/stores/store-types';
 import { useAsync } from '@/hooks/use-async';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
@@ -96,7 +98,7 @@ export default function ShoppingListScreen() {
 function ListEditor({
   householdId,
   initial,
-  stores,
+  stores: loadedStores,
   ingredients,
 }: {
   householdId: string;
@@ -110,6 +112,8 @@ function ListEditor({
   const [list, setList] = useState(initial);
   const [saved, setSaved] = useState(initial);
   const [known, setKnown] = useState(ingredients);
+  // A fix in the store can move a whole category in that store's layout.
+  const [stores, setStores] = useState(loadedStores);
   const [saving, setSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const dirty = JSON.stringify(list) !== JSON.stringify(saved);
@@ -245,6 +249,10 @@ function ListEditor({
           list={list}
           stores={stores}
           ingredients={known}
+          onStoreChange={(store) => {
+            setStores(stores.map((s) => (s.id === store.id ? store : s)));
+            saveStore(householdId, store).catch((error) => console.warn('Store not saved', error));
+          }}
           onIngredientChange={(ingredient) => {
             setKnown(new Map(known).set(ingredient.id, ingredient));
             saveIngredient(householdId, ingredient).catch((error) =>
@@ -486,6 +494,7 @@ function ReadyList({
   stores,
   ingredients,
   onIngredientChange,
+  onStoreChange,
   addItem,
   onChange,
   onDoneShopping,
@@ -495,6 +504,7 @@ function ReadyList({
   stores: Store[];
   ingredients: Map<string, Ingredient>;
   onIngredientChange: (ingredient: Ingredient) => void;
+  onStoreChange: (store: Store) => void;
   addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
   /** Gets the list as it is after the last check (not this render's copy). */
@@ -555,22 +565,36 @@ function ReadyList({
     } else toggle(key);
   }
 
-  /** Saves the fix to the ingredient (unless it's a typed item) and moves this line. */
+  /**
+   * Saves the fix (to the ingredient, or the store's layout) and puts the
+   * list's lines at that store where they now belong.
+   */
   function applyFix(key: string, store: Store, fix: AisleFix) {
-    const ingredient =
-      fix.kind === 'area' && fix.ingredient
-        ? {
-            ...fix.ingredient,
-            areaOverrides: { ...fix.ingredient.areaOverrides, [store.id]: fix.sectionId },
-          }
-        : fix.ingredient;
-    if (ingredient) onIngredientChange(ingredient);
-    const sectionId =
-      fix.kind === 'area' ? fix.sectionId : (areaForStore(fix.ingredient, store)?.id ?? null);
-    onChange({
-      ...list,
-      lines: list.lines.map((l) => (l.key === key ? { ...l, sectionId } : l)),
-    });
+    let nextIngredients = ingredients;
+    let nextStore = store;
+    const changeIngredient = (ingredient: Ingredient) => {
+      onIngredientChange(ingredient);
+      nextIngredients = new Map(ingredients).set(ingredient.id, ingredient);
+    };
+    if (fix.kind === 'category') changeIngredient(fix.ingredient);
+    if (fix.kind === 'categoryArea') {
+      nextStore = {
+        ...store,
+        sections: moveCategoryToSection(store.sections, fix.categoryId, fix.sectionId),
+      };
+      onStoreChange(nextStore);
+    }
+    if (fix.kind === 'itemArea' && fix.ingredient) {
+      changeIngredient({
+        ...fix.ingredient,
+        areaOverrides: { ...fix.ingredient.areaOverrides, [store.id]: fix.sectionId },
+      });
+    }
+    const lines =
+      fix.kind === 'itemArea' && !fix.ingredient
+        ? list.lines.map((l) => (l.key === key ? { ...l, sectionId: fix.sectionId } : l))
+        : replaceAtStore(list.lines, nextStore, nextIngredients);
+    onChange({ ...list, lines });
     setFixingKey(null);
   }
 

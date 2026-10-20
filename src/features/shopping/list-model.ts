@@ -1,4 +1,4 @@
-import type { Ingredient } from '@/features/ingredients/ingredient-model';
+import { areaForStore, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { parseIngredientLine } from '@/features/ingredients/parse-ingredient-line';
 import { formatQuantity, type Quantity } from '@/features/ingredients/quantity';
 import {
@@ -266,4 +266,21 @@ export function listAsText(list: ShoppingList, storesInOrder: Store[]): string {
   return blocks.length
     ? [list.name, ...blocks].join('\n\n')
     : `${list.name}\n\nEverything's in the cart.`;
+}
+
+/**
+ * After an aisle fix, puts each of the list's lines at this store in the
+ * area it now belongs in (her overrides, else the area holding its
+ * category). Typed items with no ingredient stay where they are.
+ */
+export function replaceAtStore(
+  lines: ListLine[],
+  store: Store,
+  ingredients: Map<string, Ingredient>
+): ListLine[] {
+  return lines.map((line) => {
+    const ingredient = line.ingredientId ? ingredients.get(line.ingredientId) : undefined;
+    if (line.storeId !== store.id || !ingredient) return line;
+    return { ...line, sectionId: areaForStore(ingredient, store)?.id ?? null };
+  });
 }

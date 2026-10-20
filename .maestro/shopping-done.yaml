@@ -45,14 +45,24 @@ tags:
     checked: false
 - assertVisible: 'Where does lime go\?'
 - takeScreenshot: build/screenshots/81-fix-aisle-choices
-- tapOn: 'Different area at Macey.s'
+- assertVisible: 'The category for lime is Fruit.'
+- scrollUntilVisible:
+    element: 'At Macey.s, just lime is somewhere else'
+    centerElement: true
+- tapOn: 'At Macey.s, just lime is somewhere else'
 - scrollUntilVisible:
     element: 'PB&J'
     centerElement: true
 - takeScreenshot: build/screenshots/82-fix-aisle-areas
 - tapOn: 'PB&J'
 - assertNotVisible: 'Where does lime go\?'
-- assertVisible: 'PB&J'
+- scrollUntilVisible:
+    element: 'lime.*'
+    direction: UP
+    centerElement: true
+- assertVisible:
+    text: 'lime.*'
+    below: 'PB&J'
 
 # Its category, fixed everywhere (the button is at the top of the list)
 - scrollUntilVisible:
@@ -60,7 +70,10 @@ tags:
     direction: UP
 - tapOn: 'Fix an item’s aisle'
 - tapOn: 'flour tortillas.*'
-- tapOn: 'Its category is wrong'
+- scrollUntilVisible:
+    element: 'The category is wrong'
+    centerElement: true
+- tapOn: 'The category is wrong'
 - takeScreenshot: build/screenshots/83-fix-aisle-category
 - scrollUntilVisible:
     element: 'Dairy, cheese & eggs'
@@ -68,6 +81,31 @@ tags:
 - tapOn: 'Dairy, cheese & eggs'
 - tapOn: 'Refrigerated dough & dips'
 - assertNotVisible: 'Where does flour tortillas go\?'
+
+# The category is right, but this store keeps all of it elsewhere
+- scrollUntilVisible:
+    element: 'Fix an item’s aisle'
+    direction: UP
+- tapOn: 'Fix an item’s aisle'
+- tapOn: 'plum tomatoes.*'
+- scrollUntilVisible:
+    element: 'The category is right, but at Macey.s all of Greens & vegetables is somewhere else'
+    centerElement: true
+- takeScreenshot: build/screenshots/81b-fix-aisle-three-choices
+- tapOn: 'The category is right, but at Macey.s all of Greens & vegetables is somewhere else'
+- scrollUntilVisible:
+    element: 'Fresh meat & seafood'
+    centerElement: true
+- takeScreenshot: build/screenshots/83b-fix-aisle-category-area
+- tapOn: 'Fresh meat & seafood'
+- assertNotVisible: 'Where does plum tomatoes go\?'
+- scrollUntilVisible:
+    element: 'plum tomatoes.*'
+    direction: UP
+    centerElement: true
+- assertVisible:
+    text: 'plum tomatoes.*'
+    below: 'Fresh meat & seafood'
 
 # Done shopping with items left asks first
 - scrollUntilVisible:
