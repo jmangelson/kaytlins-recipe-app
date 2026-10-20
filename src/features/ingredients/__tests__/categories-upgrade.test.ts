@@ -45,6 +45,17 @@ describe('upgrading v4 ingredient categories', () => {
     expect(upgradeCategory({ ...current, category: 'asian' }, 'zorbleberry sauce')).toBe('asian');
   });
 
+  it('files crushed herbs with spices, and moves a guessed one there', () => {
+    expect(guessCategory('crushed rosemary')).toBe('spices');
+    expect(guessCategory('crushed marjoram')).toBe('spices');
+    expect(guessCategory('crushed tomatoes')).toBe('canned-vegetables');
+    // It came over from the old Produce guess as Greens & vegetables.
+    const current = { categoryVersion: CATEGORY_VERSION };
+    expect(upgradeCategory({ ...current, category: 'produce-greens' }, 'crushed rosemary')).toBe(
+      'spices'
+    );
+  });
+
   it('files bouillon, however it is spelled, with soup and broth', () => {
     for (const name of [
       'chicken bouillon',

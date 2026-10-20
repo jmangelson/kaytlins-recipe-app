@@ -441,6 +441,17 @@ export const PANTRY: Partial<Record<CategoryId, string[]>> = {
     // Dried herbs. A bare herb name asks fresh or dried and is in neither
     // list (fresh is in produce); only the dried forms are listed here.
     'dried oregano',
+    // Crushed herbs are dried, from the spice aisle.
+    'crushed rosemary',
+    'crushed oregano',
+    'crushed basil',
+    'crushed thyme',
+    'crushed sage',
+    'crushed mint',
+    'crushed bay leaves',
+    'crushed chilies',
+    'crushed chiles',
+    'crushed red chili flakes',
     'mexican oregano',
     'dried marjoram',
     'dried bay leaf',

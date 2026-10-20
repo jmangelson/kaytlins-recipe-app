@@ -4,6 +4,7 @@ import {
   isV4CategoryId,
   type V4CategoryId,
 } from '@/features/ingredients/legacy-categories-v4';
+import { mustChooseForm } from '@/features/ingredients/generic-ingredients';
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 import {
   CATEGORIES,
@@ -357,6 +358,13 @@ export function catalogCategory(name: string): CategoryId | null {
   if (canned.form) return canned.category ?? 'canned-vegetables';
   const dried = formCategory(words, ['dried', 'dry', 'dehydrated'], DRIED_FROM);
   if (dried.form) return dried.category ?? 'spices';
+  // "crushed" + an herb is the dried herb ("crushed tomatoes" is in the list).
+  if (words[0] === 'crushed' && words.length > 1) {
+    const herb = words.slice(1).join(' ');
+    if (mustChooseForm(herb) || catalogLookup(words.slice(1)) === 'produce-greens') {
+      return 'spices';
+    }
+  }
   const ground = formCategory(words, ['ground'], GROUND_FROM);
   if (ground.form) return ground.category ?? 'spices';
   return catalogLookup(words);
