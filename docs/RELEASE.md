@@ -67,6 +67,10 @@ To check reading quality on real photos (paid, about 3¢ each):
 cd worker && ANTHROPIC_API_KEY=$(cat ~/.anthropic-key) npx tsx scripts/try-scan.ts page1.jpg
 ```
 
+It also serves `/import`: the app sends a recipe page's link; the Worker
+fetches the page and returns its schema.org Recipe data (free) or, for pages
+without it, has Claude read the page text (counted with scans).
+
 The same Worker serves `/categorize`: ingredient names the app's built-in
 catalog doesn't know are sent here (once each, in the background) and Claude
 Haiku picks a category. Its own daily limits are `CATEGORIZE_LIMIT_PER_USER`

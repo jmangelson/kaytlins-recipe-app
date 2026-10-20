@@ -47,6 +47,13 @@ export default function ImportRecipeScreen() {
     setError(null);
     try {
       const { result, url } = await importRecipe(link, tags);
+      // A page with no recipe on it (an article, a list of links): say so
+      // here instead of opening an empty form.
+      if (result.ingredients.length === 0) {
+        setError(result.warnings[0] ?? 'No recipe was found on that page.');
+        setReading(false);
+        return;
+      }
       const scanned = scanToDraft(result, ingredients);
       handOffScan({ ...scanned, draft: { ...scanned.draft, link: url }, from: 'website' });
       router.back();

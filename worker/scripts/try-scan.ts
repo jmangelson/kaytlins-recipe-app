@@ -8,7 +8,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync } from 'node:fs';
 
-import { SEED_TAGS } from '../../src/features/household/seed-data';
 import { readRecipe, SCAN_MODEL } from '../src/read-recipe';
 
 // Claude Opus 5.5, $ per million tokens.
@@ -24,7 +23,17 @@ async function main() {
       media_type: 'image/jpeg',
       data: readFileSync(f).toString('base64'),
     })),
-    tags: SEED_TAGS.map((t) => ({ id: t.id, name: t.name, group: t.group })),
+    // A few of the starter tags (seed-data uses app-only import paths).
+    tags: [
+      { id: 'beef', name: 'Beef', group: 'type' },
+      { id: 'chicken-poultry', name: 'Chicken/Poultry', group: 'type' },
+      { id: 'vegetarian', name: 'Vegetarian', group: 'type' },
+      { id: 'main-dish', name: 'Main dish', group: 'course' },
+      { id: 'side-dish', name: 'Side dish', group: 'course' },
+      { id: 'dessert', name: 'Dessert', group: 'course' },
+      { id: 'dinner', name: 'Dinner', group: 'meal' },
+      { id: 'breakfast', name: 'Breakfast', group: 'meal' },
+    ],
   });
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
   if (!outcome.ok) {

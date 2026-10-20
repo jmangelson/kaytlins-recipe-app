@@ -344,6 +344,21 @@ From the full check on her phone:
 - Shipped as an over-the-air update to 1.0.1 (no native changes).
 - Still to do: the accuracy check on ~10 of her real recipe photos.
 
+### Round 2, phases 3–5 — staples, website import, packing lists (2026-10-20)
+
+- New lists (shopping and packing) from any mix of calendar days, any number
+  of meal plans, and recipes added one at a time from a search drop-down.
+  The count shows meals (each ticked meal slot) and added recipes apart.
+- Staples on the Shopping tab; making a list asks "Add your staples?"
+  (pre-ticked). Ingredients can be "usually at home": left off shopping lists
+  (the list keeps them for packing), still packed.
+- Import a recipe from a website: the Worker reads the page's schema.org
+  Recipe data (free) or has Claude read the page text; the form fills in for
+  review and the link is kept, shown as "View the original recipe".
+- Packing lists from meals/plans or from a shopping list (every item at its
+  original amount, pantry items and usually-at-home ones included), food by
+  category, plus a gear checklist from an editable default.
+
 ### Round 2 follow-ups — categories, shopping fixes, drag reorder (2026-10-20)
 
 - Category field with Change category (departments in their own box) on
