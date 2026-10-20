@@ -1,3 +1,4 @@
+import type { CategoryId } from '@/features/ingredients/categories';
 import {
   canonicalName,
   matchIngredient,
@@ -112,7 +113,7 @@ export function validateDraft(draft: RecipeDraft): DraftErrors {
   return errors;
 }
 
-export type NewIngredient = { tempId: string; name: string };
+export type NewIngredient = { tempId: string; name: string; category?: CategoryId };
 
 /**
  * Turns form rows into recipe lines. Rows marked "new" become one new
@@ -143,6 +144,7 @@ export function linesForSave(
           planned = {
             tempId: `new:${newIngredients.length}`,
             name: canonicalName(row.link.name),
+            category: row.link.category,
           };
           newIngredients.push(planned);
           newByKey.set(key, planned);

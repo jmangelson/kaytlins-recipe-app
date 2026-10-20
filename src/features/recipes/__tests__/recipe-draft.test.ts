@@ -98,6 +98,14 @@ describe('linesForSave', () => {
     expect(newIngredients).toEqual([]);
   });
 
+  it('keeps the category she chose for a new ingredient', () => {
+    const rows = rowsFromText('1 jar Grandma’s chutney', list);
+    rows[0].link = { kind: 'new', name: 'Grandma’s chutney', category: 'condiments' };
+    expect(linesForSave(rows, list).newIngredients).toEqual([
+      { tempId: 'new:0', name: 'Grandma’s chutney', category: 'condiments' },
+    ]);
+  });
+
   it('refuses unresolved rows', () => {
     expect(() => linesForSave(rowsFromText('1 onion', list), list)).toThrow();
   });

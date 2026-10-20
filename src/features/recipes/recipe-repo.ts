@@ -101,7 +101,15 @@ export async function saveRecipe(
   for (const ingredient of newIngredients) {
     const ref = newIngredientRef(householdId);
     realIds.set(ingredient.tempId, ref.id);
-    batch.set(ref, ingredientToData(newIngredient(ingredient.name)));
+    const created = newIngredient(ingredient.name);
+    batch.set(
+      ref,
+      ingredientToData(
+        ingredient.category
+          ? { ...created, category: ingredient.category, categorySet: true }
+          : created
+      )
+    );
   }
 
   const recipeRef = recipeId

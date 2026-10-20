@@ -7,6 +7,8 @@ import { IconButton } from '@/components/icon-button';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { categoryName, guessCategory, type CategoryId } from '@/features/ingredients/categories';
+import { CategoryPicker } from '@/features/ingredients/category-picker';
 import { mustChooseForm } from '@/features/ingredients/generic-ingredients';
 import { canonicalName, type Ingredient } from '@/features/ingredients/ingredient-model';
 import { IngredientPicker } from '@/features/ingredients/ingredient-picker';
@@ -135,6 +137,7 @@ export function IngredientRowsEditor({
                 onLayout={() => rowLaidOut(row.key)}>
                 <RowSummary
                   row={row}
+                  ingredients={ingredients}
                   onEdit={() => setEditingKey(row.key)}
                   onLink={(link) => update(row.key, { link })}
                 />
@@ -164,6 +167,32 @@ export function IngredientRowsEditor({
   );
 }
 
+type NewLink = Extract<RowLink, { kind: 'new' }>;
+
+/** A linked ingredient's category, under its name (as on the recipe page). */
+function LinkedCategory({
+  ingredientId,
+  ingredients,
+}: {
+  ingredientId: string;
+  ingredients: Ingredient[];
+}) {
+  const ingredient = ingredients.find((i) => i.id === ingredientId);
+  if (!ingredient) return null;
+  return (
+    <ThemedText
+      type="small"
+      themeColor={ingredient.category === 'uncategorized' ? 'attention' : 'textSecondary'}>
+      {categoryName(ingredient.category)}
+    </ThemedText>
+  );
+}
+
+/** A new ingredient's category: hers if she chose one, else the guess. */
+function newCategory(link: NewLink): CategoryId {
+  return link.category ?? guessCategory(link.name);
+}
+
 function linkName(row: DraftRow): string {
   if (row.link.kind === 'existing') return row.link.name;
   if (row.link.kind === 'new') return row.link.name;
@@ -173,10 +202,12 @@ function linkName(row: DraftRow): string {
 /** Collapsed row. Vague matches show their choices right here. */
 function RowSummary({
   row,
+  ingredients,
   onEdit,
   onLink,
 }: {
   row: DraftRow;
+  ingredients: Ingredient[];
   onEdit: () => void;
   onLink: (link: RowLink) => void;
 }) {
@@ -205,10 +236,18 @@ function RowSummary({
               <ThemedText themeColor="textSecondary">{`, ${row.note}`}</ThemedText>
             ) : null}
           </ThemedText>
+          {row.link.kind === 'existing' && (
+            <LinkedCategory ingredientId={row.link.ingredientId} ingredients={ingredients} />
+          )}
           {row.link.kind === 'new' && (
-            <ThemedText type="small" themeColor="attention">
-              New ingredient
-            </ThemedText>
+            <>
+              <ThemedText type="small" themeColor="attention">
+                New ingredient
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {categoryName(newCategory(row.link))}
+              </ThemedText>
+            </>
           )}
           {row.link.kind === 'choose' && (
             <ThemedText type="small" themeColor="danger">
@@ -368,6 +407,23 @@ function RowEditor({
           </View>
         )}
       </View>
+
+      {!picking && row.link.kind === 'new' && (
+        <View style={styles.group}>
+          <ThemedText type="smallBold">Category</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {row.link.category
+              ? 'Where it’s shelved, so it lands in the right aisle.'
+              : newCategory(row.link) === 'uncategorized'
+                ? 'Not one the app knows. Choose where it’s shelved, or leave it and the app looks it up after you save.'
+                : 'Guessed from the name. Change it if it’s shelved somewhere else.'}
+          </ThemedText>
+          <CategoryPicker
+            selected={[newCategory(row.link)]}
+            onToggle={(category) => onChange({ link: { ...(row.link as NewLink), category } })}
+          />
+        </View>
+      )}
 
       <View style={styles.editorActions}>
         <IconButton

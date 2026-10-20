@@ -11,6 +11,8 @@ import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { categoryName } from '@/features/ingredients/categories';
+import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { formatIngredientAmount } from '@/features/recipes/recipe-draft';
 import { deleteRecipe, getRecipe, listRecipePhotos } from '@/features/recipes/recipe-repo';
 import { useHousehold } from '@/features/session/session-provider';
@@ -26,9 +28,13 @@ export default function RecipeDetailScreen() {
   const theme = useTheme();
   const [deleting, setDeleting] = useState(false);
   const data = useAsync(async () => {
-    const [recipe, tags] = await Promise.all([getRecipe(household.id, id), listTags(household.id)]);
+    const [recipe, tags, ingredients] = await Promise.all([
+      getRecipe(household.id, id),
+      listTags(household.id),
+      listIngredients(household.id),
+    ]);
     const photos = recipe ? await listRecipePhotos(household.id, recipe) : [];
-    return { recipe, tags, photos };
+    return { recipe, tags, photos, ingredients: new Map(ingredients.map((i) => [i.id, i])) };
   }, [household.id, id]);
 
   // Show edits made on the edit screen when returning here.
@@ -48,7 +54,7 @@ export default function RecipeDetailScreen() {
       />
     );
   }
-  const { recipe, tags, photos } = data.state.data;
+  const { recipe, tags, photos, ingredients } = data.state.data;
   if (!recipe) return <ErrorScreen message="This recipe was deleted." />;
 
   const recipeTags = tags.filter((t) => recipe.tagIds.includes(t.id));
@@ -128,19 +134,47 @@ export default function RecipeDetailScreen() {
         {recipe.ingredients.length === 0 ? (
           <ThemedText themeColor="textSecondary">No ingredients yet.</ThemedText>
         ) : (
-          recipe.ingredients.map((ingredient, index) => (
-            <View key={index} style={[styles.ingredient, { borderBottomColor: theme.border }]}>
-              <ThemedText type="smallBold" style={styles.amount}>
-                {formatIngredientAmount(ingredient)}
-              </ThemedText>
-              <ThemedText style={styles.ingredientName}>
-                {ingredient.name}
-                {ingredient.note ? (
-                  <ThemedText themeColor="textSecondary">{`, ${ingredient.note}`}</ThemedText>
-                ) : null}
-              </ThemedText>
-            </View>
-          ))
+          recipe.ingredients.map((line, index) => {
+            const ingredient = ingredients.get(line.ingredientId);
+            const category = ingredient ? categoryName(ingredient.category) : null;
+            return (
+              // Tap a line to open its ingredient (category, stores, names).
+              <Pressable
+                key={index}
+                accessibilityRole="button"
+                accessibilityHint="Opens the ingredient"
+                disabled={!ingredient}
+                onPress={() =>
+                  router.push({ pathname: '/ingredient/[id]', params: { id: line.ingredientId } })
+                }
+                style={({ pressed }) => [
+                  styles.ingredient,
+                  { borderBottomColor: theme.border },
+                  pressed && styles.pressed,
+                ]}>
+                <ThemedText type="smallBold" style={styles.amount}>
+                  {formatIngredientAmount(line)}
+                </ThemedText>
+                <View style={styles.ingredientName}>
+                  <ThemedText>
+                    {line.name}
+                    {line.note ? (
+                      <ThemedText themeColor="textSecondary">{`, ${line.note}`}</ThemedText>
+                    ) : null}
+                  </ThemedText>
+                  {category && (
+                    <ThemedText
+                      type="small"
+                      themeColor={
+                        ingredient?.category === 'uncategorized' ? 'attention' : 'textSecondary'
+                      }>
+                      {category}
+                    </ThemedText>
+                  )}
+                </View>
+              </Pressable>
+            );
+          })
         )}
       </View>
 
@@ -222,5 +256,8 @@ const styles = StyleSheet.create({
   },
   ingredientName: {
     flex: 1,
+  },
+  pressed: {
+    opacity: 0.6,
   },
 });

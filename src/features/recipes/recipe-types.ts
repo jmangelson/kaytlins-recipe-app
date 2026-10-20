@@ -1,3 +1,4 @@
+import type { CategoryId } from '@/features/ingredients/categories';
 import type { UnitKey } from '@/features/ingredients/units';
 
 export type RecipeIngredient = {
@@ -28,8 +29,11 @@ export type Recipe = {
 /** Which canonical ingredient a form row refers to. */
 export type RowLink =
   | { kind: 'existing'; ingredientId: string; name: string }
-  /** Create a new canonical ingredient with this name on save. */
-  | { kind: 'new'; name: string }
+  /**
+   * Create a new canonical ingredient with this name on save; `category`
+   * when she chose one (else it's guessed from the name).
+   */
+  | { kind: 'new'; name: string; category?: CategoryId }
   /**
    * Vague or too general ("onion", "rice"): she must pick one of her
    * ingredients, a suggested specific kind (made new), or make a new one.

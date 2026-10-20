@@ -359,8 +359,11 @@ function AreaRow({
           <ThemedText
             type="small"
             themeColor={holds ? 'textSecondary' : 'attention'}
-            numberOfLines={2}>
+            numberOfLines={showCategories ? undefined : 2}>
             {holds ? `Holds ${holds}` : 'Holds no categories'}
+          </ThemedText>
+          <ThemedText type="smallBold" themeColor="tint">
+            {showCategories ? 'Done with categories ▴' : 'Edit categories ▾'}
           </ThemedText>
         </Pressable>
         <IconButton

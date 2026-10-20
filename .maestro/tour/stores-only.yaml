@@ -1,7 +1,8 @@
 # Stores, areas, and categories only (quick screenshot review while
 # iterating on layouts or categories): the store list, Macey's areas, an
-# area's category picker, Costco, the ingredient list, and an ingredient's
-# category picker. The full tour covers these too.
+# area's category picker, Costco, the ingredient list, an ingredient's
+# category picker, categories on a recipe, and a new ingredient's category
+# in the recipe form.
 appId: com.jmangelson.kaytlinsrecipes
 ---
 - evalScript: ${output.email = 'storestour' + Date.now() + '@test.dev'}
@@ -32,6 +33,7 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Aisle 7 · Baking & spices'
     centerElement: true
 - takeScreenshot: build/screenshots/s4-maceys-aisles
+- takeScreenshot: build/screenshots/s4b-maceys-edit-categories-link
 - tapOn: 'Categories in Aisle 7 · Baking & spices.*'
 - scrollUntilVisible:
     element: 'Spices & seasonings'
@@ -71,3 +73,59 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Potatoes, onions & garlic'
     centerElement: true
 - takeScreenshot: build/screenshots/s9-ingredient-category-open
+- back
+- back
+- back
+
+# Categories on a recipe's ingredients
+- tapOn: 'Recipes'
+- tapOn: 'Chicken Enchiladas.*'
+- scrollUntilVisible:
+    element: 'Ingredients'
+    centerElement: true
+- takeScreenshot: build/screenshots/s10-recipe-categories
+
+# A new ingredient's category, guessed then chosen, in the recipe form
+- back
+- tapOn: 'Add recipe'
+- extendedWaitUntil:
+    visible:
+      id: 'recipe-name'
+    timeout: 15000
+- tapOn:
+    id: 'recipe-name'
+- inputText: 'Chutney toast'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'recipe-add-ingredients'
+- tapOn:
+    id: 'recipe-add-ingredients'
+- inputText: '1 jar mango chutney'
+- pressKey: Enter
+- inputText: '2 slices zorbleberry loaf'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add to recipe'
+- tapOn: 'Add to recipe'
+- scrollUntilVisible:
+    element: 'Edit 2 slices zorbleberry loaf'
+    centerElement: true
+- takeScreenshot: build/screenshots/s11-new-ingredient-rows
+- tapOn: 'Edit 2 slices zorbleberry loaf'
+- scrollUntilVisible:
+    element: 'Category'
+    centerElement: true
+- takeScreenshot: build/screenshots/s12-new-ingredient-category
+- tapOn: 'Bread, deli & PB&J'
+- tapOn: 'Bread & bakery'
+- scrollUntilVisible:
+    element: 'Done'
+- tapOn: 'Done'
+- scrollUntilVisible:
+    element: 'Edit 2 slices zorbleberry loaf'
+    centerElement: true
+- assertVisible: 'Bread & bakery'
+- takeScreenshot: build/screenshots/s13-new-ingredient-chosen
+- back
+- tapOn: 'DISCARD|Discard'

@@ -48,6 +48,9 @@ export const FROZEN_HOUSEHOLD: Partial<Record<CategoryId, string[]>> = {
     'frozen turkey burgers',
   ],
   'frozen-seafood': [
+    'frozen trout',
+    'frozen catfish',
+    'frozen ahi tuna',
     'frozen fish',
     'frozen salmon',
     'frozen tilapia',

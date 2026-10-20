@@ -33,6 +33,9 @@ describe('herb and spice forms', () => {
     ['thyme', 'dried thyme', 'ground thyme'],
     ['fennel', 'fennel bulb', 'fennel seed'],
     ['vanilla', 'vanilla extract', 'vanilla bean'],
+    ['salmon', 'fresh salmon', 'frozen salmon'],
+    ['shrimp', 'fresh shrimp', 'frozen shrimp'],
+    ['tuna', 'canned tuna', 'frozen ahi tuna'],
     ['ginger', 'ground ginger', 'crystallized ginger'],
   ])('a bare "%s" offers %s and %s', (name, a, b) => {
     expect(specificOptions(name)).toEqual(expect.arrayContaining([a, b]));

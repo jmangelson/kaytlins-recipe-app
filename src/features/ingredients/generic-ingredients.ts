@@ -1,8 +1,9 @@
 import { ingredientNameKey } from '@/features/ingredients/parse-ingredient-line';
 
 /**
- * Herbs and spices that come in forms shelved apart: fresh herbs in produce;
- * dried, ground, and whole spices in spices. A bare name always asks which
+ * Herbs, spices, and fish that come in forms shelved apart: fresh herbs in
+ * produce, dried, ground, and whole spices in spices; fresh fish at the
+ * counter, frozen in the freezer aisle, canned in the center aisles. A bare name always asks which
  * form the recipe means, and the bare name itself isn't offered as a new
  * ingredient.
  */
@@ -36,6 +37,17 @@ const FORMS: Record<string, string[]> = {
   anise: ['anise seed', 'ground anise', 'star anise'],
   saffron: ['saffron threads', 'ground saffron'],
   horseradish: ['prepared horseradish', 'horseradish root'],
+  // Fish and seafood: the fresh counter and the freezer aisle are apart.
+  salmon: ['fresh salmon', 'frozen salmon', 'canned salmon'],
+  tilapia: ['fresh tilapia', 'frozen tilapia'],
+  cod: ['fresh cod', 'frozen cod'],
+  halibut: ['fresh halibut', 'frozen halibut'],
+  'mahi mahi': ['fresh mahi mahi', 'frozen mahi mahi'],
+  trout: ['fresh trout', 'frozen trout'],
+  catfish: ['fresh catfish', 'frozen catfish'],
+  scallops: ['fresh scallops', 'frozen scallops'],
+  shrimp: ['fresh shrimp', 'frozen shrimp', 'cooked shrimp'],
+  tuna: ['canned tuna', 'fresh tuna steak', 'frozen ahi tuna'],
   peppercorns: ['black peppercorns', 'pink peppercorns', 'green peppercorns'],
 };
 
