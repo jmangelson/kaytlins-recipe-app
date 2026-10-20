@@ -34,6 +34,8 @@ export type ListLine = {
   /** "Have it" for unmeasured items, or "skip this" for anything. */
   haveIt: boolean;
   recipeNames: string[];
+  /** Recipe notes that matter when buying (lists made before notes have none). */
+  notes?: string[];
   /** Placement once the list is made (status "ready"). */
   storeId: string | null;
   sectionId: string | null;
@@ -85,6 +87,7 @@ export function linesFromNeeds(needs: NeedLine[]): ListLine[] {
     have: need.quantities.map(() => null),
     haveIt: false,
     recipeNames: need.recipeNames,
+    notes: need.notes ?? [],
     storeId: null,
     sectionId: null,
     usualStoreName: null,
@@ -123,6 +126,7 @@ export function placeLines(
       name: l.name,
       quantities: remaining(l),
       recipeNames: l.recipeNames,
+      notes: l.notes,
     })),
     ingredients,
     storesInOrder,
@@ -173,6 +177,7 @@ export function groupReadyList(list: ShoppingList, storesInOrder: Store[]): List
             name: l.name,
             quantities: remaining(l),
             recipeNames: l.recipeNames,
+            notes: l.notes,
             storeId: store.id,
             sectionId,
             usualStoreName: l.usualStoreName,
@@ -270,7 +275,8 @@ export function listAsText(list: ShoppingList, storesInOrder: Store[]): string {
           if (items.length === 0) return null;
           const lines = items.map((i) => {
             const amount = i.quantities.map(formatQuantity).filter(Boolean).join(' + ');
-            return amount ? `- ${i.name} (${amount})` : `- ${i.name}`;
+            const notes = i.notes?.length ? ` · ${i.notes.join(', ')}` : '';
+            return amount ? `- ${i.name} (${amount})${notes}` : `- ${i.name}${notes}`;
           });
           return [section.name, ...lines].join('\n');
         })

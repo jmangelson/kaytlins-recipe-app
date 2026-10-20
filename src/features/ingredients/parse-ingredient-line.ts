@@ -162,7 +162,9 @@ const PREP_WORDS = new Set(
   (
     'chopped diced minced sliced cubed grated shredded crushed peeled seeded cored trimmed ' +
     'halved quartered julienned mashed melted softened beaten divided drained rinsed thawed ' +
-    'sifted toasted deveined pitted zested juiced torn crumbled hulled stemmed cut room-temperature'
+    'sifted toasted deveined pitted zested juiced torn crumbled hulled stemmed cut room-temperature ' +
+    // Not "dried": "basil dried" is the dried herb, a different product.
+    'browned warmed chilled washed scrubbed'
   ).split(' ')
 );
 const PREP_ADVERBS = new Set(
@@ -217,6 +219,31 @@ export function withoutPrepWord(name: string, word: string): string {
     )
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** "cut into 1-inch pieces", "sliced into rounds": how to cut it, a note. */
+const CUT_INTO = /^(?:\w+ly\s+)?(?:cut|sliced|chopped|diced|torn|broken)\s+in(?:to)?\b/i;
+
+const NOT_FOR_BUYING =
+  /^(to taste|as needed|for serving|for garnish|divided|plus more|at room temperature|room temperature|or more)$/i;
+
+/**
+ * The parts of a recipe note that matter when buying ("medium", "85% lean",
+ * "15 oz"), without preparation ("chopped") or cooking ones ("divided",
+ * "to taste"). Null when nothing is left.
+ */
+export function buyingNote(note: string | null | undefined): string | null {
+  if (!note) return null;
+  const parts = note
+    .split(/[,;]/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .filter((part) => {
+      if (NOT_FOR_BUYING.test(part) || CUT_INTO.test(part)) return false;
+      const words = part.toLowerCase().split(/\s+/);
+      return !words.every((w) => PREP_WORDS.has(w) || PREP_ADVERBS.has(w));
+    });
+  return parts.length ? parts.join(', ') : null;
 }
 
 function joinNotes(...notes: (string | null | undefined)[]): string | null {
@@ -311,6 +338,15 @@ export function parseIngredientLine(line: string): ParsedIngredient {
     rest = rest.replace(parenNote[0], ' ');
   }
 
+  // "chicken breast cut into strips": the cutting goes to the note.
+  let cutNote: string | null = null;
+  const cut = rest.match(
+    /\s+((?:\w+ly\s+)?(?:cut|sliced|chopped|diced|torn|broken)\s+in(?:to)?\s+.+)$/i
+  );
+  if (cut && cut.index! > 0) {
+    cutNote = cut[1];
+    rest = rest.slice(0, cut.index);
+  }
   const sized = splitSize(rest);
   rest = sized.name;
   const trailing = trailingPrep(rest);
@@ -330,6 +366,7 @@ export function parseIngredientLine(line: string): ParsedIngredient {
       sized.size,
       leading.prep,
       trailing.prep,
+      cutNote,
       inlineNote,
       commaNote,
       toTaste

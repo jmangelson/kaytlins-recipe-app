@@ -108,6 +108,7 @@ function PackingEditor({ householdId, initial }: { householdId: string; initial:
                 key={item.key}
                 title={item.name}
                 detail={item.quantities.map(formatQuantity).filter(Boolean).join(' + ')}
+                note={item.notes?.length ? `Recipe notes: ${item.notes.join(', ')}` : null}
                 checked={item.checked}
                 dimWhenChecked
                 onToggle={() =>

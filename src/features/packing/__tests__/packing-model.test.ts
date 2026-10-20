@@ -7,7 +7,7 @@ import {
   packItemsFromShoppingList,
 } from '@/features/packing/packing-model';
 import { linesFromNeeds } from '@/features/shopping/list-model';
-import { leaveOffAtHome, withStaples } from '@/features/shopping/shopping-model';
+import { gatherNeeds, leaveOffAtHome, withStaples } from '@/features/shopping/shopping-model';
 
 const ingredients = new Map<string, Ingredient>([
   ['beef', { ...newIngredient('ground beef'), id: 'beef' }],
@@ -92,5 +92,44 @@ describe('packing lists', () => {
     expect(gear.length).toBe(DEFAULT_GEAR.length);
     expect(gear.every((g) => !g.checked)).toBe(true);
     expect(new Set(gear.map((g) => g.key)).size).toBe(gear.length);
+  });
+});
+
+describe('recipe notes on lists', () => {
+  it('gathers the buying parts of recipe notes, once each', () => {
+    const recipe = (id: string, note: string | null) => ({
+      id,
+      name: id,
+      servings: 4,
+      tagIds: [],
+      notes: '',
+      link: '',
+      hasPhoto: false,
+      photoIds: [],
+      ingredients: [
+        {
+          ingredientId: 'beef',
+          name: 'ground beef',
+          quantity: 1,
+          quantityMax: null,
+          unit: 'lb' as const,
+          note,
+          raw: '',
+        },
+      ],
+    });
+    const recipes = new Map([
+      ['a', recipe('a', '85% lean')],
+      ['b', recipe('b', '85% lean, crumbled')],
+      ['c', recipe('c', 'browned')],
+    ]);
+    const needs = gatherNeeds(
+      [...recipes.keys()].map((id) => ({ recipeId: id, servings: null })),
+      recipes
+    );
+    expect(needs[0].notes).toEqual(['85% lean']);
+    const pack = packItemsFromNeeds(needs, ingredients);
+    expect(pack[0].notes).toEqual(['85% lean']);
+    expect(linesFromNeeds(needs)[0].notes).toEqual(['85% lean']);
   });
 });

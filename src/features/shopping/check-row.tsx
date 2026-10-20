@@ -9,6 +9,8 @@ import { useTheme } from '@/hooks/use-theme';
 type CheckRowProps = {
   title: string;
   detail?: string | null;
+  /** A quiet extra line ("Recipe notes: medium, 85% lean"). */
+  note?: string | null;
   checked: boolean;
   onToggle: () => void;
   /** Dim the text once checked (a checklist item that's done). */
@@ -23,6 +25,7 @@ type CheckRowProps = {
 export function CheckRow({
   title,
   detail,
+  note,
   checked,
   onToggle,
   dimWhenChecked,
@@ -35,7 +38,7 @@ export function CheckRow({
   const row = (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityLabel={detail ? `${name}, ${detail}` : name}
+      accessibilityLabel={[name, detail, note].filter(Boolean).join(', ')}
       accessibilityState={{ checked }}
       onPress={onToggle}
       style={({ pressed }) => [
@@ -62,6 +65,11 @@ export function CheckRow({
             {detail}
           </ThemedText>
         ) : null}
+        {note ? (
+          <ThemedText type="small" themeColor="textSecondary" style={styles.note}>
+            {note}
+          </ThemedText>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -75,6 +83,10 @@ export function CheckRow({
 }
 
 const styles = StyleSheet.create({
+  note: {
+    fontStyle: 'italic',
+    opacity: 0.85,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,4 +1,5 @@
 import {
+  buyingNote,
   splitSize,
   ingredientNameKey,
   parseAmount,
@@ -186,6 +187,7 @@ describe('amount after the name, and notes', () => {
     ['1 lb ground beef (85% lean)', 1, 'lb', 'ground beef', '85% lean'],
     ['1 pound chicken breast halves - cubed', 1, 'lb', 'chicken breast halves', 'cubed'],
     ['1 cup finely chopped onion', 1, 'cup', 'onion', 'finely chopped'],
+    ['1 lb chicken breast cut into strips', 1, 'lb', 'chicken breast', 'cut into strips'],
   ])('%s', (line, quantity, unit, name, note) => {
     expect(parseIngredientLine(line)).toMatchObject({ quantity, unit, name, note });
   });
@@ -211,5 +213,24 @@ describe('prep words left in a name', () => {
     expect(withoutPrepWord('finely chopped onion', 'chopped')).toBe('onion');
     expect(withoutPrepWord('chopped onion', 'chopped')).toBe('onion');
     expect(prepWordsInName('yellow onion')).toEqual([]);
+  });
+});
+
+describe('buyingNote', () => {
+  it.each([
+    ['medium', 'medium'],
+    ['85% lean', '85% lean'],
+    ['chopped', null],
+    ['finely chopped', null],
+    ['15 oz, drained', '15 oz'],
+    ['large, peeled and diced', 'large'],
+    ['divided', null],
+    ['to taste', null],
+    ['optional', 'optional'],
+    ['cut into 1-inch pieces', null],
+    ['boneless, cut into strips', 'boneless'],
+    [null, null],
+  ])('%s → %s', (note, expected) => {
+    expect(buyingNote(note)).toBe(expected);
   });
 });

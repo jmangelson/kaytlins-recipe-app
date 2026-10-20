@@ -17,6 +17,8 @@ export type PackItem = {
   quantities: Quantity[];
   category: CategoryId;
   checked: boolean;
+  /** Recipe notes that matter when buying or packing ("85% lean"). */
+  notes?: string[];
 };
 
 /** Something to bring besides food (pots, foil, the water jug). */
@@ -71,6 +73,7 @@ export function packItemsFromNeeds(
     quantities: need.quantities,
     category: categoryOf(need.ingredientId, need.name, ingredients),
     checked: false,
+    notes: need.notes ?? [],
   }));
 }
 
@@ -83,10 +86,17 @@ export function packItemsFromShoppingList(
   ingredients: Map<string, Ingredient>
 ): PackItem[] {
   const byKey = new Map<string, PackItem>();
-  const add = (key: string, ingredientId: string | null, name: string, quantities: Quantity[]) => {
+  const add = (
+    key: string,
+    ingredientId: string | null,
+    name: string,
+    quantities: Quantity[],
+    notes: string[] = []
+  ) => {
     const existing = byKey.get(key);
     if (existing) {
       existing.quantities = combineQuantities([...existing.quantities, ...quantities]);
+      existing.notes = [...new Set([...(existing.notes ?? []), ...notes])];
       return;
     }
     byKey.set(key, {
@@ -96,10 +106,11 @@ export function packItemsFromShoppingList(
       quantities,
       category: categoryOf(ingredientId, name, ingredients),
       checked: false,
+      notes,
     });
   };
   for (const line of list.lines)
-    add(line.ingredientId ?? line.key, line.ingredientId, line.name, line.needed);
+    add(line.ingredientId ?? line.key, line.ingredientId, line.name, line.needed, line.notes);
   for (const item of list.atHome ?? [])
     add(item.ingredientId, item.ingredientId, item.name, item.quantities);
   return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name));

@@ -669,6 +669,7 @@ function ReadyList({
                       <CheckRow
                         title={item.name}
                         detail={detail}
+                        note={item.notes?.length ? `Recipe notes: ${item.notes.join(', ')}` : null}
                         checked={!!line?.checked}
                         dimWhenChecked
                         onToggle={() => tapItem(item.ingredientId)}

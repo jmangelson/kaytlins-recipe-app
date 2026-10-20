@@ -4,6 +4,7 @@ import {
   type Ingredient,
 } from '@/features/ingredients/ingredient-model';
 import { guessCategory } from '@/features/ingredients/categories';
+import { buyingNote } from '@/features/ingredients/parse-ingredient-line';
 import { combineQuantities, type Quantity } from '@/features/ingredients/quantity';
 import { convert, unitDimension, type UnitKey } from '@/features/ingredients/units';
 import type { CalendarDay, DateKey } from '@/features/calendar/calendar-model';
@@ -19,6 +20,8 @@ export type NeedLine = {
   quantities: Quantity[];
   /** Recipes it's for, in the order first needed. */
   recipeNames: string[];
+  /** Recipe notes that matter when buying ("medium", "85% lean"), no repeats. */
+  notes?: string[];
 };
 
 /** Recipe amount scaled to the servings planned for that meal. */
@@ -34,7 +37,10 @@ function scale(amount: number | null, item: PlanItem, recipe: Recipe): number | 
  * she doesn't come home short. Sorted by name.
  */
 export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): NeedLine[] {
-  const byIngredient = new Map<string, { name: string; amounts: Quantity[]; recipes: string[] }>();
+  const byIngredient = new Map<
+    string,
+    { name: string; amounts: Quantity[]; recipes: string[]; notes: string[] }
+  >();
   for (const item of items) {
     const recipe = recipes.get(item.recipeId);
     if (!recipe) continue;
@@ -43,7 +49,10 @@ export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): Ne
         name: line.name,
         amounts: [],
         recipes: [],
+        notes: [],
       };
+      const note = buyingNote(line.note);
+      if (note && !entry.notes.includes(note)) entry.notes.push(note);
       entry.amounts.push({
         amount: scale(line.quantityMax ?? line.quantity, item, recipe),
         unit: line.unit,
@@ -58,6 +67,7 @@ export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): Ne
       name: e.name,
       quantities: combineQuantities(e.amounts),
       recipeNames: e.recipes,
+      notes: e.notes,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
@@ -97,6 +107,7 @@ export type ListItem = {
   name: string;
   quantities: Quantity[];
   recipeNames: string[];
+  notes?: string[];
   storeId: string;
   sectionId: string | null;
   /** Set when it's not at one of its preferred stores on this trip. */
@@ -158,6 +169,7 @@ export function groupForTrip(
       name: line.name,
       quantities: line.quantities,
       recipeNames: line.recipeNames,
+      notes: line.notes,
       storeId: placed.store.id,
       sectionId,
       usualStoreName: placed.usualStore?.name ?? null,
