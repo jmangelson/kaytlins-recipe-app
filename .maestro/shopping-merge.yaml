@@ -36,14 +36,18 @@ tags:
     env:
       TEXT: '2 roma tomatoes'
 - scrollUntilVisible:
-    element: 'Merge two items'
+    element: 'Fix an item'
     direction: UP
-- tapOn: 'Merge two items'
-- assertVisible: 'Tap the two items that are the same thing.'
+- tapOn: 'Fix an item'
 - scrollUntilVisible:
     element: 'roma tomatoes, 2.*'
     centerElement: true
 - tapOn: 'roma tomatoes, 2.*'
+- scrollUntilVisible:
+    element: 'It’s the same as another item'
+    centerElement: true
+- tapOn: 'It’s the same as another item'
+- assertVisible: 'Tap the item that’s the same as roma tomatoes.'
 - scrollUntilVisible:
     element: 'plum tomatoes, 3.*'
     direction: UP
@@ -60,6 +64,47 @@ tags:
 - tapOn: 'Merge roma tomatoes and plum tomatoes'
 - scrollUntilVisible:
     element: 'roma tomatoes, 5.*'
+    direction: UP
     centerElement: true
 - assertNotVisible: 'plum tomatoes.*'
 - takeScreenshot: build/screenshots/104-merged-item
+
+# Name and notes: "chopped" leaves the name, and a note for this trip
+- scrollUntilVisible:
+    element: 'Fix an item'
+    direction: UP
+- tapOn: 'Fix an item'
+- scrollUntilVisible:
+    element: 'roma tomatoes, 5.*'
+    centerElement: true
+- tapOn: 'roma tomatoes, 5.*'
+- scrollUntilVisible:
+    element: 'Its name or notes'
+    centerElement: true
+- tapOn: 'Its name or notes'
+# (the label focuses the field with the cursor at the end of the name)
+- tapOn: 'Changes it in every recipe.*'
+- eraseText: 20
+- inputText: 'tomatoes'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'fix-item-notes'
+    centerElement: true
+- tapOn:
+    id: 'fix-item-notes'
+- inputText: 'ripe'
+- hideKeyboard
+- takeScreenshot: build/screenshots/105-fix-name-notes
+- scrollUntilVisible:
+    element: 'Save name and notes'
+    centerElement: true
+- tapOn: 'Save name and notes'
+- scrollUntilVisible:
+    element: 'tomatoes, 5.*'
+    direction: UP
+    centerElement: true
+- assertVisible: 'tomatoes, 5.*Notes: ripe'
+- assertNotVisible: '.*Recipe notes: ripe'
+- assertNotVisible: 'roma tomatoes.*'
+- takeScreenshot: build/screenshots/106-fixed-name-notes

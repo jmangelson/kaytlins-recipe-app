@@ -48,6 +48,7 @@ export function MergeItems({
       <TextField
         label="Final name"
         testID="merge-items-name"
+        autoCorrect={false}
         value={name}
         onChangeText={setName}
         error={problem ?? undefined}

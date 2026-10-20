@@ -34,6 +34,7 @@ import { AddItem, type NewItem } from '@/features/shopping/add-item';
 import { CheckRow } from '@/features/shopping/check-row';
 import { deleteExtraItem, listExtraItems, saveExtraItem } from '@/features/shopping/extra-repo';
 import { FixAisle, type AisleFix } from '@/features/shopping/fix-aisle';
+import { FixChooser, NameNotes, PickOther, type FixAction } from '@/features/shopping/fix-item';
 import { MergeItems } from '@/features/shopping/merge-items';
 import {
   extraItemFromLine,
@@ -229,6 +230,34 @@ function ListEditor({
     commit(next);
   }
 
+  /**
+   * "Its name or notes": the ingredient's name everywhere (words it drops go
+   * to its recipes' notes) and this item's notes on this list.
+   */
+  async function renameItem(key: string, name: string, notes: string) {
+    const line = list.lines.find((l) => l.key === key);
+    if (!line) return;
+    const finalName = canonicalName(name);
+    const ing = line.ingredientId ? known.get(line.ingredientId) : undefined;
+    if (ing && finalName !== ing.name) {
+      const dropped = droppedWords(ing.name, finalName);
+      if (dropped) await addNoteToRecipeLines(householdId, ing.id, dropped);
+      const renamed = { ...ing, name: finalName };
+      await renameIngredient(householdId, renamed, ing.name);
+      setKnown(new Map(known).set(renamed.id, renamed));
+    }
+    const noteList = notes
+      .split(',')
+      .map((n) => n.trim())
+      .filter(Boolean);
+    commit({
+      ...list,
+      lines: list.lines.map((l) =>
+        l.key === key ? { ...l, name: finalName, notes: noteList, notesEdited: true } : l
+      ),
+    });
+  }
+
   /** A final name another ingredient (not these two) already uses. */
   function mergeNameProblem(keepKey: string, dropKey: string, name: string): string | null {
     const ids = new Set(
@@ -329,6 +358,7 @@ function ListEditor({
           addItem={addItemField}
           onChange={commit}
           onMergeItems={mergeItems}
+          onRenameItem={renameItem}
           mergeNameProblem={mergeNameProblem}
           onDoneShopping={(finished) => {
             commit({ ...finished, status: 'done' });
@@ -565,6 +595,7 @@ function ReadyList({
   onIngredientChange,
   onStoreChange,
   onMergeItems,
+  onRenameItem,
   mergeNameProblem,
   addItem,
   onChange,
@@ -577,6 +608,7 @@ function ReadyList({
   onIngredientChange: (ingredient: Ingredient) => void;
   onStoreChange: (store: Store) => void;
   onMergeItems: (keepKey: string, dropKey: string, name: string, category: CategoryId) => void;
+  onRenameItem: (key: string, name: string, notes: string) => void;
   mergeNameProblem: (keepKey: string, dropKey: string, name: string) => string | null;
   addItem: ReactNode;
   onChange: (list: ShoppingList) => void;
@@ -585,11 +617,18 @@ function ReadyList({
   onBack: () => void;
 }) {
   const [hideChecked, setHideChecked] = useState(false);
-  // "Fix an item's aisle": the next item she taps opens the fix (one item).
+  // "Fix an item": she picks one item, says what's wrong, and fixes it.
   const [pickingFix, setPickingFix] = useState(false);
-  // "Merge two items": the items she's tapped (null when not merging).
-  const [mergePicks, setMergePicks] = useState<string[] | null>(null);
   const [fixingKey, setFixingKey] = useState<string | null>(null);
+  const [fixAction, setFixAction] = useState<FixAction | null>(null);
+  // Merging: the other item she tapped.
+  const [mergeWith, setMergeWith] = useState<string | null>(null);
+  function endFix() {
+    setPickingFix(false);
+    setFixingKey(null);
+    setFixAction(null);
+    setMergeWith(null);
+  }
   const groups = groupReadyList(list, stores);
   const lines = new Map(list.lines.map((l) => [l.key, l]));
   const items = groups.flatMap((g) => g.sections.flatMap((s) => s.items));
@@ -634,13 +673,12 @@ function ReadyList({
   }
 
   function tapItem(key: string) {
-    if (mergePicks) {
-      if (mergePicks.length < 2 && !mergePicks.includes(key)) setMergePicks([...mergePicks, key]);
-      return;
-    }
     if (pickingFix) {
       setPickingFix(false);
       setFixingKey(key);
+      setFixAction(null);
+    } else if (fixAction === 'merge' && !mergeWith && key !== fixingKey) {
+      setMergeWith(key);
     } else toggle(key);
   }
 
@@ -674,7 +712,7 @@ function ReadyList({
         ? list.lines.map((l) => (l.key === key ? { ...l, sectionId: fix.sectionId } : l))
         : replaceAtStore(list.lines, nextStore, nextIngredients);
     onChange({ ...list, lines });
-    setFixingKey(null);
+    endFix();
   }
 
   return (
@@ -702,49 +740,16 @@ function ReadyList({
           />
         )}
         <Chip
-          label={pickingFix ? 'Cancel fix' : 'Fix an item’s aisle'}
-          accessibilityLabel={pickingFix ? 'Cancel fixing an aisle' : 'Fix an item’s aisle'}
-          selected={pickingFix}
+          label={pickingFix || fixingKey ? 'Cancel fix' : 'Fix an item'}
+          accessibilityLabel={pickingFix || fixingKey ? 'Cancel fixing an item' : 'Fix an item'}
+          selected={pickingFix || !!fixingKey}
           onPress={() => {
-            setPickingFix(!pickingFix);
-            setFixingKey(null);
-            setMergePicks(null);
-          }}
-        />
-        <Chip
-          label={mergePicks ? 'Cancel merge' : 'Merge two items'}
-          selected={!!mergePicks}
-          onPress={() => {
-            setMergePicks(mergePicks ? null : []);
-            setPickingFix(false);
-            setFixingKey(null);
+            if (pickingFix || fixingKey) endFix();
+            else setPickingFix(true);
           }}
         />
       </View>
-      {pickingFix && (
-        <ThemedText themeColor="attention">Tap the item that’s in the wrong place.</ThemedText>
-      )}
-      {mergePicks && mergePicks.length < 2 && (
-        <ThemedText themeColor="attention">
-          {mergePicks.length === 0
-            ? 'Tap the two items that are the same thing.'
-            : `“${lines.get(mergePicks[0])?.name}” picked. Tap the other one.`}
-        </ThemedText>
-      )}
-      {mergePicks?.length === 2 && (
-        <MergeItems
-          key={mergePicks.join('|')}
-          first={{ name: lines.get(mergePicks[0])?.name ?? '' }}
-          second={{ name: lines.get(mergePicks[1])?.name ?? '' }}
-          firstIngredient={ingredients.get(lines.get(mergePicks[0])?.ingredientId ?? '') ?? null}
-          nameProblem={(name) => mergeNameProblem(mergePicks[0], mergePicks[1], name)}
-          onMerge={(name, category) => {
-            onMergeItems(mergePicks[0], mergePicks[1], name, category);
-            setMergePicks(null);
-          }}
-          onCancel={() => setMergePicks(null)}
-        />
-      )}
+      {pickingFix && <ThemedText themeColor="attention">Tap the item to fix.</ThemedText>}
       {groups.map((group) => {
         const sections = group.sections
           .map((section) => ({
@@ -779,7 +784,11 @@ function ReadyList({
                       <CheckRow
                         title={item.name}
                         detail={detail}
-                        note={item.notes?.length ? `Recipe notes: ${item.notes.join(', ')}` : null}
+                        note={
+                          item.notes?.length
+                            ? `${line?.notesEdited ? 'Notes' : 'Recipe notes'}: ${item.notes.join(', ')}`
+                            : null
+                        }
                         checked={!!line?.checked}
                         dimWhenChecked
                         onToggle={() => tapItem(item.ingredientId)}
@@ -792,7 +801,10 @@ function ReadyList({
                           ) : null
                         }
                       />
-                      {fixingKey === item.ingredientId && (
+                      {fixingKey === item.ingredientId && fixAction === null && (
+                        <FixChooser name={item.name} onChoose={setFixAction} onCancel={endFix} />
+                      )}
+                      {fixingKey === item.ingredientId && fixAction === 'aisle' && (
                         <FixAisle
                           name={item.name}
                           ingredient={
@@ -801,7 +813,40 @@ function ReadyList({
                           store={store}
                           sectionId={item.sectionId}
                           onFix={(fix) => applyFix(item.ingredientId, store, fix)}
-                          onCancel={() => setFixingKey(null)}
+                          onCancel={endFix}
+                        />
+                      )}
+                      {fixingKey === item.ingredientId && fixAction === 'merge' && !mergeWith && (
+                        <PickOther name={item.name} onCancel={endFix} />
+                      )}
+                      {fixingKey === item.ingredientId && fixAction === 'merge' && mergeWith && (
+                        <MergeItems
+                          key={mergeWith}
+                          first={{ name: item.name }}
+                          second={{ name: lines.get(mergeWith)?.name ?? '' }}
+                          firstIngredient={ingredients.get(line?.ingredientId ?? '') ?? null}
+                          nameProblem={(name) =>
+                            mergeNameProblem(item.ingredientId, mergeWith, name)
+                          }
+                          onMerge={(name, category) => {
+                            onMergeItems(item.ingredientId, mergeWith, name, category);
+                            endFix();
+                          }}
+                          onCancel={endFix}
+                        />
+                      )}
+                      {fixingKey === item.ingredientId && fixAction === 'name' && (
+                        <NameNotes
+                          name={item.name}
+                          notes={(line?.notes ?? []).join(', ')}
+                          nameProblem={(name) =>
+                            mergeNameProblem(item.ingredientId, item.ingredientId, name)
+                          }
+                          onSave={(name, notes) => {
+                            onRenameItem(item.ingredientId, name, notes);
+                            endFix();
+                          }}
+                          onCancel={endFix}
                         />
                       )}
                     </View>

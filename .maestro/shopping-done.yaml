@@ -35,14 +35,17 @@ tags:
 
 # The fix is out of the way until she asks for it
 - assertNotVisible: 'Where does .* go\?'
-- tapOn: 'Fix an item’s aisle'
-- assertVisible: 'Tap the item that’s in the wrong place.'
+- tapOn: 'Fix an item'
+- assertVisible: 'Tap the item to fix.'
 - takeScreenshot: build/screenshots/80-fix-aisle-picking
 - tapOn: 'lime.*'
 # Tapping picked it for the fix instead of checking it off
 - assertVisible:
     text: 'lime.*'
     checked: false
+- assertVisible: 'What needs fixing for lime\?'
+- takeScreenshot: build/screenshots/80b-fix-item-choices
+- tapOn: 'Where it is in the store'
 - assertVisible: 'Where does lime go\?'
 - takeScreenshot: build/screenshots/81-fix-aisle-choices
 - assertVisible: 'The category for lime is Fruit.'
@@ -66,10 +69,11 @@ tags:
 
 # Its category, fixed everywhere (the button is at the top of the list)
 - scrollUntilVisible:
-    element: 'Fix an item’s aisle'
+    element: 'Fix an item'
     direction: UP
-- tapOn: 'Fix an item’s aisle'
+- tapOn: 'Fix an item'
 - tapOn: 'flour tortillas.*'
+- tapOn: 'Where it is in the store'
 - scrollUntilVisible:
     element: 'The category is wrong'
     centerElement: true
@@ -84,10 +88,11 @@ tags:
 
 # The category is right, but this store keeps all of it elsewhere
 - scrollUntilVisible:
-    element: 'Fix an item’s aisle'
+    element: 'Fix an item'
     direction: UP
-- tapOn: 'Fix an item’s aisle'
+- tapOn: 'Fix an item'
 - tapOn: 'plum tomatoes.*'
+- tapOn: 'Where it is in the store'
 - scrollUntilVisible:
     element: 'The category is right, but at Macey.s all of Greens & vegetables is somewhere else'
     centerElement: true
@@ -109,23 +114,21 @@ tags:
 
 # Each fixed item sits in its new area (Macey's order: PB&J, Fresh meat &
 # seafood, Dairy, then the aisles)
+# (the list ends here, so scroll up to the headings rather than center rows)
 - scrollUntilVisible:
-    element: 'lime.*'
+    element: 'PB&J'
+    direction: UP
     centerElement: true
 - assertVisible:
     text: 'lime.*'
     below: 'PB&J'
     above: 'Fresh meat & seafood'
-- scrollUntilVisible:
-    element: 'plum tomatoes.*'
-    centerElement: true
 - assertVisible:
     text: 'plum tomatoes.*'
     below: 'Fresh meat & seafood'
     above: 'Dairy'
 - scrollUntilVisible:
-    element: 'flour tortillas.*'
-    centerElement: true
+    element: 'Aisle 9.*'
 - assertVisible:
     text: 'flour tortillas.*'
     below: 'Dairy'
@@ -144,7 +147,7 @@ tags:
 
 # Everything in the cart: done shopping?
 - scrollUntilVisible:
-    element: 'Fix an item’s aisle'
+    element: 'Fix an item'
     direction: UP
 - scrollUntilVisible:
     element: 'lime.*'

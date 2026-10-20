@@ -36,6 +36,8 @@ export type ListLine = {
   recipeNames: string[];
   /** Recipe notes that matter when buying (lists made before notes have none). */
   notes?: string[];
+  /** She edited the notes herself ("Notes: ripe", not "Recipe notes"). */
+  notesEdited?: boolean;
   /** Placement once the list is made (status "ready"). */
   storeId: string | null;
   sectionId: string | null;

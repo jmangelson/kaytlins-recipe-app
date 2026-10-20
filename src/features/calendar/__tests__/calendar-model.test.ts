@@ -43,6 +43,7 @@ describe('dates', () => {
     expect(formatDay('2026-10-04')).toBe('Sun, Oct 4');
     expect(formatRange('2026-10-04', '2026-10-10')).toBe('Oct 4 – 10');
     expect(formatRange('2026-09-27', '2026-10-03')).toBe('Sep 27 – Oct 3');
+    expect(formatRange('2026-10-18', '2026-10-18')).toBe('Oct 18');
     expect(formatRange('2026-12-27', '2027-01-02')).toBe('Dec 27 – Jan 2, 2027');
   });
 });

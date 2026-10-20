@@ -378,6 +378,25 @@ From the full check on her phone:
 - Each released by OTA after the full e2e suite (18 flows) and screenshot
   review; rules deployed for the list "done" status.
 
+### Ingredient cleanup and one "Fix an item" (2026-10-20)
+
+- Ingredients link to recipes by id; renaming updates recipe lines and keeps
+  the old name as another name. Parsing handles "flour 2 cups", and note
+  words (sizes, prep, "cut into …") go to the line's note; buying-relevant
+  recipe notes show quietly on shopping and packing lists.
+- AI-Assisted Cleanup (runs only when she taps Run Automatic Ingredient
+  Audit): Claude suggests merges of 2+ ingredients and name tidies, each with
+  a final name and category she can change; note words move into recipe
+  notes. Real-model check on 27 tricky names: 8 right merges, kept fresh vs
+  dried basil, fresh vs frozen salmon, whole vs 2% milk, and ground cumin vs
+  cumin seed apart (6.5 s, about 2.4¢).
+- Shopping list: one "Fix an item" button. She taps the item, then picks
+  where it is in the store (the three aisle choices), that it's the same as
+  another item (tap it, then the merge's final name and category), or its
+  name and notes (the name changes everywhere; her own notes show as
+  "Notes:", recipe ones as "Recipe notes:").
+- One-day ranges read "Oct 18", not "Oct 18 – 18".
+
 ### Round 2, phase 2 — Specific categories and real aisles (2026-10-19)
 
 - 78 categories in 11 departments (pickers group them; departments open on
@@ -596,6 +615,14 @@ disabled]`: a failed run otherwise leaves the emulator offline and the next
 - **Save on change, not on blur**, for inline edits on Android.
 - **Maestro:** `scrollUntilVisible` stops at the first visible match, and tab
   labels count ("Settings"); scroll to an element unique to the screen.
+- **Maestro and text fields:** tapping a field can put the cursor before the
+  last letter, so `eraseText` leaves it behind; tap the field's label (it
+  focuses with the cursor at the end). Ingredient-name fields need
+  `autoCorrect={false}`.
+- **Rows grow with notes:** near the end of a list, centering a row can fail
+  (nothing left to scroll); scroll up to its heading instead.
+- **Check flow results before publishing,** and don't edit app code while a
+  flow runs (Metro reloads mid-test).
 - **Test renderer quirk:** RNTL could not observe a save made in an unmount
   cleanup; that behavior is verified on the device instead.
 - **Release builds starve the emulator.** `./gradlew app:assembleRelease` on all

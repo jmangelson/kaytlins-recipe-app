@@ -57,6 +57,8 @@ export function formatRange(start: DateKey, end: DateKey): string {
   const a = fromDateKey(start);
   const b = fromDateKey(end);
   const left = `${MONTHS[a.getMonth()]} ${a.getDate()}`;
+  // One day: "Oct 18", not "Oct 18 – 18".
+  if (start === end) return left;
   const right =
     a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
       ? `${b.getDate()}`
