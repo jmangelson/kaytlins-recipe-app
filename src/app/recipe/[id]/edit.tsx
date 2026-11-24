@@ -37,6 +37,7 @@ export default function EditRecipeScreen() {
   return (
     <RecipeForm
       initialDraft={draftFromRecipe(recipe)}
+      recipeId={recipe.id}
       initialPhotos={photos}
       tags={tags}
       ingredients={ingredients}

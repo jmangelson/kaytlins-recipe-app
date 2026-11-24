@@ -31,7 +31,12 @@ export type Recipe = {
   /** Her photos in order (the dish, the directions, scanned pages). */
   photoIds: string[];
   ingredients: RecipeIngredient[];
+  /** Other recipes made as part of this one (a pie's crust), per batch of this one. */
+  includes: RecipeInclude[];
 };
+
+/** "½ batch of Pie crust": another recipe, in batches per batch of this one. */
+export type RecipeInclude = { recipeId: string; batches: number };
 
 /** Which canonical ingredient a form row refers to. */
 export type RowLink =
@@ -75,4 +80,5 @@ export type RecipeDraft = {
   rows: DraftRow[];
   notes: string;
   link: string;
+  includes: RecipeInclude[];
 };

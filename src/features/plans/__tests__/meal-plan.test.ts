@@ -28,6 +28,7 @@ function recipe(id: string, name: string, tagIds: string[]): Recipe {
     link: '',
     hasPhoto: false,
     photoIds: [],
+    includes: [],
     ingredients: [],
   };
 }

@@ -106,6 +106,7 @@ describe('recipe notes on lists', () => {
       link: '',
       hasPhoto: false,
       photoIds: [],
+      includes: [],
       ingredients: [
         {
           ingredientId: 'beef',

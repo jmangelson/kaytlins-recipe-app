@@ -11,6 +11,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
+import { IncludesEditor } from '@/features/recipes/includes-editor';
 import { IngredientRowsEditor } from '@/features/recipes/ingredient-rows-editor';
 import { validateDraft, type DraftErrors } from '@/features/recipes/recipe-draft';
 import { newRecipePhotoId, type RecipePhoto } from '@/features/recipes/recipe-repo';
@@ -45,6 +46,8 @@ type RecipeFormProps = {
   header?: ReactNode;
   /** The starting draft isn't saved anywhere yet (a scan), so Back asks. */
   unsavedFromStart?: boolean;
+  /** The recipe being edited, so it can't include itself (null when new). */
+  recipeId?: string | null;
 };
 
 export function RecipeForm({
@@ -56,6 +59,7 @@ export function RecipeForm({
   onSave,
   header,
   unsavedFromStart = false,
+  recipeId = null,
 }: RecipeFormProps) {
   const [draft, setDraft] = useState(initialDraft);
   const scrollRef = useRef<ScrollView>(null);
@@ -209,6 +213,12 @@ export function RecipeForm({
         error={errors.ingredients}
         scrollRef={scrollRef}
         contentRef={contentRef}
+      />
+
+      <IncludesEditor
+        includes={draft.includes}
+        onChange={(includes) => update('includes', includes)}
+        selfId={recipeId}
       />
 
       <TextField

@@ -9,6 +9,7 @@ import { combineQuantities, type Quantity } from '@/features/ingredients/quantit
 import { convert, unitDimension, type UnitKey } from '@/features/ingredients/units';
 import type { CalendarDay, DateKey } from '@/features/calendar/calendar-model';
 import type { MealId, MealPlan, PlanItem } from '@/features/plans/meal-plan';
+import { expandIncludes } from '@/features/recipes/recipe-includes';
 import type { Recipe } from '@/features/recipes/recipe-types';
 import type { Store } from '@/features/stores/store-types';
 
@@ -59,7 +60,8 @@ export function gatherNeeds(items: PlanItem[], recipes: Map<string, Recipe>): Ne
       orNames: string[];
     }
   >();
-  const uses = items.flatMap((item) => {
+  // A pie brings its crust: included recipes, scaled, count as planned too.
+  const uses = expandIncludes(items, recipes).flatMap((item) => {
     const recipe = recipes.get(item.recipeId);
     return recipe ? recipe.ingredients.map((line) => ({ item, recipe, line })) : [];
   });

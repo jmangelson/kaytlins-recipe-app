@@ -38,6 +38,7 @@ export function emptyDraft(): RecipeDraft {
     rows: [],
     notes: '',
     link: '',
+    includes: [],
   };
 }
 
@@ -70,6 +71,7 @@ export function draftFromRecipe(recipe: Recipe): RecipeDraft {
     })),
     notes: recipe.notes,
     link: recipe.link,
+    includes: recipe.includes,
   };
 }
 

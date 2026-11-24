@@ -7,6 +7,7 @@ import type { Edge } from 'react-native-safe-area-context';
 import { Button } from '@/components/button';
 import { Chip } from '@/components/chip';
 import { HeaderButton } from '@/components/header-button';
+import { ListRow } from '@/components/list-row';
 import { ErrorScreen, LoadingScreen } from '@/components/loading-screen';
 import { Screen } from '@/components/screen';
 import { ThemedText } from '@/components/themed-text';
@@ -15,7 +16,13 @@ import { normalizeUrl } from '@/features/import/recipe-page';
 import { categoryName } from '@/features/ingredients/categories';
 import { listIngredients } from '@/features/ingredients/ingredient-repo';
 import { formatIngredientAmount } from '@/features/recipes/recipe-draft';
-import { deleteRecipe, getRecipe, listRecipePhotos } from '@/features/recipes/recipe-repo';
+import { formatBatches } from '@/features/recipes/recipe-includes';
+import {
+  deleteRecipe,
+  getRecipe,
+  listRecipePhotos,
+  listRecipes,
+} from '@/features/recipes/recipe-repo';
 import { useHousehold } from '@/features/session/session-provider';
 import { listTags } from '@/features/stores/store-repo';
 import { useAsync } from '@/hooks/use-async';
@@ -29,13 +36,24 @@ export default function RecipeDetailScreen() {
   const theme = useTheme();
   const [deleting, setDeleting] = useState(false);
   const data = useAsync(async () => {
-    const [recipe, tags, ingredients] = await Promise.all([
+    const [recipe, tags, ingredients, recipes] = await Promise.all([
       getRecipe(household.id, id),
       listTags(household.id),
       listIngredients(household.id),
+      listRecipes(household.id),
     ]);
     const photos = recipe ? await listRecipePhotos(household.id, recipe) : [];
-    return { recipe, tags, photos, ingredients: new Map(ingredients.map((i) => [i.id, i])) };
+    return {
+      recipe,
+      tags,
+      photos,
+      ingredients: new Map(ingredients.map((i) => [i.id, i])),
+      recipes: new Map(recipes.map((r) => [r.id, r])),
+      // Recipes that include this one (a crust's pies).
+      includedIn: recipes
+        .filter((r) => r.includes.some((i) => i.recipeId === id))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    };
   }, [household.id, id]);
 
   // Show edits made on the edit screen when returning here.
@@ -55,7 +73,9 @@ export default function RecipeDetailScreen() {
       />
     );
   }
-  const { recipe, tags, photos, ingredients } = data.state.data;
+  const { recipe, tags, photos, ingredients, recipes, includedIn } = data.state.data;
+  const open = (recipeId: string) =>
+    router.push({ pathname: '/recipe/[id]', params: { id: recipeId } });
   if (!recipe) return <ErrorScreen message="This recipe was deleted." />;
 
   const recipeTags = tags.filter((t) => recipe.tagIds.includes(t.id));
@@ -168,6 +188,35 @@ export default function RecipeDetailScreen() {
           })
         )}
       </View>
+
+      {recipe.includes.length > 0 && (
+        <View style={styles.group}>
+          <ThemedText type="smallBold" accessibilityRole="header">
+            Includes
+          </ThemedText>
+          {recipe.includes.map((include) => {
+            const other = recipes.get(include.recipeId);
+            return (
+              <ListRow
+                key={include.recipeId}
+                title={`${formatBatches(include.batches)} of ${other?.name ?? 'a deleted recipe'}`}
+                subtitle="Its ingredients go on shopping lists with this recipe."
+                onPress={() => other && open(other.id)}
+              />
+            );
+          })}
+        </View>
+      )}
+      {includedIn.length > 0 && (
+        <View style={styles.group}>
+          <ThemedText type="smallBold" accessibilityRole="header">
+            Included in
+          </ThemedText>
+          {includedIn.map((other) => (
+            <ListRow key={other.id} title={other.name} onPress={() => open(other.id)} />
+          ))}
+        </View>
+      )}
 
       {recipe.link ? (
         <Button

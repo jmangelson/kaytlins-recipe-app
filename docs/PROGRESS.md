@@ -476,6 +476,10 @@ From the full check on her phone:
   the meal plan / calendar picker select recipes into a "Selected" list,
   each with a ×N chip (batches: ×2 = twice the recipe's servings), then
   "Add N recipes" adds the group. Added recipes keep their ×N on lists.
+- Recipes include other recipes ("½ batch of Pie crust"), in batches per
+  batch. Lists expand includes (scaled with the planned servings or ×N,
+  nested, loop-safe); the recipe page shows Includes and Included in; the
+  editor won't offer a recipe that would loop. Rules allow `includes`.
 
 ## Decisions
 

@@ -581,6 +581,16 @@ describe('round 2 phase 3–5 data', () => {
     };
     await assertSucceeds(setDoc(doc(db, 'households', HID, 'recipes', 'r1'), recipe));
     await assertFails(setDoc(doc(db, 'households', HID, 'recipes', 'r2'), { ...recipe, link: 5 }));
+    // A recipe that includes another (a pie's crust)
+    await assertSucceeds(
+      setDoc(doc(db, 'households', HID, 'recipes', 'r3'), {
+        ...recipe,
+        includes: [{ recipeId: 'r1', batches: 0.5 }],
+      })
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'recipes', 'r4'), { ...recipe, includes: 'r1' })
+    );
     const ingredient = {
       name: 'Water',
       nameKey: 'water',
