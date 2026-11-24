@@ -265,6 +265,13 @@ function StoreEditor({
           error={areaError ?? undefined}
         />
         <Button label="Add area" variant="secondary" onPress={addArea} />
+        <Button
+          label="Redo layout step by step"
+          variant="secondary"
+          // Replaces this screen (asking first about unsaved changes); the
+          // walk-through opens the store again when it's saved.
+          onPress={() => router.replace({ pathname: '/store-setup', params: { id: store.id } })}
+        />
       </View>
     </Screen>
   );

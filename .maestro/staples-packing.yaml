@@ -129,6 +129,10 @@ tags:
 - scrollUntilVisible:
     element: 'Foil'
     centerElement: true
+- scrollUntilVisible:
+    element:
+      id: 'add-gear'
+    centerElement: true
 - tapOn:
     id: 'add-gear'
 - inputText: 'Dutch oven'

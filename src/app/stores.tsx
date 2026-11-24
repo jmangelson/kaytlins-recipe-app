@@ -159,8 +159,13 @@ export default function StoresScreen() {
       )}
 
       <View style={[styles.group, order && styles.hidden]}>
+        <Button
+          label="Set up a new store"
+          accessibilityHint="Walks you through its areas and where each kind of food is"
+          onPress={() => router.push('/store-setup')}
+        />
         <TextField
-          label="Add a store"
+          label="Or just add one by name"
           testID="new-store-name"
           value={newName}
           onChangeText={(v) => {

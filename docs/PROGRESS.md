@@ -480,6 +480,13 @@ From the full check on her phone:
   batch. Lists expand includes (scaled with the planned servings or ×N,
   nested, loop-safe); the recipe page shows Includes and Included in; the
   editor won't offer a recipe that would loop. Rules allow `includes`.
+- Store setup walk-through (Stores › Set up a new store, or a store's
+  "Redo layout step by step"): name and kind of store (typical
+  supermarket, Walmart Supercenter, warehouse club, Macey's, or from
+  scratch; suggested from the name), areas in walking order (rename,
+  remove, reorder, add "Aisle N" or common areas), sort every kind of food
+  into an area, review, save. Each template places every category once
+  (tested).
 
 ## Decisions
 

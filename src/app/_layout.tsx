@@ -53,6 +53,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="stores" options={{ headerShown: true, title: 'Stores & aisles' }} />
         <Stack.Screen name="store/[id]" options={{ headerShown: true, title: 'Store' }} />
+        <Stack.Screen name="store-setup" options={{ headerShown: true, title: 'Set up a store' }} />
         <Stack.Screen name="ingredients" options={{ headerShown: true, title: 'Ingredients' }} />
         <Stack.Screen
           name="ingredient-duplicates"

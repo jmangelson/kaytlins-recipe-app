@@ -1,0 +1,120 @@
+# Set up a store step by step: the name suggests a warehouse-club layout,
+# adjust the areas, move a kind of food to another area, review, and save.
+appId: com.jmangelson.kaytlinsrecipes
+tags:
+  - stores
+---
+- evalScript: ${output.email = 'storesetup' + Date.now() + '@test.dev'}
+- runFlow:
+    file: subflows/setup.yaml
+    env:
+      EMAIL: ${output.email}
+      FIXTURE: none
+- runFlow:
+    file: subflows/open-settings-item.yaml
+    env:
+      ITEM: 'Stores & aisles'
+- scrollUntilVisible:
+    element: 'Set up a new store'
+    centerElement: true
+- tapOn: 'Set up a new store'
+
+# 1. The store: its name suggests the layout
+- extendedWaitUntil:
+    visible: 'What kind of store is it\?'
+    timeout: 15000
+- tapOn:
+    id: 'setup-store-name'
+- inputText: 'Costco Riverdale'
+- hideKeyboard
+- assertVisible: 'Suggested'
+- assertVisible:
+    text: 'Warehouse club'
+    checked: true
+- takeScreenshot: build/screenshots/125-setup-kind
+- scrollUntilVisible:
+    element: 'Next'
+- tapOn: 'Next'
+
+# 2. Areas in walking order, from the warehouse layout
+- extendedWaitUntil:
+    visible: 'Areas in walking order'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Cold produce room'
+    centerElement: true
+- takeScreenshot: build/screenshots/126-setup-areas
+- scrollUntilVisible:
+    element: 'Add Aisle 1'
+    centerElement: true
+- tapOn: 'Add Aisle 1'
+- scrollUntilVisible:
+    element: 'Remove Aisle 1'
+    direction: UP
+    centerElement: true
+- tapOn: 'Remove Aisle 1'
+- assertNotVisible: 'Remove Aisle 1'
+- scrollUntilVisible:
+    element: 'Next'
+- tapOn: 'Next'
+
+# 3. Sort: seasonal goes with snacks at this one
+- extendedWaitUntil:
+    visible: 'Which area holds each kind of food\?'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Seasonal, in Seasonal'
+    centerElement: true
+- tapOn: 'Seasonal, in Seasonal'
+- scrollUntilVisible:
+    element: 'Move Seasonal to Snacks & candy'
+    centerElement: true
+- takeScreenshot: build/screenshots/127-setup-sort
+- tapOn: 'Move Seasonal to Snacks & candy'
+- scrollUntilVisible:
+    element: 'Seasonal, in Snacks & candy'
+    direction: UP
+    centerElement: true
+# (a long list: every kind of food)
+- scrollUntilVisible:
+    element: 'Next'
+    timeout: 90000
+- tapOn: 'Next'
+
+# 4. Review and save
+- extendedWaitUntil:
+    visible: 'Costco Riverdale: 19 areas'
+    timeout: 15000
+- takeScreenshot: build/screenshots/128-setup-review
+- scrollUntilVisible:
+    element: 'Save store'
+- tapOn: 'Save store'
+- extendedWaitUntil:
+    visible:
+      id: 'store-name'
+    timeout: 15000
+- scrollUntilVisible:
+    element: '.*Cold produce room.*'
+    centerElement: true
+
+# Redo it later: starts from its current areas
+- scrollUntilVisible:
+    element: 'Redo layout step by step'
+    centerElement: true
+- tapOn: 'Redo layout step by step'
+- extendedWaitUntil:
+    visible: 'What kind of store is it\?'
+    timeout: 15000
+- assertVisible: 'Step 1 of 4 · Store'
+- assertVisible:
+    text: 'Keep its current areas'
+    checked: true
+- scrollUntilVisible:
+    element: 'Next'
+- tapOn: 'Next'
+- extendedWaitUntil:
+    visible: 'Areas in walking order'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Cold produce room'
+    centerElement: true
