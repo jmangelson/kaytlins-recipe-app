@@ -378,10 +378,11 @@ appId: com.jmangelson.kaytlinsrecipes
     element: 'Add to Day 1 Dinner'
 - tapOn: 'Add to Day 1 Dinner'
 - extendedWaitUntil:
-    visible: 'Add Chicken Enchiladas'
+    visible: 'Select Chicken Enchiladas'
     timeout: 15000
 - takeScreenshot: build/screenshots/35-plan-picker-main
-- tapOn: 'Add Chicken Enchiladas'
+- tapOn: 'Select Chicken Enchiladas'
+- tapOn: 'Add 1 recipe'
 - scrollUntilVisible:
     element: 'Add a side to Day 1 Dinner'
 - takeScreenshot: build/screenshots/36-plan-day-with-main
@@ -389,10 +390,11 @@ appId: com.jmangelson.kaytlinsrecipes
 - takeScreenshot: build/screenshots/37-plan-picker-sides
 - tapOn: 'All'
 - extendedWaitUntil:
-    visible: 'Add Veggie Pasta'
+    visible: 'Select Veggie Pasta'
     timeout: 15000
 - takeScreenshot: build/screenshots/38-plan-picker-all
-- tapOn: 'Add Veggie Pasta'
+- tapOn: 'Select Veggie Pasta'
+- tapOn: 'Add 1 recipe'
 # Back with unsaved changes asks first
 - back
 - extendedWaitUntil:

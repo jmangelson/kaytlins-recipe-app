@@ -34,9 +34,15 @@ tags:
 - extendedWaitUntil:
     visible: 'For dinner'
     timeout: 15000
-- assertVisible: 'Add Chicken Enchiladas'
-- assertNotVisible: 'Add Pico'
-- tapOn: 'Add Chicken Enchiladas'
+- assertVisible: 'Select Chicken Enchiladas'
+- assertNotVisible: 'Select Pico'
+# Tapping selects; the Selected list shows it with its ×1, and Add adds the group
+- tapOn: 'Select Chicken Enchiladas'
+- assertVisible: 'Selected \(1\)'
+- tapOn: 'Chicken Enchiladas, ×1.*'
+- assertVisible: 'Chicken Enchiladas, ×2.*'
+- takeScreenshot: build/screenshots/120-pick-several
+- tapOn: 'Add 1 recipe'
 - extendedWaitUntil:
     visible: '3 days · 1 recipe'
     timeout: 15000
@@ -46,10 +52,11 @@ tags:
     element: 'Add a side to Day 1 Dinner'
 - tapOn: 'Add a side to Day 1 Dinner'
 - extendedWaitUntil:
-    visible: 'Add Pico'
+    visible: 'Select Pico'
     timeout: 15000
-- assertNotVisible: 'Add Chicken Enchiladas'
-- tapOn: 'Add Pico'
+- assertNotVisible: 'Select Chicken Enchiladas'
+- tapOn: 'Select Pico'
+- tapOn: 'Add 1 recipe'
 - extendedWaitUntil:
     visible: '3 days · 2 recipes'
     timeout: 15000

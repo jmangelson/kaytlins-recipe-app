@@ -58,8 +58,18 @@ export function addItem(
   meal: MealId,
   recipeId: string
 ): MealPlan {
+  return addItems(plan, dayIndex, meal, [{ recipeId, servings: null }]);
+}
+
+/** Several recipes into one meal (from the picker, each with its servings). */
+export function addItems(
+  plan: MealPlan,
+  dayIndex: number,
+  meal: MealId,
+  items: PlanItem[]
+): MealPlan {
   return updateDay(plan, dayIndex, (day) => ({
-    meals: { ...day.meals, [meal]: [...day.meals[meal], { recipeId, servings: null }] },
+    meals: { ...day.meals, [meal]: [...day.meals[meal], ...items] },
   }));
 }
 

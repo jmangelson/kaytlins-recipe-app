@@ -10,6 +10,14 @@ import { Spacing } from '@/constants/theme';
 import { addDays, formatDay, formatRange, type DateKey } from '@/features/calendar/calendar-model';
 import { listCalendarDays } from '@/features/calendar/calendar-repo';
 import { mealName, type MealId, type MealPlan, type PlanItem } from '@/features/plans/meal-plan';
+import {
+  addLabel,
+  SelectedRecipes,
+  servingsForTimes,
+  timesFromServings,
+  togglePick,
+  type RecipePick,
+} from '@/features/recipes/recipe-selection';
 import { filterRecipes } from '@/features/recipes/recipe-draft';
 import type { Recipe } from '@/features/recipes/recipe-types';
 import { CheckRow } from '@/features/shopping/check-row';
@@ -117,6 +125,13 @@ export function useListSources({
     ...(addedNames.length > 2 ? [`${addedNames.length} recipes`] : addedNames),
   ].filter((p): p is string => !!p);
 
+  function itemsFromPicks(picks: RecipePick[]): PlanItem[] {
+    return picks.map((p) => {
+      const recipe = recipes.get(p.recipeId);
+      return { recipeId: p.recipeId, servings: recipe ? servingsForTimes(recipe, p.times) : null };
+    });
+  }
+
   function toggleMeal(key: string) {
     setTouched(true);
     setExcluded((prev) => {
@@ -220,22 +235,19 @@ export function useListSources({
         <ThemedText type="smallBold" accessibilityRole="header">
           Recipes
         </ThemedText>
-        {added.map((item, index) => (
-          <View key={index} style={styles.addedRow}>
-            <ThemedText type="small" style={styles.flex}>
-              {recipes.get(item.recipeId)?.name ?? 'Deleted recipe'}
-            </ThemedText>
-            <IconButton
-              icon={{ android: 'close', ios: 'xmark' }}
-              label={`Remove ${recipes.get(item.recipeId)?.name ?? 'recipe'}`}
-              onPress={() => touch(setAdded)(added.filter((_, i) => i !== index))}
-            />
-          </View>
-        ))}
+        <SelectedRecipes
+          title="Added"
+          picks={added.map((item) => ({
+            recipeId: item.recipeId,
+            times: timesFromServings(recipes.get(item.recipeId), item.servings),
+          }))}
+          recipes={recipes}
+          onChange={(picks) => touch(setAdded)(itemsFromPicks(picks))}
+        />
         <RecipeAdder
           recipes={[...recipes.values()]}
           tags={tags}
-          onAdd={(recipe) => touch(setAdded)([...added, { recipeId: recipe.id, servings: null }])}
+          onAdd={(picks) => touch(setAdded)([...added, ...itemsFromPicks(picks)])}
         />
       </View>
     </>
@@ -266,8 +278,9 @@ export function useListSources({
 }
 
 /**
- * "Add a recipe": opens a search (name or ingredient) with the same tag
- * filters as the Recipes tab; one tap adds one recipe and closes it.
+ * "Add recipes": opens a search (name or ingredient) with the same tag
+ * filters as the Recipes tab. Tapping recipes selects them (each with its
+ * ×N); "Add N recipes" adds the whole group.
  */
 function RecipeAdder({
   recipes,
@@ -276,18 +289,20 @@ function RecipeAdder({
 }: {
   recipes: Recipe[];
   tags: Tag[];
-  onAdd: (recipe: Recipe) => void;
+  onAdd: (picks: RecipePick[]) => void;
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [picks, setPicks] = useState<RecipePick[]>([]);
   const [search, setSearch] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   if (!open) {
-    return <Button label="Add a recipe" variant="secondary" onPress={() => setOpen(true)} />;
+    return <Button label="Add recipes" variant="secondary" onPress={() => setOpen(true)} />;
   }
   const groups = tagsByGroup(tags);
+  const byId = new Map(recipes.map((r) => [r.id, r]));
   const selected = tags.filter((t) => selectedTags.includes(t.id));
   const matches = filterRecipes(recipes, search, selected);
   const shown = matches.slice(0, 12);
@@ -297,6 +312,7 @@ function RecipeAdder({
     );
   function close() {
     setOpen(false);
+    setPicks([]);
     setSearch('');
     setSelectedTags([]);
     setFiltersOpen(false);
@@ -360,24 +376,48 @@ function RecipeAdder({
             ? `Showing ${shown.length} of ${matches.length}; search to narrow it down.`
             : `${matches.length} ${matches.length === 1 ? 'recipe' : 'recipes'}`}
       </ThemedText>
-      {shown.map((recipe) => (
-        <Pressable
-          key={recipe.id}
-          accessibilityRole="button"
-          accessibilityLabel={`Add ${recipe.name}`}
-          onPress={() => {
-            onAdd(recipe);
-            close();
-          }}
-          style={({ pressed }) => [
-            styles.option,
-            { borderBottomColor: theme.border },
-            pressed && styles.pressed,
-          ]}>
-          <ThemedText type="small">{recipe.name}</ThemedText>
-        </Pressable>
-      ))}
-      <Button label="Cancel" variant="secondary" onPress={close} />
+      {shown.map((recipe) => {
+        const picked = picks.some((p) => p.recipeId === recipe.id);
+        return (
+          <Pressable
+            key={recipe.id}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: picked }}
+            accessibilityLabel={`Select ${recipe.name}`}
+            onPress={() => setPicks(togglePick(picks, recipe.id))}
+            style={({ pressed }) => [
+              styles.option,
+              styles.optionRow,
+              { borderBottomColor: theme.border },
+              pressed && styles.pressed,
+            ]}>
+            <ThemedText type="small" style={styles.flex}>
+              {recipe.name}
+            </ThemedText>
+            {picked && (
+              <ThemedText type="smallBold" themeColor="tint">
+                ✓
+              </ThemedText>
+            )}
+          </Pressable>
+        );
+      })}
+      <SelectedRecipes picks={picks} recipes={byId} onChange={setPicks} />
+      <View style={styles.actionsRow}>
+        <View style={styles.flex}>
+          <Button label="Cancel" variant="secondary" onPress={close} />
+        </View>
+        <View style={styles.flex}>
+          <Button
+            label={addLabel(picks.length)}
+            onPress={() => {
+              onAdd(picks);
+              close();
+            }}
+            disabled={picks.length === 0}
+          />
+        </View>
+      </View>
     </View>
   );
 }
@@ -511,9 +551,15 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  addedRow: {
+  optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.two,
+  },
+  actionsRow: {
+    // Add on top, full width (its label doesn't fit half the row).
+    flexDirection: 'column-reverse',
+    gap: Spacing.two,
   },
   flex: {
     flex: 1,

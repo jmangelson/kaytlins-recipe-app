@@ -11,10 +11,10 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { requestRecipe } from '@/features/editing/recipe-pick';
+import { requestRecipes } from '@/features/editing/recipe-pick';
 import {
   addDay,
-  addItem,
+  addItems,
   duplicateDay,
   MAX_PLAN_DAYS,
   planSummary,
@@ -108,7 +108,7 @@ function PlanEditor({
   const leave = useUnsavedChanges(dirty, save);
 
   function openPicker(dayIndex: number, meal: MealId, courses: string[]) {
-    const token = requestRecipe((recipeId) => setPlan((p) => addItem(p, dayIndex, meal, recipeId)));
+    const token = requestRecipes((items) => setPlan((p) => addItems(p, dayIndex, meal, items)));
     router.push({
       pathname: '/pick',
       params: { token, title: `Day ${dayIndex + 1}`, meal, courses: courses.join(',') },

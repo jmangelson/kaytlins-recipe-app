@@ -95,9 +95,9 @@ tags:
 - scrollUntilVisible:
     element: '2 meals · 7 items.*'
 - scrollUntilVisible:
-    element: 'Add a recipe'
+    element: 'Add recipes'
     centerElement: true
-- tapOn: 'Add a recipe'
+- tapOn: 'Add recipes'
 - tapOn:
     id: 'add-recipe-search'
 # Search by ingredient, with the Recipes tab's filters
@@ -107,9 +107,23 @@ tags:
 - assertVisible: 'Type'
 - takeScreenshot: build/screenshots/88-add-recipe-dropdown
 - tapOn: 'Hide recipe filters'
-- tapOn: 'Add Salsa'
+- tapOn: 'Select Salsa'
+- scrollUntilVisible:
+    element: 'Salsa, ×1.*'
+    centerElement: true
+- tapOn: 'Salsa, ×1.*'
+- takeScreenshot: build/screenshots/121-list-pick-several
+- scrollUntilVisible:
+    element: 'Add 1 recipe'
+    centerElement: true
+- tapOn: 'Add 1 recipe'
 - scrollUntilVisible:
     element: '2 meals \+ 1 recipe · 9 items.*'
+# Added twice over (×2), still one recipe (the Added list is above)
+- scrollUntilVisible:
+    element: 'Salsa, ×2.*'
+    direction: UP
+    centerElement: true
 - assertVisible: 'Remove Salsa'
 - scrollUntilVisible:
     element:

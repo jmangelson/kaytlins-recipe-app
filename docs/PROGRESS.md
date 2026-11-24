@@ -470,6 +470,13 @@ From the full check on her phone:
   potatoes/onions/garlic; Costco keeps cold produce apart), Macey's walking
   order, and a built-in catalog of about 4,000 names.
 
+### Round 3 — pick several recipes, recipe includes, store setup (2026-11-24)
+
+- Pick several recipes at once: the list pickers (shopping and packing) and
+  the meal plan / calendar picker select recipes into a "Selected" list,
+  each with a ×N chip (batches: ×2 = twice the recipe's servings), then
+  "Add N recipes" adds the group. Added recipes keep their ×N on lists.
+
 ## Decisions
 
 - 2026-10-05: Back never saves; explicit Save everywhere, with a

@@ -79,14 +79,18 @@ tags:
 - tapOn: 'Shopping'
 - tapOn: 'New list'
 - scrollUntilVisible:
-    element: 'Add a recipe'
+    element: 'Add recipes'
     centerElement: true
-- tapOn: 'Add a recipe'
+- tapOn: 'Add recipes'
 - tapOn:
     id: 'add-recipe-search'
 - inputText: 'romaine'
 - hideKeyboard
-- tapOn: 'Add Taco salad'
+- tapOn: 'Select Taco salad'
+- scrollUntilVisible:
+    element: 'Add 1 recipe'
+    centerElement: true
+- tapOn: 'Add 1 recipe'
 - scrollUntilVisible:
     element: 'Save list'
 - tapOn: 'Save list'

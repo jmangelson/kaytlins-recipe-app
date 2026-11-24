@@ -16,7 +16,7 @@ import {
   type CalendarDay,
 } from '@/features/calendar/calendar-model';
 import { listCalendarDays, saveCalendarDays } from '@/features/calendar/calendar-repo';
-import { requestRecipe } from '@/features/editing/recipe-pick';
+import { requestRecipes } from '@/features/editing/recipe-pick';
 import { DayMeals } from '@/features/plans/day-meals';
 import { emptyDay, visibleMeals, type MealId } from '@/features/plans/meal-plan';
 import { listRecipes } from '@/features/recipes/recipe-repo';
@@ -97,10 +97,10 @@ function DayEditor({
   const leave = useUnsavedChanges(dirty, save);
 
   function openPicker(meal: MealId, courses: string[]) {
-    const token = requestRecipe((recipeId) =>
+    const token = requestRecipes((items) =>
       setDay((d) => ({
         ...d,
-        meals: { ...d.meals, [meal]: [...d.meals[meal], { recipeId, servings: null }] },
+        meals: { ...d.meals, [meal]: [...d.meals[meal], ...items] },
       }))
     );
     router.push({

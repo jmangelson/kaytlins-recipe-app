@@ -8,10 +8,12 @@ import { useTheme } from '@/hooks/use-theme';
 type FloatingButtonProps = {
   label: string;
   onPress: () => void;
+  /** Extra space below it on a screen without a tab bar (the gesture bar). */
+  bottomInset?: number;
 };
 
 /** Android-style floating action button, above the tab bar on a tab screen. */
-export function FloatingButton({ label, onPress }: FloatingButtonProps) {
+export function FloatingButton({ label, onPress, bottomInset = 0 }: FloatingButtonProps) {
   const theme = useTheme();
   return (
     <Pressable
@@ -21,6 +23,7 @@ export function FloatingButton({ label, onPress }: FloatingButtonProps) {
       style={({ pressed }) => [
         styles.button,
         { backgroundColor: theme.tint },
+        bottomInset > 0 && { bottom: Spacing.three + bottomInset },
         pressed && styles.pressed,
       ]}>
       <SymbolView name={{ android: 'add', ios: 'plus' }} tintColor={theme.onTint} size={22} />
