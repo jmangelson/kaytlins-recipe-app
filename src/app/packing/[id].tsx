@@ -12,7 +12,7 @@ import { TextField } from '@/components/text-field';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { formatQuantity } from '@/features/ingredients/quantity';
-import { groupByCategory, type PackingList } from '@/features/packing/packing-model';
+import { groupByZone, type PackingList } from '@/features/packing/packing-model';
 import {
   deletePackingList,
   getPackingList,
@@ -54,7 +54,8 @@ function PackingEditor({ householdId, initial }: { householdId: string; initial:
     );
   }
 
-  const groups = groupByCategory(list.items);
+  const groups = groupByZone(list.items);
+
   const packed =
     list.items.filter((i) => i.checked).length + list.gear.filter((g) => g.checked).length;
   const total = list.items.length + list.gear.length;
@@ -98,10 +99,18 @@ function PackingEditor({ householdId, initial }: { householdId: string; initial:
         {groups.length === 0 && (
           <ThemedText themeColor="textSecondary">No food on this list.</ThemedText>
         )}
+        {groups.length > 0 && (
+          <ThemedText type="small" themeColor="textSecondary">
+            In a suggested packing order: coolers first, then the bins from the bottom up.
+          </ThemedText>
+        )}
         {groups.map((group) => (
-          <View key={group.name}>
-            <ThemedText type="smallBold" themeColor="textSecondary">
-              {group.name}
+          <View key={group.zone.id}>
+            <ThemedText type="smallBold" accessibilityRole="header">
+              {group.zone.name}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {group.zone.tip}
             </ThemedText>
             {group.items.map((item) => (
               <CheckRow

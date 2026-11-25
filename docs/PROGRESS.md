@@ -487,6 +487,11 @@ From the full check on her phone:
   remove, reorder, add "Aisle N" or common areas), sort every kind of food
   into an area, review, save. Each template places every category once
   (tested).
+- Packing lists group food by suggested packing category, in packing
+  order: frozen cooler items, cold cooler items, fridge items OK out of
+  the cooler for a while, heavy & liquid, heavy dry, light dry, crushable
+  (on top), supplies; each with a short tip. A suggestion only: no moving
+  items between categories.
 
 ## Decisions
 

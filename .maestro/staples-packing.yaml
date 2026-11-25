@@ -115,6 +115,7 @@ tags:
     visible: '.*things to pack.*'
     timeout: 15000
 - assertVisible: 'Food'
+- assertVisible: 'In a suggested packing order.*'
 - scrollUntilVisible:
     element: 'lime.*'
     centerElement: true
@@ -122,9 +123,14 @@ tags:
 - assertVisible:
     text: 'lime.*'
     checked: true
+# Suggested packing categories: milk is a cold cooler item
 - scrollUntilVisible:
     element: 'whole milk.*'
+    direction: UP
     centerElement: true
+- assertVisible:
+    text: 'whole milk.*'
+    below: 'Cold cooler items'
 - takeScreenshot: build/screenshots/97-packing-list
 - scrollUntilVisible:
     element: 'Foil'

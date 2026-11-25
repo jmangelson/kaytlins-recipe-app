@@ -6,6 +6,7 @@ import {
 } from '@/features/ingredients/categories';
 import type { Ingredient } from '@/features/ingredients/ingredient-model';
 import { combineQuantities, type Quantity } from '@/features/ingredients/quantity';
+import { PACK_ZONES, zoneForCategory } from '@/features/packing/packing-zones';
 import type { ListSource, ShoppingList } from '@/features/shopping/list-model';
 import { nameWithChoices, type NeedLine } from '@/features/shopping/shopping-model';
 
@@ -128,6 +129,18 @@ export function gearFrom(names: string[]): GearItem[] {
 }
 
 /** Food grouped by category, in the categories' usual order. */
+/** Food by suggested packing category, in packing order (empty ones left out). */
+export function groupByZone(
+  items: PackItem[]
+): { zone: (typeof PACK_ZONES)[number]; items: PackItem[] }[] {
+  return PACK_ZONES.map((zone) => ({
+    zone,
+    items: items
+      .filter((i) => zoneForCategory(i.category) === zone.id)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  })).filter((g) => g.items.length > 0);
+}
+
 export function groupByCategory(items: PackItem[]): { name: string; items: PackItem[] }[] {
   const order = new Map(CATEGORIES.map((c, i) => [c.id as CategoryId, i]));
   const ids = [...new Set(items.map((i) => i.category))].sort(
